@@ -11,22 +11,22 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages
-  cancel-in-progress: true
+  group: "pages"
+  cancel-in-progress: false
 
 jobs:
   deploy:
+    runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Generate Firebase config
         run: |
-          cat > js/firebase-config.js << EOF
+          cat > js/firebase-config.js << 'EOF'
           import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js';
           import { getAuth } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js';
           import { getFirestore } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js';
@@ -52,9 +52,6 @@ jobs:
           cp -r css js _site/
           touch _site/.nojekyll
 
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
@@ -62,4 +59,4 @@ jobs:
 
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v5
+        uses: actions/deploy-pages@v4
