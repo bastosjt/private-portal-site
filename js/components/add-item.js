@@ -1,5 +1,5 @@
 import { HOME_CATEGORIES, getCategoryById } from '../config.js';
-import { addItem } from '../firestore.js';
+import { addItem } from '../firestore.js?v=2';
 import { sidebarIcon } from './sidebar.js';
 import { initFormAddressFields } from './address-autocomplete.js';
 import {
