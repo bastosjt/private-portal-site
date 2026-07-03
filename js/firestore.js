@@ -5,6 +5,9 @@ import {
   orderBy,
   limit,
   getDocs,
+  where,
+  Timestamp,
+  addDoc,
 } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js';
 
 export async function fetchRecentItems(collectionName, max = 3) {
@@ -30,4 +33,42 @@ export async function fetchCollectionCount(collectionName) {
     console.warn(`fetchCollectionCount(${collectionName}):`, err.message);
     return 0;
   }
+}
+
+export async function fetchWeekItemsCount(collectionNames) {
+  const weekAgo = new Date();
+  weekAgo.setDate(weekAgo.getDate() - 7);
+  weekAgo.setHours(0, 0, 0, 0);
+  const since = Timestamp.fromDate(weekAgo);
+
+  const counts = await Promise.all(
+    collectionNames.map(async (name) => {
+      try {
+        const q = query(
+          collection(db, name),
+          where('createdAt', '>=', since),
+        );
+        const snapshot = await getDocs(q);
+        return snapshot.size;
+      } catch (err) {
+        console.warn(`fetchWeekItemsCount(${name}):`, err.message);
+        return 0;
+      }
+    }),
+  );
+
+  return counts.reduce((sum, n) => sum + n, 0);
+}
+
+export async function addItem(collectionName, data, userId) {
+  const now = Timestamp.now();
+  const payload = {
+    ...data,
+    userId,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  const docRef = await addDoc(collection(db, collectionName), payload);
+  return docRef.id;
 }

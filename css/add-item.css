@@ -1,0 +1,487 @@
+/* ── FAB ── */
+.fab {
+  position: fixed;
+  right: max(20px, env(safe-area-inset-right, 0px));
+  bottom: max(24px, env(safe-area-inset-bottom, 0px));
+  z-index: 140;
+  width: 58px;
+  height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-mid) 55%, var(--accent-deep) 100%);
+  color: #0c1a22;
+  box-shadow:
+    -4px -4px 12px rgba(255, 255, 255, 0.05),
+    6px 6px 18px rgba(0, 0, 0, 0.5),
+    0 0 24px rgba(0, 212, 255, 0.2);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+}
+
+.fab svg {
+  width: 26px;
+  height: 26px;
+}
+
+.fab:hover {
+  filter: brightness(1.06);
+  transform: translateY(-2px);
+}
+
+.fab:active {
+  transform: scale(0.96);
+  box-shadow: var(--neu-press);
+}
+
+body.modal-open {
+  overflow: hidden;
+}
+
+/* ── Modal ── */
+.add-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 260;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(8, 10, 14, 0.62);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: add-overlay-in 0.22s ease;
+}
+
+.add-modal-overlay.hidden {
+  display: none;
+}
+
+.add-modal {
+  width: 100%;
+  max-width: 480px;
+  max-height: min(88dvh, 720px);
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow:
+    -6px -6px 16px rgba(255, 255, 255, 0.03),
+    8px 8px 24px rgba(0, 0, 0, 0.55);
+  animation: add-modal-in 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.add-modal-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 18px 18px 12px;
+  flex-shrink: 0;
+}
+
+.add-modal-title {
+  flex: 1;
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  text-align: center;
+}
+
+.add-modal-back,
+.add-modal-close {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  background: var(--bg);
+  box-shadow: var(--neu-up-sm);
+  flex-shrink: 0;
+  transition: color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.add-modal-back.hidden {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.add-modal-back svg,
+.add-modal-close svg {
+  width: 20px;
+  height: 20px;
+}
+
+.add-modal-back:active,
+.add-modal-close:active {
+  box-shadow: var(--neu-press);
+}
+
+.add-modal-body {
+  overflow-y: auto;
+  padding: 4px 18px 22px;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ── Category picker ── */
+.add-picker-lead {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.add-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.add-picker-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 18px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  box-shadow: var(--neu-up-sm);
+  color: var(--text-primary);
+  transition: box-shadow 0.2s ease, transform 0.15s ease;
+}
+
+.add-picker-item:hover {
+  box-shadow:
+    var(--neu-up-sm),
+    0 0 14px var(--cat-glow);
+}
+
+.add-picker-item:active {
+  transform: scale(0.98);
+  box-shadow: var(--neu-press);
+}
+
+.add-picker-icon {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--cat-color);
+  box-shadow: var(--neu-in);
+}
+
+.add-picker-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.add-picker-label {
+  font-size: 0.78rem;
+  font-weight: 500;
+  text-align: center;
+  line-height: 1.3;
+}
+
+/* ── Form ── */
+.add-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-field-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  padding-left: 4px;
+}
+
+.form-input-wrap,
+.form-select-wrap {
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  padding: 0 16px;
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  box-shadow: var(--neu-in);
+}
+
+.form-select-wrap {
+  position: relative;
+  padding-right: 36px;
+}
+
+.form-select-wrap::after {
+  content: '';
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 5px solid var(--text-placeholder);
+  pointer-events: none;
+}
+
+.form-input,
+.form-select {
+  flex: 1;
+  width: 100%;
+  font-size: 0.88rem;
+  min-width: 0;
+  color: var(--text-primary);
+  outline: none;
+  border: none;
+  box-shadow: none;
+  background: transparent;
+}
+
+.form-input:focus,
+.form-input:focus-visible,
+.form-select:focus,
+.form-select:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+.form-input--address {
+  padding-right: 4px;
+}
+
+/* ── Address autocomplete ── */
+.address-field {
+  position: relative;
+}
+
+.address-field-icon {
+  color: var(--text-placeholder);
+  flex-shrink: 0;
+  transition: color 0.2s ease;
+}
+
+.address-field-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.address-field:focus-within .address-field-icon,
+.address-field.is-searching .address-field-icon {
+  color: var(--cat-color, var(--accent));
+}
+
+.address-suggestions {
+  list-style: none;
+  margin: 0;
+  padding: 6px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  box-shadow:
+    -4px -4px 12px rgba(255, 255, 255, 0.03),
+    6px 6px 18px rgba(0, 0, 0, 0.5);
+  max-height: min(240px, 40dvh);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.address-suggestions.hidden {
+  display: none;
+}
+
+.address-suggestion {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.address-suggestion.is-active,
+.address-suggestion:hover {
+  background: var(--bg);
+}
+
+.address-suggestion-icon {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: var(--cat-color, var(--accent));
+  background: color-mix(in srgb, var(--cat-color, var(--accent)) 12%, var(--bg));
+}
+
+.address-suggestion-icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.address-suggestion-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.address-suggestion-label {
+  font-size: 0.82rem;
+  color: var(--text-primary);
+  line-height: 1.35;
+}
+
+.address-suggestion-meta {
+  font-size: 0.72rem;
+  color: var(--text-placeholder);
+  line-height: 1.3;
+}
+
+.form-select {
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  padding: 0;
+  margin: 0;
+}
+
+.form-textarea {
+  width: 100%;
+  min-height: 88px;
+  padding: 14px 16px;
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  box-shadow: var(--neu-in);
+  font-size: 0.88rem;
+  color: var(--text-primary);
+  outline: none;
+  border: none;
+  resize: vertical;
+  line-height: 1.45;
+}
+
+.form-textarea:focus,
+.form-textarea:focus-visible {
+  outline: none;
+  box-shadow: var(--neu-in);
+}
+
+.form-textarea::placeholder {
+  color: var(--text-placeholder);
+}
+
+/* ── Select custom option ── */
+.form-field--select label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-select-add {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-select-add.hidden {
+  display: none;
+}
+
+.form-select-add-btn {
+  align-self: flex-start;
+  padding: 8px 14px;
+  border-radius: var(--radius-pill);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  background: var(--bg);
+  box-shadow: var(--neu-up-sm);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.form-select-add-btn:active {
+  transform: scale(0.97);
+  box-shadow: var(--neu-press);
+}
+
+.add-form-error {
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--error);
+  font-size: 0.8rem;
+  text-align: center;
+  box-shadow: var(--neu-in);
+}
+
+.add-form-submit {
+  margin-top: 4px;
+  height: 50px;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(135deg, var(--cat-color) 0%, color-mix(in srgb, var(--cat-color) 75%, #000) 100%);
+  color: #0c1a22;
+  font-size: 0.88rem;
+  font-weight: 600;
+  box-shadow: var(--neu-up-sm);
+  transition: transform 0.15s ease, filter 0.2s ease;
+}
+
+.add-form-submit:hover {
+  filter: brightness(1.05);
+}
+
+.add-form-submit:active {
+  transform: scale(0.985);
+}
+
+.add-form-submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  filter: none;
+}
+
+@keyframes add-overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes add-modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (min-width: 640px) {
+  .add-modal-overlay {
+    align-items: center;
+  }
+
+  .add-picker-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .add-modal-overlay,
+  .add-modal {
+    animation: none;
+  }
+}

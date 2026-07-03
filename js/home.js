@@ -1,6 +1,11 @@
-import { COUPLE_START_DATE, HOME_CATEGORIES } from './config.js';
-import { fetchRecentItems, fetchCollectionCount } from './firestore.js';
+import { COUPLE_START_DATE, HOME_CATEGORIES, getUserDisplayName } from './config.js';
+import { fetchRecentItems, fetchCollectionCount, fetchWeekItemsCount } from './firestore.js';
 import { sidebarIcon } from './components/sidebar.js';
+import { initAddItem } from './components/add-item.js';
+
+const COLLECTION_IDS = HOME_CATEGORIES.map((cat) => cat.id);
+let currentUserName = '';
+let addItemModal = null;
 
 function formatShortDate(value) {
   if (!value) return '';
@@ -26,18 +31,50 @@ function formatStartDate(startDateStr) {
   });
 }
 
+function getGreeting() {
+  const hour = new Date().getHours();
+  if (hour < 6) return 'Bonne nuit';
+  if (hour < 12) return 'Bonjour';
+  if (hour < 18) return 'Bon après-midi';
+  return 'Bonsoir';
+}
+
+function buildHeaderSubtitle(total, weekCount) {
+  if (weekCount === 1) return '1 nouvelle idée cette semaine';
+  if (weekCount > 1) return `${weekCount} nouvelles idées cette semaine`;
+  if (total === 0) return 'Votre espace partagé';
+  return `${total} idée${total > 1 ? 's' : ''} enregistrée${total > 1 ? 's' : ''}`;
+}
+
+function getGreetingLabel() {
+  const base = getGreeting();
+  return currentUserName ? `${base} ${currentUserName}` : base;
+}
+
+function initPageHeader(total = null, weekCount = null) {
+  const greetingEl = document.getElementById('page-greeting');
+  const subEl = document.getElementById('page-header-sub');
+
+  if (greetingEl) greetingEl.textContent = getGreetingLabel();
+  if (subEl) {
+    subEl.textContent = total === null ? 'Chargement…' : buildHeaderSubtitle(total, weekCount);
+  }
+}
+
 function getItemTitle(item, titleKey) {
   return item[titleKey] || item.nom || item.titre || item.destination || 'Sans titre';
 }
 
-function renderRecentItem(item, titleKey) {
+function renderRecentItem(item, titleKey, href) {
   const title = getItemTitle(item, titleKey);
   const date = formatShortDate(item.createdAt);
   return `
-    <li class="cat-recent-item">
-      <span class="cat-recent-dot" aria-hidden="true"></span>
-      <span class="cat-recent-title">${escapeHtml(title)}</span>
-      ${date ? `<time class="cat-recent-date">${date}</time>` : ''}
+    <li>
+      <a href="${href}" class="cat-recent-item">
+        <span class="cat-recent-dot" aria-hidden="true"></span>
+        <span class="cat-recent-title">${escapeHtml(title)}</span>
+        ${date ? `<time class="cat-recent-date">${date}</time>` : ''}
+      </a>
     </li>
   `;
 }
@@ -50,9 +87,49 @@ function escapeHtml(str) {
     .replace(/"/g, '&quot;');
 }
 
-export function initHomePage() {
+function renderStatsSkeleton() {
+  return Array.from({ length: HOME_CATEGORIES.length }, () => `
+    <div class="skel-stat" aria-hidden="true">
+      <div class="skel-block skel-block--icon skel-shimmer"></div>
+      <div class="skel-block skel-block--value skel-shimmer"></div>
+      <div class="skel-block skel-block--label skel-shimmer"></div>
+    </div>
+  `).join('');
+}
+
+function renderRecentSkeleton() {
+  return Array.from({ length: HOME_CATEGORIES.length }, () => `
+    <div class="skel-panel" aria-hidden="true">
+      <div class="skel-panel-head">
+        <div class="skel-block skel-block--panel-icon skel-shimmer"></div>
+        <div class="skel-panel-head-text">
+          <div class="skel-block skel-block--panel-title skel-shimmer"></div>
+          <div class="skel-block skel-block--panel-meta skel-shimmer"></div>
+        </div>
+      </div>
+      <div class="skel-block skel-block--line skel-shimmer"></div>
+      <div class="skel-block skel-block--line skel-shimmer"></div>
+      <div class="skel-block skel-block--line skel-block--line-short skel-shimmer"></div>
+    </div>
+  `).join('');
+}
+
+export function initHomePage(user) {
+  currentUserName = getUserDisplayName(user);
+  addItemModal = initAddItem({ user, onAdded: () => loadHomeData() });
+  initPageHeader();
   renderDaysCounter();
+  bindAddTriggers();
   loadHomeData();
+}
+
+function bindAddTriggers() {
+  document.addEventListener('click', (event) => {
+    const trigger = event.target.closest('[data-add-category]');
+    if (!trigger || !addItemModal) return;
+    event.preventDefault();
+    addItemModal.open(trigger.dataset.addCategory);
+  });
 }
 
 function renderDaysCounter() {
@@ -65,7 +142,7 @@ function renderDaysCounter() {
     animateCount(daysEl, days);
   }
   if (sinceEl) {
-    sinceEl.textContent = `Depuis le ${formatStartDate(COUPLE_START_DATE)}`;
+    sinceEl.textContent = formatStartDate(COUPLE_START_DATE);
   }
   if (labelEl) {
     labelEl.textContent = days <= 1 ? 'jour ensemble' : 'jours ensemble';
@@ -91,22 +168,36 @@ async function loadHomeData() {
   const statsEl = document.getElementById('stats-grid');
   const recentEl = document.getElementById('recent-sections');
 
-  if (statsEl) statsEl.classList.add('is-loading');
-  if (recentEl) recentEl.classList.add('is-loading');
+  if (statsEl) {
+    statsEl.classList.add('is-loading');
+    statsEl.innerHTML = renderStatsSkeleton();
+  }
+  if (recentEl) {
+    recentEl.classList.add('is-loading');
+    recentEl.innerHTML = renderRecentSkeleton();
+  }
 
-  const counts = await Promise.all(
-    HOME_CATEGORIES.map(async (cat) => ({
-      ...cat,
-      count: await fetchCollectionCount(cat.id),
-    })),
-  );
+  const [counts, recents, weekCount] = await Promise.all([
+    Promise.all(
+      HOME_CATEGORIES.map(async (cat) => ({
+        ...cat,
+        count: await fetchCollectionCount(cat.id),
+      })),
+    ),
+    Promise.all(
+      HOME_CATEGORIES.map(async (cat) => ({
+        ...cat,
+        items: await fetchRecentItems(cat.id, 3),
+      })),
+    ),
+    fetchWeekItemsCount(COLLECTION_IDS),
+  ]);
 
-  const recents = await Promise.all(
-    HOME_CATEGORIES.map(async (cat) => ({
-      ...cat,
-      items: await fetchRecentItems(cat.id, 3),
-    })),
-  );
+  const total = counts.reduce((sum, cat) => sum + cat.count, 0);
+  initPageHeader(total, weekCount);
+
+  const totalEl = document.getElementById('stats-total');
+  if (totalEl) totalEl.textContent = total;
 
   if (statsEl) {
     statsEl.innerHTML = counts.map((cat) => `
@@ -120,7 +211,6 @@ async function loadHomeData() {
       </a>
     `).join('');
     statsEl.classList.remove('is-loading');
-    initCategoryCards(statsEl.querySelectorAll('.cat-card--stat'));
   }
 
   if (recentEl) {
@@ -129,11 +219,13 @@ async function loadHomeData() {
     recentEl.innerHTML = recents.map((cat, index) => {
       const count = countMap[cat.id] ?? 0;
       const itemsHtml = cat.items.length
-        ? `<ul class="cat-recent-list">${cat.items.map((item) => renderRecentItem(item, cat.titleKey)).join('')}</ul>`
+        ? `<ul class="cat-recent-list">${cat.items.map((item) => renderRecentItem(item, cat.titleKey, cat.href)).join('')}</ul>`
         : `<div class="cat-recent-empty">
             <span class="cat-recent-empty-icon">${sidebarIcon(cat.icon)}</span>
             <p>Rien pour l'instant</p>
-            <span>Ajoutez votre première idée</span>
+            <button type="button" class="cat-empty-cta" data-add-category="${cat.id}">
+              ${escapeHtml(cat.addLabel)}
+            </button>
           </div>`;
 
       return `
@@ -157,34 +249,4 @@ async function loadHomeData() {
     }).join('');
     recentEl.classList.remove('is-loading');
   }
-
-  const total = counts.reduce((sum, cat) => sum + cat.count, 0);
-  const totalEl = document.getElementById('stats-total');
-  if (totalEl) totalEl.textContent = total;
-}
-
-function initCategoryCards(cards) {
-  cards.forEach((card) => initTilt(card, { max: 10, scale: 1.02 }));
-}
-
-function initTilt(el, { max = 12, scale = 1.02 } = {}) {
-  if (!el || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-
-  const inner = el.querySelector('.cat-card-inner')
-    || el.querySelector('.days-card-inner')
-    || el.querySelector('.card-3d-inner')
-    || el;
-
-  el.addEventListener('pointermove', (e) => {
-    const rect = el.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / rect.width - 0.5;
-    const y = (e.clientY - rect.top) / rect.height - 0.5;
-
-    inner.style.transform =
-      `perspective(800px) rotateY(${x * max * 2}deg) rotateX(${-y * max * 2}deg) scale3d(${scale}, ${scale}, ${scale})`;
-  });
-
-  el.addEventListener('pointerleave', () => {
-    inner.style.transform = '';
-  });
 }
