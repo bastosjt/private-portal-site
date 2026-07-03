@@ -3,63 +3,109 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Accueil</title>
-  <link rel="stylesheet" href="css/variables.css">
-  <link rel="stylesheet" href="css/base.css">
-  <style>
-    .page {
-      max-width: 720px;
-      margin: 0 auto;
-      padding: 48px 24px;
-    }
-
-    .page h1 {
-      font-size: 2rem;
-      margin-bottom: 8px;
-    }
-
-    .welcome {
-      color: var(--text-muted);
-      margin-bottom: 32px;
-    }
-
-    .btn-secondary {
-      padding: 12px 20px;
-      background: var(--bg-card);
-      color: var(--text-primary);
-      border-radius: var(--radius-md);
-      box-shadow: var(--shadow-soft);
-    }
-
-    .btn-secondary:active {
-      transform: scale(0.98);
-    }
-  </style>
+  <title>Accueil — Notre espace</title>
+  <link rel="stylesheet" href="css/variables.css?v=7">
+  <link rel="stylesheet" href="css/base.css?v=7">
+  <link rel="stylesheet" href="css/layout.css?v=3">
+  <link rel="stylesheet" href="css/home.css?v=10">
 </head>
-<body>
-  <main id="app" class="page hidden">
-    <h1>Accueil</h1>
-    <p class="welcome">Bienvenue sur la page</p>
-    <p class="welcome">Connecté en tant que <span id="user-email"></span></p>
-    <button id="logout-btn" class="btn-secondary">Déconnexion</button>
-  </main>
+<body class="app-page">
+  <div id="app" class="app-shell hidden">
+    <div id="sidebar-root"></div>
+
+    <div class="app-main">
+      <header class="page-header">
+        <button type="button" class="btn-menu" id="menu-toggle" aria-label="Ouvrir le menu">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="4" x2="20" y1="12" y2="12"/>
+            <line x1="4" x2="20" y1="6" y2="6"/>
+            <line x1="4" x2="20" y1="18" y2="18"/>
+          </svg>
+        </button>
+        <div>
+          <h1 class="page-header-title">Accueil</h1>
+          <p class="page-header-sub">Votre tableau de bord à deux</p>
+        </div>
+      </header>
+
+      <main class="page-content">
+        <section class="home-hero">
+          <article class="days-card hero-days" aria-labelledby="days-heading">
+            <div class="days-card-inner">
+              <div class="days-card-body">
+                <div class="days-card-content">
+                  <p class="days-card-kicker" id="days-heading">Notre histoire</p>
+                  <div class="days-card-number">
+                    <span class="days-count" id="days-count">0</span>
+                    <span class="days-label" id="days-label">jours ensemble</span>
+                  </div>
+                  <p class="days-card-since" id="days-since">—</p>
+                </div>
+
+                <div class="hero-scene" aria-hidden="true">
+                  <div class="scene-stage">
+                    <div class="scene-ring scene-ring--1"></div>
+                    <div class="scene-ring scene-ring--2"></div>
+                    <div class="scene-ring scene-ring--3"></div>
+                    <div class="scene-core">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
+                      </svg>
+                    </div>
+                    <div class="scene-orb scene-orb--1"></div>
+                    <div class="scene-orb scene-orb--2"></div>
+                    <div class="scene-orb scene-orb--3"></div>
+                  </div>
+                </div>
+              </div>
+              <div class="days-card-glow" aria-hidden="true"></div>
+            </div>
+          </article>
+        </section>
+
+        <section class="stats-section" aria-labelledby="stats-heading">
+          <div class="section-head">
+            <div>
+              <h2 id="stats-heading">Résumé global</h2>
+              <p><strong id="stats-total">0</strong> idées enregistrées au total</p>
+            </div>
+          </div>
+          <div class="stats-grid is-loading" id="stats-grid"></div>
+        </section>
+
+        <section class="recent-sections-wrap" aria-labelledby="recent-heading">
+          <div class="section-head">
+            <div>
+              <h2 id="recent-heading">Suggestions récentes</h2>
+              <p>Dernières idées par catégorie</p>
+            </div>
+          </div>
+          <div class="recent-sections is-loading" id="recent-sections"></div>
+        </section>
+      </main>
+    </div>
+  </div>
 
   <script type="module">
-    import { requireAuth } from './js/protected.js?v=2';
-    import { logout } from './js/auth.js?v=2';
+    import { requireAuth } from './js/protected.js?v=3';
+    import { logout } from './js/auth.js?v=3';
+    import { initHomePage } from './js/home.js?v=5';
+    import { renderSidebar, initSidebar } from './js/components/sidebar.js?v=3';
 
     const app = document.getElementById('app');
-
     const user = await requireAuth('index.html');
+
     if (user) {
-      document.getElementById('user-email').textContent = user.email;
+      renderSidebar(document.getElementById('sidebar-root'), { user, activeId: 'accueil' });
+      initSidebar({
+        onLogout: async () => {
+          await logout();
+          window.location.href = 'index.html';
+        },
+      });
+      initHomePage();
       app.classList.remove('hidden');
     }
-
-    document.getElementById('logout-btn').addEventListener('click', async () => {
-      await logout();
-      window.location.href = 'index.html';
-    });
   </script>
 </body>
 </html>

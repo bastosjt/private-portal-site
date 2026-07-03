@@ -1,5 +1,6 @@
 :root {
-  --bg: #23262a;
+  --bg: #1c1e24;
+  --surface: #23262a;
 
   --text-primary: #eceef1;
   --text-secondary: #9ca3af;
@@ -8,7 +9,11 @@
   --accent: #00d4ff;
   --accent-mid: #00b8db;
   --accent-deep: #0099b8;
+  --accent-soft: #a78bfa;
   --accent-glow: rgba(0, 212, 255, 0.12);
+
+  --sidebar-width: 272px;
+  --sidebar-island-gap: 14px;
 
   --error: #f87171;
 
