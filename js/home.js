@@ -1,7 +1,7 @@
-import { COUPLE_START_DATE, HOME_CATEGORIES, getUserDisplayName } from './config.js';
+import { COUPLE_START_DATE, HOME_CATEGORIES, getUserDisplayName } from './config.js?v=3';
 import { fetchRecentItems, fetchCollectionCount, fetchWeekItemsCount } from './firestore.js?v=2';
 import { sidebarIcon } from './components/sidebar.js';
-import { initAddItem } from './components/add-item.js?v=2';
+import { initAddItem } from './components/add-item.js?v=4';
 
 const COLLECTION_IDS = HOME_CATEGORIES.map((cat) => cat.id);
 let currentUserName = '';

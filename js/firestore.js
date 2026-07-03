@@ -8,6 +8,9 @@ import {
   where,
   Timestamp,
   addDoc,
+  updateDoc,
+  deleteDoc,
+  doc,
 } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js';
 
 export async function fetchRecentItems(collectionName, max = 3) {
@@ -60,6 +63,20 @@ export async function fetchWeekItemsCount(collectionNames) {
   return counts.reduce((sum, n) => sum + n, 0);
 }
 
+export async function fetchAllItems(collectionName) {
+  try {
+    const q = query(
+      collection(db, collectionName),
+      orderBy('createdAt', 'desc'),
+    );
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  } catch (err) {
+    console.warn(`fetchAllItems(${collectionName}):`, err.message);
+    return [];
+  }
+}
+
 export async function addItem(collectionName, data, userId) {
   const now = Timestamp.now();
   const payload = {
@@ -71,4 +88,16 @@ export async function addItem(collectionName, data, userId) {
 
   const docRef = await addDoc(collection(db, collectionName), payload);
   return docRef.id;
+}
+
+export async function updateItem(collectionName, id, data) {
+  const ref = doc(db, collectionName, id);
+  await updateDoc(ref, {
+    ...data,
+    updatedAt: Timestamp.now(),
+  });
+}
+
+export async function deleteItem(collectionName, id) {
+  await deleteDoc(doc(db, collectionName, id));
 }

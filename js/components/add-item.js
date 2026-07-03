@@ -1,13 +1,16 @@
-import { HOME_CATEGORIES, getCategoryById } from '../config.js';
-import { addItem } from '../firestore.js?v=2';
+import { HOME_CATEGORIES, getCategoryById } from '../config.js?v=3';
+import { addItem, updateItem } from '../firestore.js?v=4';
 import { sidebarIcon } from './sidebar.js';
 import { initFormAddressFields } from './address-autocomplete.js';
 import {
   initFormSelectFields,
   getSelectFieldValue,
+  setSelectFieldValue,
   renderSelectField,
   ADD_OPTION_VALUE,
 } from './select-custom.js';
+import { getCustomOptions } from '../services/custom-options.js';
+import { formatPrice, isMoneyField } from '../utils/format.js';
 
 function escapeHtml(str) {
   return String(str)
@@ -91,8 +94,9 @@ function renderForm(category) {
   `;
 }
 
-export function initAddItem({ user, onAdded } = {}) {
+export function initAddItem({ user, onAdded, onUpdated } = {}) {
   let activeCategoryId = null;
+  let editingItemId = null;
   let isSubmitting = false;
   let addressCleanup = null;
   let selectCleanup = null;
@@ -137,7 +141,49 @@ export function initAddItem({ user, onAdded } = {}) {
   const backBtn = overlay.querySelector('#add-modal-back');
   const closeBtn = overlay.querySelector('#add-modal-close');
 
+  function getFieldDisplayLabel(categoryId, fieldName, value) {
+    if (!value) return '';
+    const category = getCategoryById(categoryId);
+    const field = category?.fields.find((f) => f.name === fieldName);
+    const base = field?.options?.find((opt) => opt.value === value);
+    if (base) return base.label;
+    const custom = getCustomOptions(`${categoryId}.${fieldName}`).find((opt) => opt.value === value);
+    return custom?.label || value.replace(/_/g, ' ');
+  }
+
+  function populateForm(form, category, item) {
+    for (const field of category.fields) {
+      const value = item[field.name];
+      if (value == null || value === '') continue;
+
+      if (field.type === 'select') {
+        setSelectFieldValue(
+          form,
+          field,
+          value,
+          getFieldDisplayLabel(category.id, field.name, value),
+        );
+        continue;
+      }
+
+      const el = form.elements[field.name];
+      if (!el) continue;
+      el.value = value;
+
+      if (field.type === 'address') {
+        if (item.latitude != null && item.longitude != null) {
+          el.dataset.lat = String(item.latitude);
+          el.dataset.lng = String(item.longitude);
+        } else {
+          delete el.dataset.lat;
+          delete el.dataset.lng;
+        }
+      }
+    }
+  }
+
   function showPicker() {
+    editingItemId = null;
     addressCleanup?.();
     addressCleanup = null;
     selectCleanup?.();
@@ -148,7 +194,7 @@ export function initAddItem({ user, onAdded } = {}) {
     bodyEl.innerHTML = renderCategoryPicker();
   }
 
-  function showForm(categoryId) {
+  function showForm(categoryId, item = null) {
     addressCleanup?.();
     addressCleanup = null;
     selectCleanup?.();
@@ -158,12 +204,17 @@ export function initAddItem({ user, onAdded } = {}) {
     if (!category) return;
 
     activeCategoryId = categoryId;
-    titleEl.textContent = category.modalTitle;
-    backBtn.classList.remove('hidden');
+    titleEl.textContent = item ? `Modifier ${category.label.toLowerCase()}` : category.modalTitle;
+    backBtn.classList.toggle('hidden', Boolean(item));
     bodyEl.innerHTML = renderForm(category);
 
     const form = bodyEl.querySelector('#add-form');
     if (form) {
+      if (item) {
+        populateForm(form, category, item);
+        const submitBtn = form.querySelector('#add-form-submit');
+        if (submitBtn) submitBtn.textContent = 'Mettre à jour';
+      }
       addressCleanup = initFormAddressFields(form, category);
       selectCleanup = initFormSelectFields(form, category);
     }
@@ -175,11 +226,20 @@ export function initAddItem({ user, onAdded } = {}) {
   }
 
   function open(categoryId = null) {
+    editingItemId = null;
     if (categoryId) {
       showForm(categoryId);
     } else {
       showPicker();
     }
+    overlay.classList.remove('hidden');
+    document.body.classList.add('modal-open');
+  }
+
+  function openEdit(categoryId, item) {
+    if (!item?.id) return;
+    editingItemId = item.id;
+    showForm(categoryId, item);
     overlay.classList.remove('hidden');
     document.body.classList.add('modal-open');
   }
@@ -192,6 +252,7 @@ export function initAddItem({ user, onAdded } = {}) {
     overlay.classList.add('hidden');
     document.body.classList.remove('modal-open');
     activeCategoryId = null;
+    editingItemId = null;
     bodyEl.innerHTML = '';
   }
 
@@ -214,7 +275,7 @@ export function initAddItem({ user, onAdded } = {}) {
       }
 
       if (value && value !== ADD_OPTION_VALUE) {
-        data[field.name] = value;
+        data[field.name] = isMoneyField(field.name) ? formatPrice(value) : value;
       }
     }
     return data;
@@ -268,11 +329,18 @@ export function initAddItem({ user, onAdded } = {}) {
 
     try {
       const data = collectFormData(form, category);
-      await addItem(category.id, data, user.uid);
-      close();
-      onAdded?.(category.id);
+      if (editingItemId) {
+        await updateItem(category.id, editingItemId, data);
+        const itemId = editingItemId;
+        close();
+        onUpdated?.(category.id, itemId);
+      } else {
+        await addItem(category.id, data, user.uid);
+        close();
+        onAdded?.(category.id);
+      }
     } catch (err) {
-      console.error('addItem:', err);
+      console.error(editingItemId ? 'updateItem:' : 'addItem:', err);
       errorEl.textContent = 'Impossible d’enregistrer. Réessayez.';
       errorEl.classList.remove('hidden');
     } finally {
@@ -308,5 +376,5 @@ export function initAddItem({ user, onAdded } = {}) {
     }
   });
 
-  return { open, close };
+  return { open, close, openEdit };
 }

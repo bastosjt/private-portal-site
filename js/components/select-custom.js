@@ -163,6 +163,29 @@ export function initFormSelectFields(form, category) {
   return () => cleanups.forEach((fn) => fn());
 }
 
+export function ensureSelectOption(select, value, label) {
+  if (!select || !value) return;
+  if (select.querySelector(`option[value="${CSS.escape(value)}"]`)) return;
+
+  const addOption = select.querySelector(`option[value="${ADD_OPTION_VALUE}"]`);
+  const el = document.createElement('option');
+  el.value = value;
+  el.textContent = label || value.replace(/_/g, ' ');
+
+  if (addOption) {
+    select.insertBefore(el, addOption);
+  } else {
+    select.appendChild(el);
+  }
+}
+
+export function setSelectFieldValue(form, field, value, label) {
+  const select = form.elements[field.name];
+  if (!select || !value) return;
+  ensureSelectOption(select, value, label);
+  select.value = value;
+}
+
 export function getSelectFieldValue(form, field) {
   const select = form.elements[field.name];
   if (!select) return '';

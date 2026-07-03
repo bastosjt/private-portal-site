@@ -83,8 +83,7 @@ export const HOME_CATEGORIES = [
         { value: 'sport', label: 'Sport' },
       ], default: 'musee' },
       { name: 'localisation', label: 'Adresse ou lieu', type: 'address', placeholder: 'Commencez à taper une adresse…' },
-      { name: 'prix', label: 'Prix estimé', type: 'text', placeholder: 'Ex. 25 €' },
-      { name: 'description', label: 'Description', type: 'textarea', placeholder: 'Notes, idées…' },
+      { name: 'prix', label: 'Prix estimé', type: 'text', placeholder: 'Ex. 25' },
     ],
   },
   {
@@ -121,7 +120,7 @@ export const HOME_CATEGORIES = [
         { value: 'vegetarien', label: 'Végétarien' },
       ], default: 'francaise' },
       { name: 'adresse', label: 'Adresse', type: 'address', placeholder: 'Numéro, rue, ville…', fills: { lienMaps: 'mapsUrl' } },
-      { name: 'prix', label: 'Prix estimé', type: 'text', placeholder: 'Ex. 40 €' },
+      { name: 'prix', label: 'Prix estimé', type: 'text', placeholder: 'Ex. 40' },
       { name: 'lienMaps', label: 'Lien Google Maps', type: 'url', placeholder: 'Rempli automatiquement' },
     ],
   },
@@ -154,7 +153,7 @@ export const HOME_CATEGORIES = [
     fields: [
       { name: 'destination', label: 'Destination', type: 'text', required: true, placeholder: 'Ex. Lisbonne' },
       { name: 'pays', label: 'Pays', type: 'text', placeholder: 'Ex. Portugal' },
-      { name: 'budget', label: 'Budget estimé', type: 'text', placeholder: 'Ex. 800 €' },
+      { name: 'budget', label: 'Budget estimé', type: 'text', placeholder: 'Ex. 800' },
       { name: 'periode', label: 'Période', type: 'text', placeholder: 'Ex. Été 2026' },
       { name: 'notes', label: 'Notes', type: 'textarea', placeholder: 'Idées, envies…' },
     ],
@@ -171,7 +170,7 @@ export const HOME_CATEGORIES = [
     fields: [
       { name: 'nom', label: 'Nom', type: 'text', required: true, placeholder: 'Ex. Appareil photo' },
       { name: 'description', label: 'Description', type: 'textarea', placeholder: 'Pourquoi on le veut…' },
-      { name: 'prix', label: 'Prix', type: 'text', placeholder: 'Ex. 120 €' },
+      { name: 'prix', label: 'Prix', type: 'text', placeholder: 'Ex. 120' },
       { name: 'lien', label: 'Lien', type: 'url', placeholder: 'https://…' },
       { name: 'priorite', label: 'Priorité', type: 'select', options: [
         { value: 'basse', label: 'Basse' },
