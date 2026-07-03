@@ -1,5 +1,5 @@
-import { getCategoryById } from '../config.js?v=3';
-import { updateItem, deleteItem } from '../firestore.js?v=4';
+import { getCategoryById } from '../config.js';
+import { updateItem, deleteItem } from '../api/firestore.js';
 import { formatPrice } from '../utils/format.js';
 import { getCustomOptions } from '../services/custom-options.js';
 
@@ -106,6 +106,8 @@ export function initActivityDetail({ onChanged, onEdit } = {}) {
 
   const bodyEl = overlay.querySelector('#act-detail-body');
   const closeBtn = overlay.querySelector('#act-detail-close');
+  const abort = new AbortController();
+  const { signal } = abort;
 
   function renderContent(item) {
     const mapsUrl = getMapsUrl(item);
@@ -248,7 +250,13 @@ export function initActivityDetail({ onChanged, onEdit } = {}) {
       }
       close();
     }
-  });
+  }, { signal });
 
-  return { open, close };
+  function destroy() {
+    close();
+    abort.abort();
+    overlay.remove();
+  }
+
+  return { open, close, destroy };
 }

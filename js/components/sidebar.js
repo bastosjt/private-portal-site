@@ -1,4 +1,5 @@
 import { NAV_ITEMS } from '../config.js';
+import { getRouteFromHash } from '../core/router.js';
 
 const ICONS = {
   home: '<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>',
@@ -19,16 +20,14 @@ function icon(name, strokeWidth = name === 'activity' ? 2 : 1.75) {
 }
 
 function getActiveId() {
-  const page = window.location.pathname.split('/').pop() || 'accueil.html';
-  const match = NAV_ITEMS.find((item) => item.href === page);
-  return match?.id ?? 'accueil';
+  return getRouteFromHash();
 }
 
 export function renderSidebar(container, { user, activeId = getActiveId() } = {}) {
   const navLinks = NAV_ITEMS.map((item) => {
     const isActive = item.id === activeId;
     return `
-      <a href="${item.href}" class="sidebar-link${isActive ? ' is-active' : ''}"${item.theme ? ` data-theme="${item.theme}"` : ''}${isActive ? ' aria-current="page"' : ''}>
+      <a href="${item.href}" class="sidebar-link${isActive ? ' is-active' : ''}" data-route="${item.id}"${item.theme ? ` data-theme="${item.theme}"` : ''}${isActive ? ' aria-current="page"' : ''}>
         <span class="sidebar-link-icon">${icon(item.icon)}</span>
         <span class="sidebar-link-label">${item.label}</span>
       </a>
@@ -93,7 +92,19 @@ function getInitials(email) {
   return name.slice(0, 2).toUpperCase();
 }
 
-export function initSidebar({ onLogout } = {}) {
+export function updateSidebarActive(activeId = getActiveId()) {
+  document.querySelectorAll('.sidebar-link').forEach((link) => {
+    const isActive = link.dataset.route === activeId;
+    link.classList.toggle('is-active', isActive);
+    if (isActive) {
+      link.setAttribute('aria-current', 'page');
+    } else {
+      link.removeAttribute('aria-current');
+    }
+  });
+}
+
+export function initSidebar({ onLogout, onNavigate } = {}) {
   const sidebar = document.getElementById('sidebar');
   const overlay = document.getElementById('sidebar-overlay');
   const toggle = document.getElementById('menu-toggle');
@@ -112,11 +123,19 @@ export function initSidebar({ onLogout } = {}) {
   };
 
   toggle?.addEventListener('click', open);
+  document.addEventListener('click', (event) => {
+    if (event.target.closest('#menu-toggle')) open();
+  });
   closeBtn?.addEventListener('click', close);
   overlay?.addEventListener('click', close);
 
   document.querySelectorAll('.sidebar-link').forEach((link) => {
-    link.addEventListener('click', () => {
+    link.addEventListener('click', (event) => {
+      const routeId = link.dataset.route;
+      if (routeId && onNavigate) {
+        event.preventDefault();
+        onNavigate(routeId);
+      }
       if (window.matchMedia('(max-width: 900px)').matches) close();
     });
   });

@@ -1,10 +1,10 @@
-import { getCategoryById, getUserDisplayName } from './config.js?v=3';
-import { formatPrice } from './utils/format.js';
-import { fetchAllItems } from './firestore.js?v=4';
-import { sidebarIcon } from './components/sidebar.js';
-import { initAddItem } from './components/add-item.js?v=5';
-import { initActivityDetail } from './components/activity-detail.js';
-import { getCustomOptions } from './services/custom-options.js';
+import { getCategoryById, getUserDisplayName } from '../config.js';
+import { formatPrice } from '../utils/format.js';
+import { fetchAllItems } from '../api/firestore.js';
+import { sidebarIcon } from '../components/sidebar.js';
+import { initAddItem } from '../components/add-item.js';
+import { initActivityDetail } from '../components/activity-detail.js';
+import { getCustomOptions } from '../services/custom-options.js';
 import {
   addTodayPick,
   canPickToday,
@@ -14,16 +14,16 @@ import {
   getTodayPickIds,
   loadTodayPicks,
   resetTodayPicks,
-} from './services/daily-picks.js?v=2';
+} from '../services/daily-picks.js';
 
 const CATEGORY = getCategoryById('activities');
 const COLLECTION = 'activities';
 
 const SORT_OPTIONS = [
-  { id: 'recent', label: 'Plus récent' },
-  { id: 'alpha', label: 'Ordre alphabétique' },
-  { id: 'price-asc', label: 'Prix croissant' },
-  { id: 'price-desc', label: 'Prix décroissant' },
+  { id: 'recent', label: 'Plus récent', shortLabel: 'Récent' },
+  { id: 'alpha', label: 'Ordre alphabétique', shortLabel: 'A → Z' },
+  { id: 'price-asc', label: 'Prix croissant', shortLabel: 'Prix ↑' },
+  { id: 'price-desc', label: 'Prix décroissant', shortLabel: 'Prix ↓' },
 ];
 
 let allItems = [];
@@ -31,6 +31,7 @@ let currentSort = 'recent';
 let addItemModal = null;
 let detailModal = null;
 let isRolling = false;
+let activitiesAbort = null;
 
 function escapeHtml(str) {
   return String(str)
@@ -88,36 +89,50 @@ function sortItems(items, sortId = currentSort) {
   return copy;
 }
 
-function getSortLabel(sortId = currentSort) {
-  return SORT_OPTIONS.find((opt) => opt.id === sortId)?.label || 'Plus récent';
+function renderSortOptions() {
+  return SORT_OPTIONS.map((opt) => `
+    <button
+      type="button"
+      class="act-sort-option${opt.id === currentSort ? ' is-active' : ''}"
+      data-sort="${opt.id}"
+      role="option"
+      aria-selected="${opt.id === currentSort ? 'true' : 'false'}"
+      aria-label="${opt.label}"
+    >${opt.shortLabel}</button>
+  `).join('');
 }
 
-function isSortMenuDesktop() {
-  return window.matchMedia('(min-width: 640px)').matches;
-}
+function mountSortToolbar() {
+  const toolbar = document.getElementById('act-list-toolbar');
+  if (!toolbar) return;
 
-function closeSortMenu() {
-  const menu = document.getElementById('act-sort-menu');
-  const trigger = document.getElementById('act-sort-trigger');
-  menu?.classList.remove('is-open');
-  trigger?.setAttribute('aria-expanded', 'false');
-}
-
-function openSortMenu() {
-  const menu = document.getElementById('act-sort-menu');
-  const trigger = document.getElementById('act-sort-trigger');
-  menu?.classList.add('is-open');
-  trigger?.setAttribute('aria-expanded', 'true');
+  toolbar.innerHTML = `
+    <div class="act-sort" id="act-sort">
+      <p class="act-sort-head" id="act-sort-head">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="m3 16 4 4 4-4"/><path d="M7 20V4"/><path d="m21 8-4-4-4 4"/><path d="M17 4v16"/>
+        </svg>
+        Trier
+      </p>
+      <div class="act-sort-track-wrap">
+        <div class="act-sort-track-scroll" id="act-sort-scroll">
+          <div class="act-sort-track" id="act-sort-menu" role="listbox" aria-labelledby="act-sort-head">
+            ${renderSortOptions()}
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
 }
 
 function updateSortUI() {
-  const labelEl = document.getElementById('act-sort-label');
-  if (labelEl) labelEl.textContent = getSortLabel();
-
   document.querySelectorAll('.act-sort-option').forEach((btn) => {
     const active = btn.dataset.sort === currentSort;
     btn.classList.toggle('is-active', active);
     btn.setAttribute('aria-selected', active ? 'true' : 'false');
+    if (active) {
+      btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
   });
 }
 
@@ -126,7 +141,6 @@ function setSort(sortId) {
   currentSort = sortId;
   updateSortUI();
   renderActivitiesList(sortItems(allItems));
-  if (!isSortMenuDesktop()) closeSortMenu();
 }
 
 function refreshListView() {
@@ -437,41 +451,28 @@ async function rollDice() {
   requestAnimationFrame(tick);
 }
 
-function bindEvents() {
-  document.getElementById('dice-roll-btn')?.addEventListener('click', rollDice);
+function bindEvents(signal) {
+  document.getElementById('dice-roll-btn')?.addEventListener('click', rollDice, { signal });
 
-  const sortTrigger = document.getElementById('act-sort-trigger');
   const sortMenu = document.getElementById('act-sort-menu');
-
-  sortTrigger?.addEventListener('click', (event) => {
-    event.stopPropagation();
-    if (isSortMenuDesktop()) return;
-    const expanded = sortTrigger.getAttribute('aria-expanded') === 'true';
-    if (expanded) closeSortMenu();
-    else openSortMenu();
-  });
+  const sortScroll = document.getElementById('act-sort-scroll');
 
   sortMenu?.addEventListener('click', (event) => {
     const option = event.target.closest('[data-sort]');
     if (!option) return;
     setSort(option.dataset.sort);
-  });
+  }, { signal });
 
-  document.addEventListener('click', (event) => {
-    if (event.target.closest('#act-list-toolbar')) return;
-    if (event.target.closest('.act-cat-panel')) return;
-    closeSortMenu();
-  });
-
-  document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape') closeSortMenu();
-  });
-
-  window.addEventListener('resize', () => {
-    if (isSortMenuDesktop()) {
-      closeSortMenu();
-    }
-  });
+  const sortWrap = sortScroll?.closest('.act-sort-track-wrap');
+  if (sortScroll && sortWrap) {
+    const updateSortScrollFade = () => {
+      const atEnd = sortScroll.scrollWidth - sortScroll.scrollLeft - sortScroll.clientWidth < 8;
+      sortWrap.classList.toggle('is-at-end', atEnd);
+    };
+    updateSortScrollFade();
+    sortScroll.addEventListener('scroll', updateSortScrollFade, { passive: true, signal });
+    window.addEventListener('resize', updateSortScrollFade, { signal });
+  }
 
   document.getElementById('activities-list')?.addEventListener('click', (event) => {
     if (event.target.closest('.act-location')) return;
@@ -479,7 +480,7 @@ function bindEvents() {
     if (!row || !detailModal) return;
     const item = findItemById(row.dataset.activityId);
     if (item) detailModal.open(item);
-  });
+  }, { signal });
 
   document.getElementById('activities-list')?.addEventListener('keydown', (event) => {
     if (event.key !== 'Enter' && event.key !== ' ') return;
@@ -488,14 +489,14 @@ function bindEvents() {
     event.preventDefault();
     const item = findItemById(row.dataset.activityId);
     if (item) detailModal.open(item);
-  });
+  }, { signal });
 
   document.addEventListener('click', (event) => {
     const trigger = event.target.closest('[data-add-category]');
     if (!trigger || !addItemModal) return;
     event.preventDefault();
     addItemModal.open(trigger.dataset.addCategory);
-  });
+  }, { signal });
 }
 
 async function loadActivities() {
@@ -533,17 +534,34 @@ async function loadActivities() {
   updateDiceIdleState();
 }
 
-export async function initActivitiesPage(user) {
+export function refreshActivitiesPage() {
+  return loadActivities();
+}
+
+export function destroyActivitiesPage() {
+  isRolling = false;
+  activitiesAbort?.abort();
+  activitiesAbort = null;
+  detailModal?.destroy?.();
+  addItemModal?.close();
+  detailModal = null;
+}
+
+export async function initActivitiesPage(user, { addItemModal: sharedModal } = {}) {
+  destroyActivitiesPage();
+  activitiesAbort = new AbortController();
+  const { signal } = activitiesAbort;
+
   getUserDisplayName(user);
 
   if (new URLSearchParams(window.location.search).get('reset-pioche') === '1') {
     await resetTodayPicks();
     const url = new URL(window.location.href);
     url.searchParams.delete('reset-pioche');
-    window.history.replaceState({}, '', url);
+    window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
   }
 
-  addItemModal = initAddItem({
+  addItemModal = sharedModal ?? initAddItem({
     user,
     onAdded: () => loadActivities(),
     onUpdated: () => loadActivities(),
@@ -557,7 +575,8 @@ export async function initActivitiesPage(user) {
     },
   });
 
-  bindEvents();
+  mountSortToolbar();
+  bindEvents(signal);
   updateSortUI();
   loadActivities();
 }

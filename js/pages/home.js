@@ -1,11 +1,19 @@
-import { COUPLE_START_DATE, HOME_CATEGORIES, getUserDisplayName } from './config.js?v=3';
-import { fetchRecentItems, fetchCollectionCount, fetchWeekItemsCount } from './firestore.js?v=2';
-import { sidebarIcon } from './components/sidebar.js';
-import { initAddItem } from './components/add-item.js?v=4';
+import { COUPLE_START_DATE, HOME_CATEGORIES, getUserDisplayName } from '../config.js';
+import { fetchRecentItems, fetchCollectionCount, fetchWeekItemsCount } from '../api/firestore.js';
+import { sidebarIcon } from '../components/sidebar.js';
+import { initAddItem } from '../components/add-item.js';
 
 const COLLECTION_IDS = HOME_CATEGORIES.map((cat) => cat.id);
 let currentUserName = '';
 let addItemModal = null;
+let homeAbort = null;
+
+function onAddCategoryClick(event) {
+  const trigger = event.target.closest('[data-add-category]');
+  if (!trigger || !addItemModal) return;
+  event.preventDefault();
+  addItemModal.open(trigger.dataset.addCategory);
+}
 
 function formatShortDate(value) {
   if (!value) return '';
@@ -114,22 +122,22 @@ function renderRecentSkeleton() {
   `).join('');
 }
 
-export function initHomePage(user) {
-  currentUserName = getUserDisplayName(user);
-  addItemModal = initAddItem({ user, onAdded: () => loadHomeData() });
-  initPageHeader();
-  renderDaysCounter();
-  bindAddTriggers();
-  loadHomeData();
+export function destroyHomePage() {
+  homeAbort?.abort();
+  homeAbort = null;
 }
 
-function bindAddTriggers() {
-  document.addEventListener('click', (event) => {
-    const trigger = event.target.closest('[data-add-category]');
-    if (!trigger || !addItemModal) return;
-    event.preventDefault();
-    addItemModal.open(trigger.dataset.addCategory);
-  });
+export function initHomePage(user, { addItemModal: sharedModal } = {}) {
+  destroyHomePage();
+  homeAbort = new AbortController();
+  const { signal } = homeAbort;
+
+  currentUserName = getUserDisplayName(user);
+  addItemModal = sharedModal ?? initAddItem({ user, onAdded: () => loadHomeData() });
+  initPageHeader();
+  renderDaysCounter();
+  document.addEventListener('click', onAddCategoryClick, { signal });
+  loadHomeData();
 }
 
 function renderDaysCounter() {
@@ -249,4 +257,8 @@ async function loadHomeData() {
     }).join('');
     recentEl.classList.remove('is-loading');
   }
+}
+
+export function refreshHomePage() {
+  return loadHomeData();
 }

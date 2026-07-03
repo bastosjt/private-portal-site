@@ -382,7 +382,7 @@
 }
 
 .hero-days .days-card-inner {
-  padding: clamp(24px, 4vw, 36px) clamp(24px, 3vw, 32px);
+  padding: clamp(24px, 4vw, 36px) clamp(32px, 6vw, 56px) clamp(24px, 4vw, 36px) clamp(24px, 3vw, 32px);
   background: linear-gradient(155deg, var(--cat-bg) 0%, var(--surface) 50%);
   border: 1px solid var(--cat-border);
   box-shadow: var(--neu-up);
@@ -402,7 +402,13 @@
 }
 
 .hero-days .hero-scene {
-  overflow: hidden;
+  overflow: visible;
+}
+
+@media (min-width: 640px) {
+  .hero-days .hero-scene {
+    transform: translateX(-6px);
+  }
 }
 
 .hero-days .scene-ring--1 { border-color: rgba(244, 114, 182, 0.14); }
