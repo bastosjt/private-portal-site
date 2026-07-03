@@ -1,0 +1,8 @@
+# Config locale — ne jamais committer
+js/firebase-config.js
+
+# Cahier des charges privé (local uniquement)
+Consignes.md
+
+# OS
+.DS_Store

@@ -1,0 +1,25 @@
+:root {
+  --bg: #23262a;
+
+  --text-primary: #eceef1;
+  --text-secondary: #9ca3af;
+  --text-placeholder: #6b7280;
+
+  --accent: #00d4ff;
+  --accent-mid: #00b8db;
+  --accent-deep: #0099b8;
+  --accent-glow: rgba(0, 212, 255, 0.12);
+
+  --error: #f87171;
+
+  --radius-sm: 14px;
+  --radius-md: 18px;
+  --radius-pill: 999px;
+
+  /* Neumorphism — ombres dérivées de #23262a */
+  --neu-up: -5px -5px 14px rgba(255, 255, 255, 0.04), 5px 5px 14px rgba(0, 0, 0, 0.45);
+  --neu-up-sm: -3px -3px 8px rgba(255, 255, 255, 0.04), 3px 3px 8px rgba(0, 0, 0, 0.4);
+  --neu-in: inset 4px 4px 10px rgba(0, 0, 0, 0.45), inset -3px -3px 8px rgba(255, 255, 255, 0.03);
+  --neu-in-focus: inset 5px 5px 12px rgba(0, 0, 0, 0.5), inset -3px -3px 8px rgba(255, 255, 255, 0.04);
+  --neu-press: inset 3px 3px 8px rgba(0, 0, 0, 0.45), inset -2px -2px 6px rgba(255, 255, 255, 0.03);
+}

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Accueil</title>
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/base.css">
+  <style>
+    .page {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 48px 24px;
+    }
+
+    .page h1 {
+      font-size: 2rem;
+      margin-bottom: 8px;
+    }
+
+    .welcome {
+      color: var(--text-muted);
+      margin-bottom: 32px;
+    }
+
+    .btn-secondary {
+      padding: 12px 20px;
+      background: var(--bg-card);
+      color: var(--text-primary);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .btn-secondary:active {
+      transform: scale(0.98);
+    }
+  </style>
+</head>
+<body>
+  <main id="app" class="page hidden">
+    <h1>Accueil</h1>
+    <p class="welcome">Connecté en tant que <span id="user-email"></span></p>
+    <button id="logout-btn" class="btn-secondary">Déconnexion</button>
+  </main>
+
+  <script type="module">
+    import { requireAuth } from './js/protected.js?v=2';
+    import { logout } from './js/auth.js?v=2';
+
+    const app = document.getElementById('app');
+
+    const user = await requireAuth('index.html');
+    if (user) {
+      document.getElementById('user-email').textContent = user.email;
+      app.classList.remove('hidden');
+    }
+
+    document.getElementById('logout-btn').addEventListener('click', async () => {
+      await logout();
+      window.location.href = 'index.html';
+    });
+  </script>
+</body>
+</html>
