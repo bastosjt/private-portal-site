@@ -4,8 +4,9 @@ import { login, logout } from './core/auth.js';
 import { isAllowedUser } from './core/protected.js';
 import { NAV_ITEMS } from './config.js';
 import { initRouter, navigate } from './core/router.js?v=2';
-import { renderSidebar, initSidebar, updateSidebarActive } from './components/sidebar.js?v=7';
+import { renderSidebar, initSidebar, updateSidebarActive } from './components/sidebar.js?v=8';
 import { initAddItem } from './components/add-item.js';
+import { waitForTransition, nextFrame } from './utils/motion.js';
 import { initHomePage, destroyHomePage, refreshHomePage } from './pages/home.js';
 import { initActivitiesPage, destroyActivitiesPage, refreshActivitiesPage } from './pages/activities.js';
 import { HOME_VIEW_HTML } from './views/home.js';
@@ -26,6 +27,9 @@ let currentRoute = null;
 let addItemModal = null;
 let stopRouter = null;
 let sidebarInitialized = false;
+let pageTransitionToken = 0;
+
+const PAGE_TRANSITION_MS = 300;
 
 const authView = document.getElementById('auth-view');
 const appView = document.getElementById('app-view');
@@ -63,6 +67,15 @@ function ensureSharedAddItem(user) {
 async function mountRoute(routeId) {
   if (!currentUser || !pageRoot) return;
 
+  const token = ++pageTransitionToken;
+  const hasContent = pageRoot.innerHTML.trim().length > 0;
+
+  if (hasContent) {
+    pageRoot.classList.add('is-page-leaving');
+    await waitForTransition(pageRoot, PAGE_TRANSITION_MS);
+    if (token !== pageTransitionToken) return;
+  }
+
   destroyCurrentView();
   currentRoute = routeId;
   setPageTitle(routeId);
@@ -73,19 +86,34 @@ async function mountRoute(routeId) {
 
   const sharedModal = ensureSharedAddItem(currentUser);
 
+  const finishPageEnter = async () => {
+    if (!hasContent) {
+      pageRoot.classList.remove('is-page-leaving');
+      return;
+    }
+    pageRoot.classList.add('is-page-entering');
+    await nextFrame();
+    pageRoot.classList.remove('is-page-leaving', 'is-page-entering');
+  };
+
   if (routeId === 'accueil') {
     pageRoot.innerHTML = HOME_VIEW_HTML;
+    await finishPageEnter();
+    if (token !== pageTransitionToken) return;
     initHomePage(currentUser, { addItemModal: sharedModal });
     return;
   }
 
   if (routeId === 'activites') {
     pageRoot.innerHTML = ACTIVITIES_VIEW_HTML;
+    await finishPageEnter();
+    if (token !== pageTransitionToken) return;
     await initActivitiesPage(currentUser, { addItemModal: sharedModal });
     return;
   }
 
   pageRoot.innerHTML = getPlaceholderViewHtml(routeId);
+  await finishPageEnter();
 }
 
 function showAuthView() {

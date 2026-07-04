@@ -35,6 +35,23 @@
 #page-root {
   flex: 1;
   min-width: 0;
+  transition:
+    opacity var(--duration-page) var(--ease-premium),
+    filter var(--duration-page) var(--ease-premium),
+    transform var(--duration-page) var(--ease-premium);
+}
+
+#page-root.is-page-leaving {
+  opacity: 0;
+  transform: translateY(10px) scale(0.992);
+  filter: blur(2px);
+  pointer-events: none;
+}
+
+#page-root.is-page-entering {
+  opacity: 0;
+  transform: translateY(14px) scale(0.988);
+  filter: blur(3px);
 }
 
 /* ── Sidebar ── */
@@ -48,7 +65,8 @@
   height: 100dvh;
   padding: 20px 14px;
   transform: translateX(0);
-  transition: transform 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+  transition: transform var(--duration-sidebar) var(--ease-out-expo);
+  will-change: transform;
 }
 
 .sidebar-inner {
@@ -62,6 +80,9 @@
     -6px -6px 16px rgba(255, 255, 255, 0.03),
     6px 6px 20px rgba(0, 0, 0, 0.5),
     inset 1px 1px 0 rgba(255, 255, 255, 0.02);
+  transition:
+    transform calc(var(--duration-sidebar) - 0.06s) var(--ease-premium),
+    opacity calc(var(--duration-sidebar) - 0.1s) var(--ease-premium);
 }
 
 .sidebar-header {
@@ -165,10 +186,12 @@
   background: transparent;
   box-shadow: none;
   transition:
-    box-shadow 0.2s ease,
-    color 0.2s ease,
-    transform 0.15s ease,
-    background 0.2s ease;
+    box-shadow 0.28s var(--ease-premium),
+    color 0.28s var(--ease-premium),
+    transform 0.28s var(--ease-premium),
+    background 0.28s var(--ease-premium),
+    opacity 0.32s var(--ease-premium);
+  transition-delay: var(--nav-delay, 0ms);
 }
 
 .sidebar-link-icon {
@@ -309,16 +332,31 @@
   position: fixed;
   inset: 0;
   z-index: 150;
-  background: rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  opacity: 1;
-  transition: opacity 0.25s ease;
+  background: rgba(0, 0, 0, 0.52);
+  backdrop-filter: blur(0px);
+  -webkit-backdrop-filter: blur(0px);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity var(--duration-overlay) var(--ease-premium),
+    visibility var(--duration-overlay) var(--ease-premium),
+    backdrop-filter var(--duration-overlay) var(--ease-premium),
+    -webkit-backdrop-filter var(--duration-overlay) var(--ease-premium);
 }
 
-.sidebar-overlay[hidden] {
+.sidebar-overlay.is-active {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.sidebar-overlay[hidden]:not(.is-active) {
   display: block;
   opacity: 0;
+  visibility: hidden;
   pointer-events: none;
 }
 
@@ -334,6 +372,7 @@ body.sidebar-open {
   margin-left: var(--sidebar-width);
   padding: 24px clamp(20px, 2.5vw, 48px) 64px;
   box-sizing: border-box;
+  transition: filter var(--duration-sidebar) var(--ease-premium);
 }
 
 .page-content {
@@ -387,6 +426,23 @@ body.sidebar-open {
   margin-top: 2px;
 }
 
+.page-header--themed .page-header-title {
+  background: var(--cat-page-title-gradient, linear-gradient(135deg, var(--text-primary) 0%, var(--cat-color) 100%));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.page-header--themed .page-header-sub {
+  color: var(--cat-header-sub, var(--cat-color));
+  font-weight: 500;
+}
+
+.page-header-mobile-icon[data-theme] {
+  color: var(--cat-color);
+  box-shadow: var(--neu-up-sm), 0 0 16px color-mix(in srgb, var(--cat-color) 20%, transparent);
+}
+
 .btn-menu {
   display: none;
   width: 44px;
@@ -417,11 +473,35 @@ body.sidebar-open {
     height: 100dvh;
     padding: var(--sidebar-island-gap);
     box-sizing: border-box;
-    transform: translateX(-100%);
+    transform: translateX(-104%);
   }
 
   .sidebar.is-open {
     transform: translateX(0);
+  }
+
+  .sidebar:not(.is-open) .sidebar-inner {
+    transform: scale(0.965) translateX(-10px);
+    opacity: 0.55;
+  }
+
+  .sidebar.is-open .sidebar-inner {
+    transform: scale(1) translateX(0);
+    opacity: 1;
+  }
+
+  .sidebar-link {
+    opacity: 0;
+    transform: translateX(-14px);
+  }
+
+  .sidebar.is-open .sidebar-link {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  body.sidebar-open .app-main {
+    filter: brightness(0.82);
   }
 
   .sidebar-inner {

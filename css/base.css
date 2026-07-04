@@ -38,6 +38,11 @@ input::placeholder {
   color: var(--text-placeholder);
 }
 
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
 svg {
   display: block;
   flex-shrink: 0;

@@ -27,4 +27,13 @@
   --neu-in: inset 4px 4px 10px rgba(0, 0, 0, 0.45), inset -3px -3px 8px rgba(255, 255, 255, 0.03);
   --neu-in-focus: inset 5px 5px 12px rgba(0, 0, 0, 0.5), inset -3px -3px 8px rgba(255, 255, 255, 0.04);
   --neu-press: inset 3px 3px 8px rgba(0, 0, 0, 0.45), inset -2px -2px 6px rgba(255, 255, 255, 0.03);
+
+  --ease-premium: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --duration-sidebar: 0.4s;
+  --duration-overlay: 0.36s;
+  --duration-page: 0.34s;
+  --duration-step: 0.28s;
+
+  --cat-on-accent: #0c1a22;
 }

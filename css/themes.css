@@ -1,52 +1,62 @@
-/* Couleurs par catégorie — réutilisées sidebar + accueil */
+/* Couleurs par catégorie — toutes les pages (sidebar, accueil, activités, modals…) */
 [data-theme="cyan"] {
   --cat-color: #22d3ee;
   --cat-color-deep: #06b6d4;
-  --cat-glow: rgba(34, 211, 238, 0.28);
-  --cat-soft: rgba(34, 211, 238, 0.16);
-  --cat-bg: rgba(34, 211, 238, 0.07);
+  --cat-glow: rgba(34, 211, 238, 0.38);
+  --cat-soft: rgba(34, 211, 238, 0.2);
+  --cat-bg: rgba(34, 211, 238, 0.1);
   --cat-icon-bg: linear-gradient(145deg, rgba(34, 211, 238, 0.28) 0%, rgba(34, 211, 238, 0.08) 100%);
-  --cat-border: rgba(34, 211, 238, 0.22);
+  --cat-border: rgba(34, 211, 238, 0.28);
+  --cat-header-sub: #67e8f9;
+  --cat-page-title-gradient: linear-gradient(135deg, #f5f0ff 0%, #22d3ee 42%, #a78bfa 100%);
 }
 
 [data-theme="rose"] {
   --cat-color: #fb7185;
   --cat-color-deep: #f43f5e;
-  --cat-glow: rgba(251, 113, 133, 0.28);
-  --cat-soft: rgba(251, 113, 133, 0.16);
-  --cat-bg: rgba(251, 113, 133, 0.07);
+  --cat-glow: rgba(251, 113, 133, 0.38);
+  --cat-soft: rgba(251, 113, 133, 0.2);
+  --cat-bg: rgba(251, 113, 133, 0.1);
   --cat-icon-bg: linear-gradient(145deg, rgba(251, 113, 133, 0.28) 0%, rgba(251, 113, 133, 0.08) 100%);
-  --cat-border: rgba(251, 113, 133, 0.22);
+  --cat-border: rgba(251, 113, 133, 0.28);
+  --cat-header-sub: #fda4af;
+  --cat-page-title-gradient: linear-gradient(135deg, #fff0f3 0%, #fb7185 42%, #f472b6 100%);
 }
 
 [data-theme="violet"] {
   --cat-color: #a78bfa;
   --cat-color-deep: #8b5cf6;
-  --cat-glow: rgba(167, 139, 250, 0.28);
-  --cat-soft: rgba(167, 139, 250, 0.16);
-  --cat-bg: rgba(167, 139, 250, 0.07);
+  --cat-glow: rgba(167, 139, 250, 0.38);
+  --cat-soft: rgba(167, 139, 250, 0.2);
+  --cat-bg: rgba(167, 139, 250, 0.1);
   --cat-icon-bg: linear-gradient(145deg, rgba(167, 139, 250, 0.28) 0%, rgba(167, 139, 250, 0.08) 100%);
-  --cat-border: rgba(167, 139, 250, 0.22);
+  --cat-border: rgba(167, 139, 250, 0.28);
+  --cat-header-sub: #c4b5fd;
+  --cat-page-title-gradient: linear-gradient(135deg, #f5f0ff 0%, #a78bfa 42%, #8b5cf6 100%);
 }
 
 [data-theme="blue"] {
   --cat-color: #60a5fa;
   --cat-color-deep: #3b82f6;
-  --cat-glow: rgba(96, 165, 250, 0.28);
-  --cat-soft: rgba(96, 165, 250, 0.16);
-  --cat-bg: rgba(96, 165, 250, 0.07);
+  --cat-glow: rgba(96, 165, 250, 0.38);
+  --cat-soft: rgba(96, 165, 250, 0.2);
+  --cat-bg: rgba(96, 165, 250, 0.1);
   --cat-icon-bg: linear-gradient(145deg, rgba(96, 165, 250, 0.28) 0%, rgba(96, 165, 250, 0.08) 100%);
-  --cat-border: rgba(96, 165, 250, 0.22);
+  --cat-border: rgba(96, 165, 250, 0.28);
+  --cat-header-sub: #93c5fd;
+  --cat-page-title-gradient: linear-gradient(135deg, #eff6ff 0%, #60a5fa 42%, #3b82f6 100%);
 }
 
 [data-theme="pink"] {
   --cat-color: #f472b6;
   --cat-color-deep: #ec4899;
-  --cat-glow: rgba(244, 114, 182, 0.28);
-  --cat-soft: rgba(244, 114, 182, 0.16);
-  --cat-bg: rgba(244, 114, 182, 0.07);
+  --cat-glow: rgba(244, 114, 182, 0.38);
+  --cat-soft: rgba(244, 114, 182, 0.2);
+  --cat-bg: rgba(244, 114, 182, 0.1);
   --cat-icon-bg: linear-gradient(145deg, rgba(244, 114, 182, 0.28) 0%, rgba(244, 114, 182, 0.08) 100%);
-  --cat-border: rgba(244, 114, 182, 0.22);
+  --cat-border: rgba(244, 114, 182, 0.28);
+  --cat-header-sub: #f9a8d4;
+  --cat-page-title-gradient: linear-gradient(135deg, #fdf2f8 0%, #f472b6 42%, #ec4899 100%);
 }
 
 /* Notre histoire — dégradé couple rose → violet → cyan */
@@ -55,11 +65,13 @@
   --cat-color-mid: #a78bfa;
   --cat-color-alt: #22d3ee;
   --cat-color-deep: #ec4899;
-  --cat-glow: rgba(244, 114, 182, 0.32);
+  --cat-glow: rgba(244, 114, 182, 0.38);
   --cat-glow-mid: rgba(167, 139, 250, 0.24);
-  --cat-soft: rgba(167, 139, 250, 0.18);
-  --cat-bg: rgba(244, 114, 182, 0.09);
+  --cat-soft: rgba(167, 139, 250, 0.22);
+  --cat-bg: rgba(244, 114, 182, 0.12);
   --cat-icon-bg: linear-gradient(145deg, rgba(244, 114, 182, 0.3) 0%, rgba(167, 139, 250, 0.14) 52%, rgba(34, 211, 238, 0.1) 100%);
-  --cat-border: rgba(244, 114, 182, 0.28);
+  --cat-border: rgba(244, 114, 182, 0.32);
   --cat-text-gradient: linear-gradient(135deg, #fce7f3 0%, #f472b6 28%, #a78bfa 58%, #22d3ee 100%);
+  --cat-header-sub: #f9a8d4;
+  --cat-page-title-gradient: linear-gradient(135deg, #f5f0ff 0%, #c4b5fd 38%, #22d3ee 100%);
 }

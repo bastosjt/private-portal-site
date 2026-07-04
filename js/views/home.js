@@ -1,5 +1,5 @@
 export const HOME_VIEW_HTML = `
-  <header class="page-header">
+  <header class="page-header page-header--home">
     <button type="button" class="btn-menu" id="menu-toggle" aria-label="Ouvrir le menu">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <line x1="4" x2="20" y1="12" y2="12"/>
@@ -18,7 +18,7 @@ export const HOME_VIEW_HTML = `
     </div>
   </header>
 
-  <main class="page-content">
+  <main class="page-content home-page">
     <section class="home-hero">
       <article class="days-card hero-days" data-theme="love" aria-labelledby="days-heading">
         <div class="days-card-inner">
@@ -50,6 +50,9 @@ export const HOME_VIEW_HTML = `
                 <div class="scene-ring scene-ring--1"></div>
                 <div class="scene-ring scene-ring--2"></div>
                 <div class="scene-ring scene-ring--3"></div>
+                <div class="scene-heart-ripples" aria-hidden="true">
+                  <span class="scene-heart-ripple"></span>
+                </div>
                 <div class="scene-core">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
@@ -65,6 +68,8 @@ export const HOME_VIEW_HTML = `
         </div>
       </article>
     </section>
+
+    <section class="home-hub" id="home-hub" aria-label="Ce soir"></section>
 
     <section class="stats-section" aria-labelledby="stats-heading">
       <div class="section-head">

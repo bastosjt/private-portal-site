@@ -2,6 +2,9 @@ import { getCategoryById } from '../config.js';
 import { updateItem, deleteItem } from '../api/firestore.js';
 import { formatPrice } from '../utils/format.js';
 import { getCustomOptions } from '../services/custom-options.js';
+import { waitForTransition, nextFrame } from '../utils/motion.js';
+
+const MODAL_MS = 420;
 
 function escapeHtml(str) {
   return String(str)
@@ -79,7 +82,7 @@ function getMapsUrl(item) {
   return null;
 }
 
-export function initActivityDetail({ onChanged, onEdit } = {}) {
+export function initActivityDetail({ onChanged, onEdit, theme = 'cyan' } = {}) {
   const category = getCategoryById('activities');
   let currentItem = null;
   let isBusy = false;
@@ -89,7 +92,7 @@ export function initActivityDetail({ onChanged, onEdit } = {}) {
   overlay.className = 'add-modal-overlay hidden';
   overlay.id = 'activity-detail-overlay';
   overlay.innerHTML = `
-    <div class="add-modal act-detail-modal" role="dialog" aria-modal="true" aria-labelledby="act-detail-title">
+    <div class="add-modal act-detail-modal" data-theme="${theme}" role="dialog" aria-modal="true" aria-labelledby="act-detail-title">
       <div class="add-modal-head">
         <button type="button" class="add-modal-back hidden" tabindex="-1" aria-hidden="true"></button>
         <h2 class="add-modal-title" id="act-detail-title">Activité</h2>
@@ -224,11 +227,18 @@ export function initActivityDetail({ onChanged, onEdit } = {}) {
     renderContent(item);
     overlay.classList.remove('hidden');
     document.body.classList.add('modal-open');
+    nextFrame().then(() => overlay.classList.add('is-active'));
   }
 
-  function close() {
-    overlay.classList.add('hidden');
+  async function close() {
+    if (overlay.classList.contains('hidden')) return;
+
+    overlay.classList.remove('is-active');
     document.body.classList.remove('modal-open');
+
+    await waitForTransition(overlay.querySelector('.add-modal') || overlay, MODAL_MS);
+
+    overlay.classList.add('hidden');
     currentItem = null;
     confirmDelete = false;
     isBusy = false;
@@ -253,8 +263,11 @@ export function initActivityDetail({ onChanged, onEdit } = {}) {
   }, { signal });
 
   function destroy() {
-    close();
     abort.abort();
+    overlay.classList.remove('is-active');
+    overlay.classList.add('hidden');
+    document.body.classList.remove('modal-open');
+    bodyEl.innerHTML = '';
     overlay.remove();
   }
 

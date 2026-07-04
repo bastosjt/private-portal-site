@@ -44,20 +44,22 @@ export function renderSelectField(field, categoryId) {
   const storageKey = getStorageKey(categoryId, field.name);
 
   const addBlock = field.allowCustom ? `
-    <div class="form-select-add hidden" id="${id}-add">
-      <div class="form-input-wrap">
-        <input
-          type="text"
-          id="${id}-add-input"
-          class="form-input form-select-add-input"
-          placeholder="Nouveau type…"
-          maxlength="40"
-          autocomplete="off"
-        >
+    <div class="form-select-add" id="${id}-add">
+      <div class="form-select-add-inner">
+        <div class="form-input-wrap">
+          <input
+            type="text"
+            id="${id}-add-input"
+            class="form-input form-select-add-input"
+            placeholder="Nouveau type…"
+            maxlength="40"
+            autocomplete="off"
+          >
+        </div>
+        <button type="button" class="form-select-add-btn" data-select-add="${id}">
+          Ajouter à la liste
+        </button>
       </div>
-      <button type="button" class="form-select-add-btn" data-select-add="${id}">
-        Ajouter à la liste
-      </button>
     </div>
   ` : '';
 
@@ -108,7 +110,8 @@ function initCustomSelect(select) {
   if (!storageKey || !addPanel || !addInput || !addBtn) return () => {};
 
   function toggleAddPanel(show) {
-    addPanel.classList.toggle('hidden', !show);
+    addPanel.classList.toggle('is-open', show);
+    addPanel.setAttribute('aria-hidden', show ? 'false' : 'true');
     if (show) {
       addInput.value = '';
       requestAnimationFrame(() => addInput.focus());

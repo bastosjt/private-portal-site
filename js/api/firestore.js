@@ -5,6 +5,7 @@ import {
   orderBy,
   limit,
   getDocs,
+  getDoc,
   where,
   Timestamp,
   addDoc,
@@ -61,6 +62,18 @@ export async function fetchWeekItemsCount(collectionNames) {
   );
 
   return counts.reduce((sum, n) => sum + n, 0);
+}
+
+export async function fetchItemById(collectionName, id) {
+  if (!id) return null;
+
+  try {
+    const snap = await getDoc(doc(db, collectionName, id));
+    return snap.exists() ? { id: snap.id, ...snap.data() } : null;
+  } catch (err) {
+    console.warn(`fetchItemById(${collectionName}, ${id}):`, err.message);
+    return null;
+  }
 }
 
 export async function fetchAllItems(collectionName) {

@@ -4,34 +4,50 @@
   right: max(20px, env(safe-area-inset-right, 0px));
   bottom: max(24px, env(safe-area-inset-bottom, 0px));
   z-index: 140;
-  width: 58px;
-  height: 58px;
+  width: 56px;
+  height: 56px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-mid) 55%, var(--accent-deep) 100%);
-  color: #0c1a22;
+  background: var(--surface);
+  color: var(--accent);
+  border: 1px solid rgba(0, 212, 255, 0.14);
   box-shadow:
-    -4px -4px 12px rgba(255, 255, 255, 0.05),
-    6px 6px 18px rgba(0, 0, 0, 0.5),
-    0 0 24px rgba(0, 212, 255, 0.2);
-  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+    var(--neu-up-sm),
+    0 0 16px rgba(0, 212, 255, 0.12);
+  transition:
+    transform var(--duration-sidebar) var(--ease-premium),
+    box-shadow var(--duration-sidebar) var(--ease-premium),
+    color 0.28s var(--ease-premium),
+    border-color 0.28s var(--ease-premium),
+    opacity 0.28s var(--ease-premium);
 }
 
 .fab svg {
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
+  transition: transform var(--duration-sidebar) var(--ease-premium);
 }
 
 .fab:hover {
-  filter: brightness(1.06);
+  color: #5eeaff;
+  border-color: rgba(0, 212, 255, 0.28);
+  box-shadow:
+    var(--neu-up),
+    0 0 22px rgba(0, 212, 255, 0.22);
   transform: translateY(-2px);
 }
 
 .fab:active {
   transform: scale(0.96);
   box-shadow: var(--neu-press);
+}
+
+body.modal-open .fab {
+  transform: rotate(45deg) scale(0.88);
+  opacity: 0;
+  pointer-events: none;
 }
 
 body.sidebar-open .fab {
@@ -51,10 +67,25 @@ body.modal-open {
   align-items: flex-end;
   justify-content: center;
   padding: 16px;
-  background: rgba(8, 10, 14, 0.62);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  animation: add-overlay-in 0.22s ease;
+  background: rgba(8, 10, 14, 0.58);
+  backdrop-filter: blur(0px);
+  -webkit-backdrop-filter: blur(0px);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity var(--duration-overlay) var(--ease-premium),
+    visibility var(--duration-overlay) var(--ease-premium),
+    backdrop-filter var(--duration-overlay) var(--ease-premium),
+    -webkit-backdrop-filter var(--duration-overlay) var(--ease-premium);
+}
+
+.add-modal-overlay.is-active {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
 .add-modal-overlay.hidden {
@@ -72,7 +103,16 @@ body.modal-open {
   box-shadow:
     -6px -6px 16px rgba(255, 255, 255, 0.03),
     8px 8px 24px rgba(0, 0, 0, 0.55);
-  animation: add-modal-in 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+  transform: translateY(28px) scale(0.972);
+  opacity: 0;
+  transition:
+    transform 0.42s var(--ease-out-expo),
+    opacity 0.34s var(--ease-premium);
+}
+
+.add-modal-overlay.is-active .add-modal {
+  transform: translateY(0) scale(1);
+  opacity: 1;
 }
 
 .add-modal-head {
@@ -103,11 +143,18 @@ body.modal-open {
   background: var(--bg);
   box-shadow: var(--neu-up-sm);
   flex-shrink: 0;
-  transition: color 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    color 0.28s var(--ease-premium),
+    box-shadow 0.28s var(--ease-premium),
+    opacity 0.28s var(--ease-premium),
+    transform 0.28s var(--ease-premium);
 }
 
 .add-modal-back.hidden {
+  display: flex !important;
   visibility: hidden;
+  opacity: 0;
+  transform: translateX(-8px);
   pointer-events: none;
 }
 
@@ -126,6 +173,34 @@ body.modal-open {
   overflow-y: auto;
   padding: 4px 18px 22px;
   -webkit-overflow-scrolling: touch;
+}
+
+.add-modal-content {
+  transition:
+    opacity var(--duration-step) var(--ease-premium),
+    transform var(--duration-step) var(--ease-premium);
+}
+
+.add-modal-content.is-leaving {
+  opacity: 0;
+  transform: translateX(10px);
+  pointer-events: none;
+}
+
+.add-modal-content.is-leaving-back {
+  opacity: 0;
+  transform: translateX(-10px);
+  pointer-events: none;
+}
+
+.add-modal-content.is-entering {
+  opacity: 0;
+  transform: translateX(-10px);
+}
+
+.add-modal-content.is-entering-back {
+  opacity: 0;
+  transform: translateX(10px);
 }
 
 /* ── Category picker ── */
@@ -152,7 +227,23 @@ body.modal-open {
   background: var(--bg);
   box-shadow: var(--neu-up-sm);
   color: var(--text-primary);
-  transition: box-shadow 0.2s ease, transform 0.15s ease;
+  transition: box-shadow 0.28s var(--ease-premium), transform 0.2s var(--ease-premium);
+}
+
+.add-modal-overlay.is-active .add-picker-item {
+  animation: add-picker-in 0.38s var(--ease-premium) both;
+  animation-delay: var(--picker-delay, 0ms);
+}
+
+@keyframes add-picker-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .add-picker-item:hover {
@@ -395,13 +486,33 @@ body.modal-open {
 }
 
 .form-select-add {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  overflow: hidden;
+  margin-top: 0;
+  transition:
+    grid-template-rows 0.32s var(--ease-premium),
+    opacity 0.26s var(--ease-premium),
+    margin-top 0.32s var(--ease-premium);
+}
+
+.form-select-add.is-open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  margin-top: 8px;
+}
+
+.form-select-add-inner {
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  overflow: hidden;
 }
 
 .form-select-add.hidden {
-  display: none;
+  display: grid;
 }
 
 .form-select-add-btn {
@@ -457,22 +568,6 @@ body.modal-open {
   filter: none;
 }
 
-@keyframes add-overlay-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes add-modal-in {
-  from {
-    opacity: 0;
-    transform: translateY(24px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 @media (min-width: 640px) {
   .add-modal-overlay {
     align-items: center;
@@ -485,7 +580,18 @@ body.modal-open {
 
 @media (prefers-reduced-motion: reduce) {
   .add-modal-overlay,
-  .add-modal {
-    animation: none;
+  .add-modal,
+  .add-modal-content,
+  .add-picker-item,
+  .form-select-add,
+  .fab,
+  .fab svg {
+    transition: none !important;
+    animation: none !important;
+  }
+
+  body.modal-open .fab {
+    opacity: 0;
+    transform: none;
   }
 }

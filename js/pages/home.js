@@ -1,7 +1,13 @@
-import { COUPLE_START_DATE, HOME_CATEGORIES, getUserDisplayName } from '../config.js';
-import { fetchRecentItems, fetchCollectionCount, fetchWeekItemsCount } from '../api/firestore.js';
+import { COUPLE_START_DATE, HOME_CATEGORIES, getCategoryById, getUserDisplayName } from '../config.js';
+import {
+  fetchRecentItems,
+  fetchCollectionCount,
+  fetchWeekItemsCount,
+  fetchAllItems,
+} from '../api/firestore.js';
 import { sidebarIcon } from '../components/sidebar.js';
 import { initAddItem } from '../components/add-item.js';
+import { loadTodayPicks, getLatestPickId } from '../services/daily-picks.js';
 
 const COLLECTION_IDS = HOME_CATEGORIES.map((cat) => cat.id);
 let currentUserName = '';
@@ -15,11 +21,20 @@ function onAddCategoryClick(event) {
   addItemModal.open(trigger.dataset.addCategory);
 }
 
-function formatShortDate(value) {
-  if (!value) return '';
-  const date = value.toDate ? value.toDate() : new Date(value);
-  if (Number.isNaN(date.getTime())) return '';
-  return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+function getItemTitle(item, titleKey) {
+  return item[titleKey] || item.nom || item.titre || item.destination || 'Sans titre';
+}
+
+function renderRecentItem(item, titleKey) {
+  const title = getItemTitle(item, titleKey);
+  return `
+    <li>
+      <span class="cat-recent-item">
+        <span class="cat-recent-dot" aria-hidden="true"></span>
+        <span class="cat-recent-title">${escapeHtml(title)}</span>
+      </span>
+    </li>
+  `;
 }
 
 function getDaysTogether(startDateStr) {
@@ -67,24 +82,6 @@ function initPageHeader(total = null, weekCount = null) {
   if (subEl) {
     subEl.textContent = total === null ? 'Chargement…' : buildHeaderSubtitle(total, weekCount);
   }
-}
-
-function getItemTitle(item, titleKey) {
-  return item[titleKey] || item.nom || item.titre || item.destination || 'Sans titre';
-}
-
-function renderRecentItem(item, titleKey, href) {
-  const title = getItemTitle(item, titleKey);
-  const date = formatShortDate(item.createdAt);
-  return `
-    <li>
-      <a href="${href}" class="cat-recent-item">
-        <span class="cat-recent-dot" aria-hidden="true"></span>
-        <span class="cat-recent-title">${escapeHtml(title)}</span>
-        ${date ? `<time class="cat-recent-date">${date}</time>` : ''}
-      </a>
-    </li>
-  `;
 }
 
 function escapeHtml(str) {
@@ -172,6 +169,55 @@ function animateCount(el, target) {
   requestAnimationFrame(step);
 }
 
+function getMealCtaLabel() {
+  const hour = new Date().getHours();
+  if (hour >= 22) return 'On mange quoi demain ?';
+  if (hour >= 14) return 'On mange quoi ce soir ?';
+  if (hour >= 6) return 'On mange quoi ce midi ?';
+  return 'On mange quoi à midi ?';
+}
+
+function renderHomeHub(pickedActivity) {
+  const hubEl = document.getElementById('home-hub');
+  if (!hubEl) return;
+
+  const activitiesCat = getCategoryById('activities');
+  const restaurantsCat = getCategoryById('restaurants');
+  const activitiesTheme = activitiesCat?.theme || 'cyan';
+  const restaurantsTheme = restaurantsCat?.theme || 'rose';
+  const restaurantsHref = restaurantsCat?.href || '#restaurants';
+
+  const pickHtml = pickedActivity ? `
+    <a href="#activites" class="home-daily-pick" data-theme="${activitiesTheme}">
+      <span class="home-daily-pick-icon">${sidebarIcon('activity')}</span>
+      <span class="home-daily-pick-copy">
+        <span class="home-daily-pick-label">Votre idée du jour</span>
+        <span class="home-daily-pick-name">${escapeHtml(pickedActivity.nom)}</span>
+      </span>
+      <svg class="home-daily-pick-arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
+      </svg>
+    </a>
+  ` : '';
+
+  hubEl.innerHTML = `
+    <a href="#activites" class="home-hub-cta" data-theme="${activitiesTheme}">
+      <span class="home-hub-cta-icon" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect width="18" height="18" x="3" y="3" rx="2"/>
+          <path d="M16 8h.01"/><path d="M8 8h.01"/><path d="M8 16h.01"/><path d="M16 16h.01"/><path d="M12 12h.01"/>
+        </svg>
+      </span>
+      <span class="home-hub-cta-text">On fait quoi aujourd'hui ?</span>
+    </a>
+    <a href="${restaurantsHref}" class="home-hub-cta" data-theme="${restaurantsTheme}">
+      <span class="home-hub-cta-icon" aria-hidden="true">${sidebarIcon('restaurant')}</span>
+      <span class="home-hub-cta-text">${escapeHtml(getMealCtaLabel())}</span>
+    </a>
+    ${pickHtml}
+  `;
+}
+
 async function loadHomeData() {
   const statsEl = document.getElementById('stats-grid');
   const recentEl = document.getElementById('recent-sections');
@@ -185,7 +231,8 @@ async function loadHomeData() {
     recentEl.innerHTML = renderRecentSkeleton();
   }
 
-  const [counts, recents, weekCount] = await Promise.all([
+  const [, counts, recents, weekCount] = await Promise.all([
+    loadTodayPicks(),
     Promise.all(
       HOME_CATEGORIES.map(async (cat) => ({
         ...cat,
@@ -195,11 +242,19 @@ async function loadHomeData() {
     Promise.all(
       HOME_CATEGORIES.map(async (cat) => ({
         ...cat,
-        items: await fetchRecentItems(cat.id, 3),
+        items: await fetchRecentItems(cat.id, 4),
       })),
     ),
     fetchWeekItemsCount(COLLECTION_IDS),
   ]);
+
+  const pickId = getLatestPickId();
+  let pickedActivity = null;
+  if (pickId) {
+    const activities = await fetchAllItems('activities');
+    pickedActivity = activities.find((item) => item.id === pickId) ?? null;
+  }
+  renderHomeHub(pickedActivity);
 
   const total = counts.reduce((sum, cat) => sum + cat.count, 0);
   initPageHeader(total, weekCount);
@@ -227,7 +282,7 @@ async function loadHomeData() {
     recentEl.innerHTML = recents.map((cat, index) => {
       const count = countMap[cat.id] ?? 0;
       const itemsHtml = cat.items.length
-        ? `<ul class="cat-recent-list">${cat.items.map((item) => renderRecentItem(item, cat.titleKey, cat.href)).join('')}</ul>`
+        ? `<ul class="cat-recent-list">${cat.items.map((item) => renderRecentItem(item, cat.titleKey)).join('')}</ul>`
         : `<div class="cat-recent-empty">
             <span class="cat-recent-empty-icon">${sidebarIcon(cat.icon)}</span>
             <p>Rien pour l'instant</p>
@@ -237,8 +292,9 @@ async function loadHomeData() {
           </div>`;
 
       return `
-        <section class="cat-panel" data-theme="${cat.theme}" style="animation-delay: ${index * 60}ms">
+        <section class="cat-panel${cat.items.length ? '' : ' cat-panel--empty'}" data-theme="${cat.theme}" style="animation-delay: ${index * 60}ms">
           <div class="cat-panel-inner">
+            ${cat.items.length ? `<a href="${cat.href}" class="cat-panel-hit" aria-label="Voir ${escapeHtml(cat.label)}"></a>` : ''}
             <span class="cat-panel-accent" aria-hidden="true"></span>
             <div class="cat-panel-head">
               <div class="cat-panel-title">
@@ -248,7 +304,7 @@ async function loadHomeData() {
                   <p>${count} idée${count !== 1 ? 's' : ''}</p>
                 </div>
               </div>
-              <a href="${cat.href}" class="cat-panel-link">Voir tout</a>
+              <span class="cat-panel-link">Voir tout</span>
             </div>
             ${itemsHtml}
           </div>

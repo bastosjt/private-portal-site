@@ -2,6 +2,7 @@ import { HOME_CATEGORIES, getCategoryById } from '../config.js';
 import { addItem, updateItem } from '../api/firestore.js';
 import { sidebarIcon } from './sidebar.js';
 import { initFormAddressFields } from './address-autocomplete.js';
+import { waitForTransition, nextFrame } from '../utils/motion.js';
 import {
   initFormSelectFields,
   getSelectFieldValue,
@@ -100,6 +101,12 @@ export function initAddItem({ user, onAdded, onUpdated } = {}) {
   let isSubmitting = false;
   let addressCleanup = null;
   let selectCleanup = null;
+  let bodyTransitionToken = 0;
+  let modalTransitionToken = 0;
+  let isBodyTransitioning = false;
+
+  const MODAL_MS = 360;
+  const STEP_MS = 260;
 
   const fab = document.createElement('button');
   fab.type = 'button';
@@ -182,75 +189,181 @@ export function initAddItem({ user, onAdded, onUpdated } = {}) {
     }
   }
 
-  function showPicker() {
-    editingItemId = null;
-    addressCleanup?.();
-    addressCleanup = null;
-    selectCleanup?.();
-    selectCleanup = null;
-    activeCategoryId = null;
-    titleEl.textContent = 'Nouvelle idée';
-    backBtn.classList.add('hidden');
-    bodyEl.innerHTML = renderCategoryPicker();
+  function getContentEl() {
+    return bodyEl.querySelector('.add-modal-content');
   }
 
-  function showForm(categoryId, item = null) {
+  function setModalTitle(text, showBack) {
+    titleEl.textContent = text;
+    backBtn.classList.toggle('hidden', !showBack);
+  }
+
+  function staggerPickerItems(root) {
+    root?.querySelectorAll('.add-picker-item').forEach((item, index) => {
+      item.style.setProperty('--picker-delay', `${index * 35 + 50}ms`);
+    });
+  }
+
+  function clearFieldCleanups() {
     addressCleanup?.();
     addressCleanup = null;
     selectCleanup?.();
     selectCleanup = null;
+  }
 
+  function bindForm(panel, categoryId, item = null) {
     const category = getCategoryById(categoryId);
-    if (!category) return;
+    if (!category) return false;
 
     activeCategoryId = categoryId;
-    titleEl.textContent = item ? `Modifier ${category.label.toLowerCase()}` : category.modalTitle;
-    backBtn.classList.toggle('hidden', Boolean(item));
-    bodyEl.innerHTML = renderForm(category);
+    const form = panel.querySelector('#add-form');
+    if (!form) return false;
 
-    const form = bodyEl.querySelector('#add-form');
-    if (form) {
-      if (item) {
-        populateForm(form, category, item);
-        const submitBtn = form.querySelector('#add-form-submit');
-        if (submitBtn) submitBtn.textContent = 'Mettre à jour';
-      }
-      addressCleanup = initFormAddressFields(form, category);
-      selectCleanup = initFormSelectFields(form, category);
+    if (item) {
+      populateForm(form, category, item);
+      const submitBtn = form.querySelector('#add-form-submit');
+      if (submitBtn) submitBtn.textContent = 'Mettre à jour';
     }
 
-    const firstInput = bodyEl.querySelector('input, textarea, select');
+    addressCleanup = initFormAddressFields(form, category);
+    selectCleanup = initFormSelectFields(form, category);
+    return true;
+  }
+
+  function mountPicker() {
+    clearFieldCleanups();
+    editingItemId = null;
+    activeCategoryId = null;
+    setModalTitle('Nouvelle idée', false);
+
+    const content = getContentEl() || bodyEl;
+    if (content === bodyEl) {
+      bodyEl.innerHTML = `<div class="add-modal-content">${renderCategoryPicker()}</div>`;
+    } else {
+      content.innerHTML = renderCategoryPicker();
+    }
+    staggerPickerItems(getContentEl());
+  }
+
+  function mountForm(categoryId, item = null) {
+    clearFieldCleanups();
+
+    const category = getCategoryById(categoryId);
+    if (!category) return false;
+
+    setModalTitle(
+      item ? `Modifier ${category.label.toLowerCase()}` : category.modalTitle,
+      !item,
+    );
+
+    const content = getContentEl() || bodyEl;
+    if (content === bodyEl) {
+      bodyEl.innerHTML = `<div class="add-modal-content">${renderForm(category)}</div>`;
+    } else {
+      content.innerHTML = renderForm(category);
+    }
+
+    return bindForm(getContentEl(), categoryId, item);
+  }
+
+  async function transitionContent(mountFn, { direction = 'forward', animate = true } = {}) {
+    if (isBodyTransitioning) return false;
+
+    const token = ++bodyTransitionToken;
+    const content = getContentEl();
+    const canAnimate = animate && content?.innerHTML.trim();
+
+    if (canAnimate) {
+      isBodyTransitioning = true;
+      content.classList.remove('is-entering', 'is-entering-back');
+      content.classList.add(direction === 'back' ? 'is-leaving-back' : 'is-leaving');
+      await waitForTransition(content, STEP_MS);
+      if (token !== bodyTransitionToken) {
+        isBodyTransitioning = false;
+        return false;
+      }
+      content.classList.remove('is-leaving', 'is-leaving-back');
+    }
+
+    mountFn();
+
+    if (token !== bodyTransitionToken) {
+      isBodyTransitioning = false;
+      return false;
+    }
+
+    const nextContent = getContentEl();
+    if (canAnimate && nextContent) {
+      nextContent.classList.add(direction === 'back' ? 'is-entering-back' : 'is-entering');
+      await nextFrame();
+      nextContent.classList.remove('is-entering', 'is-entering-back');
+    }
+
+    isBodyTransitioning = false;
+    return true;
+  }
+
+  async function showPicker({ animate = true } = {}) {
+    await transitionContent(mountPicker, { direction: 'back', animate });
+  }
+
+  async function showForm(categoryId, item = null, { animate = true, direction = 'forward' } = {}) {
+    const ok = await transitionContent(
+      () => mountForm(categoryId, item),
+      { direction, animate: animate && !item },
+    );
+
+    if (!ok) return;
+
+    const firstInput = getContentEl()?.querySelector('input, textarea, select');
     if (firstInput) {
       requestAnimationFrame(() => firstInput.focus());
     }
   }
 
-  function open(categoryId = null) {
-    editingItemId = null;
+  async function open(categoryId = null, item = null) {
+    if (isBodyTransitioning) return;
+
+    const token = ++modalTransitionToken;
+    bodyTransitionToken += 1;
+    editingItemId = item?.id || null;
+
+    bodyEl.innerHTML = '<div class="add-modal-content"></div>';
+
     if (categoryId) {
-      showForm(categoryId);
+      mountForm(categoryId, item);
     } else {
-      showPicker();
+      mountPicker();
     }
+
     overlay.classList.remove('hidden');
+    await nextFrame();
+    if (token !== modalTransitionToken) return;
+
+    overlay.classList.add('is-active');
     document.body.classList.add('modal-open');
   }
 
   function openEdit(categoryId, item) {
     if (!item?.id) return;
-    editingItemId = item.id;
-    showForm(categoryId, item);
-    overlay.classList.remove('hidden');
-    document.body.classList.add('modal-open');
+    open(categoryId, item);
   }
 
-  function close() {
-    addressCleanup?.();
-    addressCleanup = null;
-    selectCleanup?.();
-    selectCleanup = null;
-    overlay.classList.add('hidden');
+  async function close() {
+    if (isBodyTransitioning) return;
+
+    const token = ++modalTransitionToken;
+    bodyTransitionToken += 1;
+    isBodyTransitioning = false;
+
+    overlay.classList.remove('is-active');
     document.body.classList.remove('modal-open');
+
+    await waitForTransition(overlay, MODAL_MS);
+    if (token !== modalTransitionToken) return;
+
+    clearFieldCleanups();
+    overlay.classList.add('hidden');
     activeCategoryId = null;
     editingItemId = null;
     bodyEl.innerHTML = '';
@@ -353,16 +466,20 @@ export function initAddItem({ user, onAdded, onUpdated } = {}) {
   fab.addEventListener('click', () => open());
 
   closeBtn.addEventListener('click', close);
-  backBtn.addEventListener('click', showPicker);
+  backBtn.addEventListener('click', () => {
+    if (isBodyTransitioning) return;
+    showPicker({ animate: true });
+  });
 
   overlay.addEventListener('click', (event) => {
     if (event.target === overlay) close();
   });
 
   bodyEl.addEventListener('click', (event) => {
+    if (isBodyTransitioning) return;
     const pickerBtn = event.target.closest('[data-category]');
     if (pickerBtn?.closest('#add-picker')) {
-      showForm(pickerBtn.dataset.category);
+      showForm(pickerBtn.dataset.category, null, { animate: true, direction: 'forward' });
     }
   });
 

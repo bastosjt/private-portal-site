@@ -1,5 +1,9 @@
+import { getCategoryById } from '../config.js';
+
+const THEME = getCategoryById('activities')?.theme || 'cyan';
+
 export const ACTIVITIES_VIEW_HTML = `
-  <header class="page-header">
+  <header class="page-header page-header--themed page-header--activities" data-theme="${THEME}">
     <button type="button" class="btn-menu" id="menu-toggle" aria-label="Ouvrir le menu">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <line x1="4" x2="20" y1="12" y2="12"/>
@@ -7,7 +11,7 @@ export const ACTIVITIES_VIEW_HTML = `
         <line x1="4" x2="20" y1="18" y2="18"/>
       </svg>
     </button>
-    <div class="page-header-mobile-icon act-header-icon" data-theme="cyan" aria-hidden="true">
+    <div class="page-header-mobile-icon" data-theme="${THEME}" aria-hidden="true">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M6 19V5"/><path d="M10 19V6.8"/><path d="M14 19v-7.8"/><path d="M18 5v4"/><path d="M18 19v-6"/><path d="M22 19V9"/><path d="M2 19V9a4 4 0 0 1 4-4c2 0 4 1.33 6 4s4 4 6 4a4 4 0 1 0-3-6.65"/>
       </svg>
@@ -18,9 +22,9 @@ export const ACTIVITIES_VIEW_HTML = `
     </div>
   </header>
 
-  <main class="page-content activities-page" data-theme="cyan">
+  <main class="page-content activities-page" data-theme="${THEME}">
     <section class="act-hero hidden" aria-labelledby="daily-heading" id="daily-hero">
-      <article class="act-feature-card" data-theme="cyan" id="daily-card">
+      <article class="act-feature-card" data-theme="${THEME}" id="daily-card">
         <div class="act-feature-inner is-loading" id="daily-inner">
           <div class="skel-block skel-block--daily-title skel-shimmer" aria-hidden="true"></div>
           <div class="skel-block skel-block--daily-meta skel-shimmer" aria-hidden="true"></div>
@@ -30,7 +34,7 @@ export const ACTIVITIES_VIEW_HTML = `
 
     <div class="act-grid act-grid--solo">
       <section class="act-grid-card" aria-label="Pioche au hasard">
-        <div class="act-box act-dice-box" data-theme="cyan">
+        <div class="act-box act-dice-box" data-theme="${THEME}">
           <span class="cat-panel-accent" aria-hidden="true"></span>
           <div class="act-box-body act-dice-body">
             <div class="act-dice-result" id="dice-result" aria-live="polite">
@@ -50,7 +54,7 @@ export const ACTIVITIES_VIEW_HTML = `
       </section>
     </div>
 
-    <section class="act-list-section act-cat-panel" data-theme="cyan" aria-labelledby="list-heading">
+    <section class="act-list-section act-cat-panel" data-theme="${THEME}" aria-labelledby="list-heading">
       <span class="cat-panel-accent" aria-hidden="true"></span>
       <div class="section-head">
         <div>

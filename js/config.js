@@ -184,3 +184,11 @@ export const HOME_CATEGORIES = [
 export function getCategoryById(id) {
   return HOME_CATEGORIES.find((cat) => cat.id === id);
 }
+
+export function getCategoryTheme(categoryId) {
+  return getCategoryById(categoryId)?.theme || 'cyan';
+}
+
+export function getRouteTheme(routeId) {
+  return NAV_ITEMS.find((item) => item.id === routeId)?.theme || 'cyan';
+}

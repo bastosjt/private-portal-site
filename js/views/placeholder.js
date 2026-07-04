@@ -6,7 +6,7 @@ export function getPlaceholderViewHtml(routeId) {
   const theme = navItem.theme || 'cyan';
 
   return `
-    <header class="page-header">
+    <header class="page-header page-header--themed" data-theme="${theme}">
       <button type="button" class="btn-menu" id="menu-toggle" aria-label="Ouvrir le menu">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <line x1="4" x2="20" y1="12" y2="12"/>
@@ -23,7 +23,7 @@ export function getPlaceholderViewHtml(routeId) {
       </div>
     </header>
 
-    <main class="page-content">
+    <main class="page-content" data-theme="${theme}">
       <section class="cat-panel" data-theme="${theme}">
         <div class="cat-panel-inner">
           <span class="cat-panel-accent" aria-hidden="true"></span>

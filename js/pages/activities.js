@@ -28,6 +28,7 @@ const SORT_OPTIONS = [
 
 let allItems = [];
 let currentSort = 'recent';
+let listHasAnimated = false;
 let addItemModal = null;
 let detailModal = null;
 let isRolling = false;
@@ -131,7 +132,7 @@ function updateSortUI() {
     btn.classList.toggle('is-active', active);
     btn.setAttribute('aria-selected', active ? 'true' : 'false');
     if (active) {
-      btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      btn.scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'center' });
     }
   });
 }
@@ -140,12 +141,16 @@ function setSort(sortId) {
   if (!SORT_OPTIONS.some((opt) => opt.id === sortId)) return;
   currentSort = sortId;
   updateSortUI();
-  renderActivitiesList(sortItems(allItems));
+  const sorted = sortItems(allItems);
+  if (!reorderActivitiesList(sorted)) {
+    renderActivitiesList(sorted, { animate: false });
+  }
 }
 
 function refreshListView() {
   updateSortUI();
-  renderActivitiesList(sortItems(allItems));
+  renderActivitiesList(sortItems(allItems), { animate: !listHasAnimated });
+  listHasAnimated = true;
 }
 
 function findItemById(id) {
@@ -284,14 +289,13 @@ function updateDiceIdleState() {
 
   const latest = findItemById(getLatestPickId());
 
-  if (!canPickToday() && latest) {
-    renderDiceResult(latest, 'Votre idée du jour');
-  } else if (latest) {
-    resultEl.classList.remove('is-rolling');
-    resultEl.innerHTML = `
-      <p class="act-dice-result-label">Envie d'autre chose ?</p>
-      <p class="act-dice-result-name">Relancez le dé</p>
-    `;
+  if (latest) {
+    const canRollAgain = canPickToday() && getRemainingPicks() > 0;
+    renderDiceResult(
+      latest,
+      canRollAgain ? 'Votre pioche' : 'Votre idée du jour',
+      canRollAgain ? 'Envie d\'autre chose ? Relancez le dé' : '',
+    );
   } else {
     resultEl.classList.remove('is-rolling');
     resultEl.innerHTML = `
@@ -303,12 +307,42 @@ function updateDiceIdleState() {
   updateDiceQuota();
 }
 
-function renderActivitiesList(items) {
+function reorderActivitiesList(items) {
+  const listEl = document.getElementById('activities-list');
+  const subEl = document.getElementById('list-sub');
+  if (!listEl || !items.length) return false;
+
+  const rowById = new Map();
+  listEl.querySelectorAll('.act-list-item [data-activity-id]').forEach((inner) => {
+    const li = inner.closest('.act-list-item');
+    if (li) rowById.set(inner.dataset.activityId, li);
+  });
+
+  if (rowById.size !== items.length) return false;
+
+  for (const item of items) {
+    const li = rowById.get(item.id);
+    if (!li) return false;
+    if (li.classList.contains('act-list-item--done') !== Boolean(item.done)) return false;
+    listEl.appendChild(li);
+  }
+
+  listEl.classList.add('act-list--instant');
+
+  if (subEl) {
+    subEl.textContent = `${items.length} activité${items.length > 1 ? 's' : ''} enregistrée${items.length > 1 ? 's' : ''}`;
+  }
+
+  return true;
+}
+
+function renderActivitiesList(items, { animate = false } = {}) {
   const listEl = document.getElementById('activities-list');
   const subEl = document.getElementById('list-sub');
   if (!listEl) return;
 
   listEl.classList.remove('is-loading');
+  listEl.classList.toggle('act-list--instant', !animate);
 
   if (subEl) {
     subEl.textContent = items.length
@@ -330,7 +364,7 @@ function renderActivitiesList(items) {
   }
 
   listEl.innerHTML = items.map((item, index) => `
-    <li class="act-list-item${item.done ? ' act-list-item--done' : ''}" style="animation-delay: ${index * 40}ms">
+    <li class="act-list-item${item.done ? ' act-list-item--done' : ''}"${animate ? ` style="animation-delay: ${index * 40}ms"` : ''}>
       <div class="act-list-item-inner" data-activity-id="${item.id}" role="button" tabindex="0" aria-label="Voir ${escapeHtml(item.nom)}">
         <span class="cat-panel-accent" aria-hidden="true"></span>
         <div class="act-list-item-head">
@@ -386,7 +420,7 @@ function renderDicePicking(phase = 'pick') {
   resultEl.classList.add('is-rolling');
 }
 
-function renderDiceResult(item, label = 'Direction →') {
+function renderDiceResult(item, label = 'Direction →', hint = '') {
   const resultEl = document.getElementById('dice-result');
   if (!resultEl) return;
 
@@ -404,6 +438,7 @@ function renderDiceResult(item, label = 'Direction →') {
     <p class="act-dice-result-label">${escapeHtml(label)}</p>
     <p class="act-dice-result-name">${escapeHtml(item.nom)}</p>
     <p class="act-dice-result-meta">${escapeHtml(getFieldLabel('categorie', item.categorie) || 'Activité')}${item.localisation ? ` · ${escapeHtml(item.localisation)}` : ''}</p>
+    ${hint ? `<p class="act-dice-result-hint">${escapeHtml(hint)}</p>` : ''}
   `;
 }
 
@@ -540,6 +575,7 @@ export function refreshActivitiesPage() {
 
 export function destroyActivitiesPage() {
   isRolling = false;
+  listHasAnimated = false;
   activitiesAbort?.abort();
   activitiesAbort = null;
   detailModal?.destroy?.();
@@ -568,9 +604,10 @@ export async function initActivitiesPage(user, { addItemModal: sharedModal } = {
   });
 
   detailModal = initActivityDetail({
+    theme: getCategoryById('activities')?.theme || 'cyan',
     onChanged: () => loadActivities(),
-    onEdit: (item) => {
-      detailModal.close();
+    onEdit: async (item) => {
+      await detailModal.close();
       addItemModal.openEdit('activities', item);
     },
   });
