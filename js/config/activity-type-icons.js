@@ -9,6 +9,7 @@ import {
   Footprints,
   Landmark,
   Music,
+  Popcorn,
   Puzzle,
   RollerCoaster,
   Sparkles,
@@ -22,6 +23,7 @@ const ICON_REGISTRY = {
   footprints: Footprints,
   puzzle: Puzzle,
   music: Music,
+  popcorn: Popcorn,
   sparkles: Sparkles,
   'biceps-flexed': BicepsFlexed,
   activity: RollerCoaster,
@@ -34,6 +36,7 @@ export const ACTIVITY_TYPE_ICONS = {
   balade: 'footprints',
   escape_game: 'puzzle',
   concert: 'music',
+  cinema: 'popcorn',
   feux_d_artifices: 'sparkles',
   sport: 'biceps-flexed',
 };

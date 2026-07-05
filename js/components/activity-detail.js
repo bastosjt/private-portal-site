@@ -2,6 +2,7 @@ import { getCategoryById } from '../config.js';
 import { updateItem, deleteItem } from '../api/firestore.js';
 import { formatPrice, formatOptionLabel } from '../utils/format.js';
 import { getCustomOptions } from '../services/custom-options.js';
+import { renderActivityScheduleNote } from '../utils/activity-schedule.js';
 import { waitForTransition, nextFrame } from '../utils/motion.js';
 import { lockScroll, unlockScroll } from '../utils/scroll-lock.js';
 
@@ -127,6 +128,10 @@ export function initActivityDetail({ onChanged, onEdit, theme = 'cyan' } = {}) {
       <div class="act-detail-content${item.done ? ' act-detail-content--done' : ''}">
         <h3 class="act-detail-name">${escapeHtml(item.nom)}</h3>
         ${chips.length ? `<div class="act-chips">${chips.join('')}</div>` : ''}
+        ${renderActivityScheduleNote(item, {
+          getDisponibiliteLabel: (value) => getFieldLabel(category, 'disponibilite', value),
+          escapeHtml,
+        })}
         ${item.localisation ? `
           ${mapsUrl ? `
             <a href="${mapsUrl}" class="act-location" target="_blank" rel="noopener noreferrer">

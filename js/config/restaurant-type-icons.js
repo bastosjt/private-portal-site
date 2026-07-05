@@ -5,9 +5,9 @@
 import {
   Beer,
   Coffee,
+  Martini,
   PaperBag,
   UtensilsCrossed,
-  Wine,
 } from 'https://esm.sh/lucide@1.23.0';
 import { renderLucideIcon } from '../utils/lucide-icon.js';
 
@@ -16,16 +16,15 @@ const ICON_REGISTRY = {
   'paper-bag': PaperBag,
   beer: Beer,
   coffee: Coffee,
-  wine: Wine,
+  martini: Martini,
 };
 
 export const RESTAURANT_TYPE_ICONS = {
   restaurant: 'utensils-crossed',
-  bar: 'beer',
   bistro: 'utensils-crossed',
   cafe: 'coffee',
   brasserie: 'beer',
-  bar_a_vin: 'wine',
+  bar_a_cocktail: 'martini',
   fast_food: 'paper-bag',
   restauration_rapide: 'paper-bag',
 };

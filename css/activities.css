@@ -223,6 +223,102 @@
   background: var(--bg);
 }
 
+.act-schedule-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 8px;
+  margin-bottom: 2px;
+  padding: 10px 12px 10px 10px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--cat-color) 14%, var(--bg));
+  border: 1px solid color-mix(in srgb, var(--cat-color) 24%, transparent);
+  border-left: 3px solid var(--cat-color);
+  font-size: 0.8rem;
+  line-height: 1.35;
+  box-shadow:
+    var(--neu-in),
+    0 0 18px color-mix(in srgb, var(--cat-color) 10%, transparent);
+}
+
+.act-schedule-note-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--cat-color);
+}
+
+.act-schedule-note-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.act-schedule-note-copy {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 6px;
+  row-gap: 2px;
+  min-width: 0;
+}
+
+.act-schedule-note-tag {
+  font-weight: 700;
+  font-size: 0.82rem;
+  color: var(--cat-color);
+}
+
+.act-schedule-note-period {
+  font-weight: 500;
+  color: color-mix(in srgb, var(--text-primary) 80%, var(--text-secondary));
+}
+
+.act-schedule-note-tag + .act-schedule-note-period::before {
+  content: '·';
+  margin-right: 6px;
+  color: color-mix(in srgb, var(--cat-color) 50%, var(--text-secondary));
+}
+
+.act-schedule-note--a-venir,
+.act-schedule-note--duree_limitee,
+.act-schedule-note--periode {
+  background: color-mix(in srgb, var(--cat-color) 16%, var(--bg));
+}
+
+.act-list-item--scheduled .act-list-item-inner {
+  border-color: color-mix(in srgb, var(--cat-color) 38%, transparent);
+}
+
+.act-list-meta {
+  color: var(--text-secondary);
+}
+
+.act-detail-content .act-schedule-note {
+  margin-top: 4px;
+  margin-bottom: 12px;
+}
+
+.act-feature-inner .act-chips + .act-schedule-note,
+.act-list-item-body .act-list-meta + .act-schedule-note,
+.act-detail-content .act-chips + .act-schedule-note {
+  margin-top: 10px;
+}
+
+.act-feature-inner .act-schedule-note {
+  position: relative;
+  z-index: 1;
+  margin-top: 10px;
+  margin-bottom: 8px;
+  max-width: 28rem;
+}
+
+.act-dice-result .act-schedule-note {
+  margin-top: 10px;
+  margin-bottom: 4px;
+  padding: 8px 10px;
+  font-size: 0.76rem;
+}
+
 .act-location {
   position: relative;
   z-index: 1;

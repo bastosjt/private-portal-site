@@ -7,6 +7,12 @@
   padding: 0;
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  touch-action: manipulation;
+}
+
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   background: var(--bg);
@@ -39,15 +45,20 @@ button {
   background: none;
 }
 
-input {
+input,
+textarea,
+select {
   font: inherit;
+  font-size: 16px;
   background: transparent;
   border: none;
   outline: none;
   color: inherit;
+  touch-action: manipulation;
 }
 
-input::placeholder {
+input::placeholder,
+textarea::placeholder {
   color: var(--text-placeholder);
 }
 

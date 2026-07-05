@@ -237,6 +237,8 @@ function handleLegacyPageRedirect() {
   const legacyMap = {
     'accueil.html': 'accueil',
     'activites.html': 'activites',
+    'restaurant.html': 'restaurants',
+    'restaurants.html': 'restaurants',
   };
 
   const routeId = legacyMap[page];

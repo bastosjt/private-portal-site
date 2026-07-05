@@ -6,6 +6,11 @@ import { renderActivityTypeIcon } from '../config/activity-type-icons.js';
 import { initAddItem } from '../components/add-item.js';
 import { initActivityDetail } from '../components/activity-detail.js';
 import { initListFilters } from '../components/list-filters.js';
+import {
+  getActivityListMetaParts,
+  hasActivitySchedule,
+  renderActivityScheduleNote,
+} from '../utils/activity-schedule.js';
 import { getCustomOptions } from '../services/custom-options.js';
 import {
   addTodayPick,
@@ -22,14 +27,14 @@ const CATEGORY = getCategoryById('activities');
 const COLLECTION = 'activities';
 
 const SORT_OPTIONS = [
-  { id: 'recent', label: 'Plus récent', shortLabel: 'Récent' },
   { id: 'alpha', label: 'Ordre alphabétique', shortLabel: 'A → Z' },
+  { id: 'recent', label: 'Plus récent', shortLabel: 'Récent' },
   { id: 'price-asc', label: 'Prix croissant', shortLabel: 'Prix ↑' },
   { id: 'price-desc', label: 'Prix décroissant', shortLabel: 'Prix ↓' },
 ];
 
 let allItems = [];
-let currentSort = 'recent';
+let currentSort = 'alpha';
 let activeFilters = { categorie: [] };
 let listHasAnimated = false;
 let addItemModal = null;
@@ -206,7 +211,7 @@ function applyListSettings({ sort, categorie }) {
 }
 
 function resetListSettings() {
-  currentSort = 'recent';
+  currentSort = 'alpha';
   activeFilters = { categorie: [] };
   refreshListView();
 }
@@ -235,6 +240,19 @@ function renderActivityChips(item) {
     chips.push(`<span class="act-chip act-chip--muted">${escapeHtml(formatPrice(item.prix))}</span>`);
   }
   return chips.length ? `<div class="act-chips">${chips.join('')}</div>` : '';
+}
+
+const scheduleNoteOptions = {
+  getDisponibiliteLabel: (value) => getFieldLabel('disponibilite', value),
+  escapeHtml,
+};
+
+function getActivityMetaLine(item) {
+  const parts = getActivityListMetaParts(item, {
+    getCategorieLabel: (value) => getFieldLabel('categorie', value),
+    formatPrice,
+  });
+  return parts.join(' · ') || 'Activité';
 }
 
 function renderActivityLocation(item) {
@@ -286,6 +304,7 @@ function renderDailyCard(items) {
     </p>
     <h2 class="act-feature-title">${escapeHtml(picked.nom)}</h2>
     ${renderActivityChips(picked)}
+    ${renderActivityScheduleNote(picked, scheduleNoteOptions)}
     ${renderActivityLocation(picked)}
   `;
 }
@@ -432,14 +451,15 @@ function renderActivitiesList(items, { animate = false } = {}) {
   }
 
   listEl.innerHTML = items.map((item, index) => `
-    <li class="act-list-item${item.done ? ' act-list-item--done' : ''}"${animate ? ` style="animation-delay: ${index * 40}ms"` : ''}>
+    <li class="act-list-item${item.done ? ' act-list-item--done' : ''}${hasActivitySchedule(item) ? ' act-list-item--scheduled' : ''}"${animate ? ` style="animation-delay: ${index * 40}ms"` : ''}>
       <div class="act-list-item-inner" data-activity-id="${item.id}" role="button" tabindex="0" aria-label="Voir ${escapeHtml(item.nom)}">
         <span class="cat-panel-accent" aria-hidden="true"></span>
         <div class="act-list-item-head">
           <span class="cat-panel-icon">${renderActivityTypeIcon(item.categorie)}</span>
           <div class="act-list-item-body">
             <h3>${escapeHtml(item.nom)}</h3>
-            <p>${escapeHtml(getFieldLabel('categorie', item.categorie) || 'Activité')}${item.prix ? ` · ${escapeHtml(formatPrice(item.prix))}` : ''}</p>
+            <p class="act-list-meta">${escapeHtml(getActivityMetaLine(item))}</p>
+            ${renderActivityScheduleNote(item, scheduleNoteOptions)}
           </div>
           <span class="act-list-status ${item.done ? 'act-list-status--done' : 'act-list-status--todo'}">
             ${item.done ? `
@@ -505,7 +525,8 @@ function renderDiceResult(item, label = 'Direction →', hint = '') {
   resultEl.innerHTML = `
     <p class="act-dice-result-label">${escapeHtml(label)}</p>
     <p class="act-dice-result-name">${escapeHtml(item.nom)}</p>
-    <p class="act-dice-result-meta">${escapeHtml(getFieldLabel('categorie', item.categorie) || 'Activité')}${item.localisation ? ` · ${escapeHtml(item.localisation)}` : ''}</p>
+    <p class="act-dice-result-meta">${escapeHtml(getActivityMetaLine(item))}${item.localisation ? ` · ${escapeHtml(item.localisation)}` : ''}</p>
+    ${renderActivityScheduleNote(item, scheduleNoteOptions)}
     ${hint ? `<p class="act-dice-result-hint">${escapeHtml(hint)}</p>` : ''}
   `;
 }
@@ -633,7 +654,7 @@ export function refreshActivitiesPage() {
 export function destroyActivitiesPage() {
   isRolling = false;
   listHasAnimated = false;
-  currentSort = 'recent';
+  currentSort = 'alpha';
   activeFilters = { categorie: [] };
   activitiesAbort?.abort();
   activitiesAbort = null;
@@ -652,7 +673,7 @@ export async function initActivitiesPage(user, { addItemModal: sharedModal } = {
   getUserDisplayName(user);
 
   if (new URLSearchParams(window.location.search).get('reset-pioche') === '1') {
-    await resetTodayPicks();
+    await resetTodayPicks('activities');
     const url = new URL(window.location.href);
     url.searchParams.delete('reset-pioche');
     window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
@@ -679,7 +700,7 @@ export async function initActivitiesPage(user, { addItemModal: sharedModal } = {
     theme: getCategoryById('activities')?.theme || 'cyan',
     title: 'Filtres',
     defaults: {
-      sort: 'recent',
+      sort: 'alpha',
       categorie: [],
     },
     sections: [

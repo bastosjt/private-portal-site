@@ -20,6 +20,7 @@ export function initAddressAutocomplete(input, { form, fills = {}, onSelect } = 
   const wrap = input.closest('.address-field');
   if (!wrap) return () => {};
 
+  const fieldWrap = wrap.closest('.form-field') || wrap;
   const listId = `${input.id}-suggestions`;
   let suggestions = [];
   let activeIndex = -1;
@@ -37,15 +38,20 @@ export function initAddressAutocomplete(input, { form, fills = {}, onSelect } = 
   list.id = listId;
   list.className = 'address-suggestions hidden';
   list.setAttribute('role', 'listbox');
-  document.body.appendChild(list);
+  wrap.appendChild(list);
 
-  function positionList() {
-    const rect = input.getBoundingClientRect();
-    list.style.position = 'fixed';
-    list.style.left = `${Math.max(12, rect.left)}px`;
-    list.style.width = `${Math.min(rect.width, window.innerWidth - 24)}px`;
-    list.style.top = `${rect.bottom + 8}px`;
-    list.style.zIndex = '300';
+  function openListContainer() {
+    fieldWrap.classList.add('has-address-suggestions');
+    wrap.classList.add('is-open');
+  }
+
+  function closeListContainer() {
+    fieldWrap.classList.remove('has-address-suggestions');
+    wrap.classList.remove('is-open');
+  }
+
+  function ensureInputVisible() {
+    input.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }
 
   function closeList() {
@@ -53,7 +59,7 @@ export function initAddressAutocomplete(input, { form, fills = {}, onSelect } = 
     activeIndex = -1;
     list.classList.add('hidden');
     list.innerHTML = '';
-    list.removeAttribute('style');
+    closeListContainer();
     input.setAttribute('aria-expanded', 'false');
     input.removeAttribute('aria-activedescendant');
   }
@@ -94,7 +100,8 @@ export function initAddressAutocomplete(input, { form, fills = {}, onSelect } = 
     list.classList.remove('hidden');
     input.setAttribute('aria-expanded', 'true');
     isOpen = true;
-    positionList();
+    openListContainer();
+    ensureInputVisible();
   }
 
   function setActiveOption(index) {
@@ -206,17 +213,11 @@ export function initAddressAutocomplete(input, { form, fills = {}, onSelect } = 
     }, 150);
   }
 
-  function onScrollOrResize() {
-    if (isOpen) positionList();
-  }
-
   input.addEventListener('input', onInput);
   input.addEventListener('keydown', onKeyDown);
   input.addEventListener('blur', onBlur);
   list.addEventListener('mousedown', (event) => event.preventDefault());
   list.addEventListener('click', onListClick);
-  window.addEventListener('scroll', onScrollOrResize, true);
-  window.addEventListener('resize', onScrollOrResize);
 
   return () => {
     clearTimeout(debounceTimer);
@@ -224,8 +225,6 @@ export function initAddressAutocomplete(input, { form, fills = {}, onSelect } = 
     input.removeEventListener('input', onInput);
     input.removeEventListener('keydown', onKeyDown);
     input.removeEventListener('blur', onBlur);
-    window.removeEventListener('scroll', onScrollOrResize, true);
-    window.removeEventListener('resize', onScrollOrResize);
     list.remove();
   };
 }

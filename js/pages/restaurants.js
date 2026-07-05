@@ -15,6 +15,7 @@ import {
   getRemainingPicks,
   getTodayPickIds,
   loadTodayPicks,
+  resetTodayPicks,
 } from '../services/daily-picks.js';
 
 const CATEGORY = getCategoryById('restaurants');
@@ -22,14 +23,14 @@ const COLLECTION = 'restaurants';
 const PICK_SCOPE = 'restaurants';
 
 const SORT_OPTIONS = [
-  { id: 'recent', label: 'Plus récent', shortLabel: 'Récent' },
   { id: 'alpha', label: 'Ordre alphabétique', shortLabel: 'A → Z' },
+  { id: 'recent', label: 'Plus récent', shortLabel: 'Récent' },
   { id: 'price-asc', label: 'Prix croissant', shortLabel: 'Prix ↑' },
   { id: 'price-desc', label: 'Prix décroissant', shortLabel: 'Prix ↓' },
 ];
 
 let allItems = [];
-let currentSort = 'recent';
+let currentSort = 'alpha';
 let activeFilters = { type: [], cuisine: [] };
 let listHasAnimated = false;
 let addItemModal = null;
@@ -221,7 +222,7 @@ function applyListSettings({ sort, type, cuisine }) {
 }
 
 function resetListSettings() {
-  currentSort = 'recent';
+  currentSort = 'alpha';
   activeFilters = { type: [], cuisine: [] };
   refreshListView();
 }
@@ -630,7 +631,7 @@ export function refreshRestaurantsPage() {
 export function destroyRestaurantsPage() {
   isRolling = false;
   listHasAnimated = false;
-  currentSort = 'recent';
+  currentSort = 'alpha';
   activeFilters = { type: [], cuisine: [] };
   restaurantsAbort?.abort();
   restaurantsAbort = null;
@@ -647,6 +648,13 @@ export async function initRestaurantsPage(user, { addItemModal: sharedModal } = 
   const { signal } = restaurantsAbort;
 
   getUserDisplayName(user);
+
+  if (new URLSearchParams(window.location.search).get('reset-pioche') === '1') {
+    await resetTodayPicks(PICK_SCOPE);
+    const url = new URL(window.location.href);
+    url.searchParams.delete('reset-pioche');
+    window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
+  }
 
   addItemModal = sharedModal ?? initAddItem({
     user,
@@ -669,7 +677,7 @@ export async function initRestaurantsPage(user, { addItemModal: sharedModal } = 
     theme: getCategoryById('restaurants')?.theme || 'rose',
     title: 'Filtres',
     defaults: {
-      sort: 'recent',
+      sort: 'alpha',
       type: [],
       cuisine: [],
     },
