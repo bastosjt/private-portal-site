@@ -2,9 +2,9 @@ import { getCategoryById, getUserDisplayName } from '../config.js';
 import { formatPrice, formatOptionLabel } from '../utils/format.js';
 import { fetchAllItems } from '../api/firestore.js';
 import { sidebarIcon } from '../components/sidebar.js';
-import { renderActivityTypeIcon } from '../config/activity-type-icons.js';
+import { renderRestaurantTypeIcon } from '../config/restaurant-type-icons.js';
 import { initAddItem } from '../components/add-item.js';
-import { initActivityDetail } from '../components/activity-detail.js';
+import { initRestaurantDetail } from '../components/restaurant-detail.js';
 import { initListFilters } from '../components/list-filters.js';
 import { getCustomOptions } from '../services/custom-options.js';
 import {
@@ -15,11 +15,11 @@ import {
   getRemainingPicks,
   getTodayPickIds,
   loadTodayPicks,
-  resetTodayPicks,
 } from '../services/daily-picks.js';
 
-const CATEGORY = getCategoryById('activities');
-const COLLECTION = 'activities';
+const CATEGORY = getCategoryById('restaurants');
+const COLLECTION = 'restaurants';
+const PICK_SCOPE = 'restaurants';
 
 const SORT_OPTIONS = [
   { id: 'recent', label: 'Plus récent', shortLabel: 'Récent' },
@@ -30,13 +30,13 @@ const SORT_OPTIONS = [
 
 let allItems = [];
 let currentSort = 'recent';
-let activeFilters = { categorie: [] };
+let activeFilters = { type: [], cuisine: [] };
 let listHasAnimated = false;
 let addItemModal = null;
 let detailModal = null;
 let filterModal = null;
 let isRolling = false;
-let activitiesAbort = null;
+let restaurantsAbort = null;
 
 function escapeHtml(str) {
   return String(str)
@@ -52,16 +52,17 @@ function getFieldLabel(fieldName, value) {
   const base = field?.options?.find((opt) => opt.value === value);
   if (base) return base.label;
 
-  const custom = getCustomOptions(`activities.${fieldName}`).find((opt) => opt.value === value);
+  const custom = getCustomOptions(`restaurants.${fieldName}`).find((opt) => opt.value === value);
   return custom?.label || formatOptionLabel(value.replace(/_/g, ' '));
 }
 
 function getMapsUrl(item) {
+  if (item.lienMaps) return item.lienMaps;
   if (item.latitude != null && item.longitude != null) {
     return `https://www.google.com/maps/search/?api=1&query=${item.latitude},${item.longitude}`;
   }
-  if (item.localisation) {
-    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.localisation)}`;
+  if (item.adresse) {
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.adresse)}`;
   }
   return null;
 }
@@ -75,7 +76,7 @@ function parsePrice(value) {
 function getFieldOptions(fieldName) {
   const field = CATEGORY.fields.find((f) => f.name === fieldName);
   const base = field?.options || [];
-  const custom = getCustomOptions(`activities.${fieldName}`);
+  const custom = getCustomOptions(`restaurants.${fieldName}`);
   const seen = new Set();
   return [...base, ...custom].filter((opt) => {
     if (seen.has(opt.value)) return false;
@@ -84,21 +85,18 @@ function getFieldOptions(fieldName) {
   });
 }
 
-function getCategorieOptions() {
-  return getFieldOptions('categorie');
-}
-
-function getAvailableCategorieOptions(items = allItems) {
+function getAvailableFilterOptions(fieldName, items = allItems) {
   const counts = new Map();
   for (const item of items) {
-    if (!item.categorie) continue;
-    counts.set(item.categorie, (counts.get(item.categorie) || 0) + 1);
+    const value = item[fieldName];
+    if (!value) continue;
+    counts.set(value, (counts.get(value) || 0) + 1);
   }
 
   const result = [];
   const seen = new Set();
 
-  for (const opt of getCategorieOptions()) {
+  for (const opt of getFieldOptions(fieldName)) {
     if ((counts.get(opt.value) || 0) > 0) {
       result.push(opt);
       seen.add(opt.value);
@@ -107,7 +105,7 @@ function getAvailableCategorieOptions(items = allItems) {
 
   for (const [value, count] of counts) {
     if (count > 0 && !seen.has(value)) {
-      result.push({ value, label: getFieldLabel('categorie', value) });
+      result.push({ value, label: getFieldLabel(fieldName, value) });
     }
   }
 
@@ -115,26 +113,36 @@ function getAvailableCategorieOptions(items = allItems) {
 }
 
 function pruneActiveFilters() {
-  const available = new Set(getAvailableCategorieOptions().map((opt) => opt.value));
-  const categorie = (activeFilters.categorie || []).filter((value) => available.has(value));
-  if (categorie.length !== (activeFilters.categorie?.length || 0)) {
-    activeFilters = { categorie };
+  const availableType = new Set(getAvailableFilterOptions('type').map((opt) => opt.value));
+  const availableCuisine = new Set(getAvailableFilterOptions('cuisine').map((opt) => opt.value));
+  const type = (activeFilters.type || []).filter((value) => availableType.has(value));
+  const cuisine = (activeFilters.cuisine || []).filter((value) => availableCuisine.has(value));
+
+  if (
+    type.length !== (activeFilters.type?.length || 0)
+    || cuisine.length !== (activeFilters.cuisine?.length || 0)
+  ) {
+    activeFilters = { type, cuisine };
   }
 }
 
 function getFilterState() {
   return {
     sort: currentSort,
-    categorie: activeFilters.categorie || [],
+    type: activeFilters.type || [],
+    cuisine: activeFilters.cuisine || [],
   };
 }
 
 function applyFilters(items) {
-  const categories = activeFilters.categorie || [];
-  if (!categories.length) return items;
+  const types = activeFilters.type || [];
+  const cuisines = activeFilters.cuisine || [];
 
-  const allowed = new Set(categories);
-  return items.filter((item) => item.categorie && allowed.has(item.categorie));
+  return items.filter((item) => {
+    if (types.length && (!item.type || !types.includes(item.type))) return false;
+    if (cuisines.length && (!item.cuisine || !cuisines.includes(item.cuisine))) return false;
+    return true;
+  });
 }
 
 function getFilteredItems() {
@@ -163,12 +171,16 @@ function sortItems(items, sortId = currentSort) {
   return copy;
 }
 
+function filtersAreActive() {
+  return (activeFilters.type?.length || 0) > 0 || (activeFilters.cuisine?.length || 0) > 0;
+}
+
 function mountListToolbar() {
   const toolbar = document.getElementById('act-list-toolbar');
   if (!toolbar) return;
 
   toolbar.innerHTML = `
-    <button type="button" class="act-filter-btn" id="act-filter-btn" aria-label="Filtrer et trier les activités">
+    <button type="button" class="act-filter-btn" id="act-filter-btn" aria-label="Filtrer et trier les restaurants">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/>
       </svg>
@@ -182,7 +194,7 @@ function updateListSub(count, total = allItems.length) {
   const subEl = document.getElementById('list-sub');
   if (!subEl) return;
 
-  const filtersActive = (activeFilters.categorie?.length || 0) > 0;
+  const filtersActive = filtersAreActive();
 
   if (!count) {
     subEl.textContent = filtersActive ? 'Aucun résultat pour ces filtres' : 'Votre liste complète';
@@ -190,30 +202,33 @@ function updateListSub(count, total = allItems.length) {
   }
 
   if (filtersActive && count !== total) {
-    subEl.textContent = `${count} activité${count > 1 ? 's' : ''} sur ${total}`;
+    subEl.textContent = `${count} adresse${count > 1 ? 's' : ''} sur ${total}`;
     return;
   }
 
-  subEl.textContent = `${count} activité${count > 1 ? 's' : ''} enregistrée${count > 1 ? 's' : ''}`;
+  subEl.textContent = `${count} adresse${count > 1 ? 's' : ''} enregistrée${count > 1 ? 's' : ''}`;
 }
 
-function applyListSettings({ sort, categorie }) {
+function applyListSettings({ sort, type, cuisine }) {
   if (sort && SORT_OPTIONS.some((opt) => opt.id === sort)) {
     currentSort = sort;
   }
-  activeFilters = { categorie: categorie || [] };
+  activeFilters = {
+    type: type || [],
+    cuisine: cuisine || [],
+  };
   refreshListView();
 }
 
 function resetListSettings() {
   currentSort = 'recent';
-  activeFilters = { categorie: [] };
+  activeFilters = { type: [], cuisine: [] };
   refreshListView();
 }
 
 function refreshListView() {
   filterModal?.updateTriggerBadge();
-  renderActivitiesList(sortItems(getFilteredItems()), { animate: !listHasAnimated });
+  renderRestaurantsList(sortItems(getFilteredItems()), { animate: !listHasAnimated });
   listHasAnimated = true;
 }
 
@@ -222,14 +237,25 @@ function findItemById(id) {
 }
 
 function getPickableItems(items = allItems) {
-  const pickedToday = new Set(getTodayPickIds());
+  const pickedToday = new Set(getTodayPickIds(PICK_SCOPE));
   return items.filter((item) => !item.done && !pickedToday.has(item.id));
 }
 
-function renderActivityChips(item) {
+function renderItemMeta(item) {
+  const parts = [];
+  if (item.type) parts.push(getFieldLabel('type', item.type));
+  if (item.cuisine) parts.push(getFieldLabel('cuisine', item.cuisine));
+  if (item.prix) parts.push(formatPrice(item.prix));
+  return parts.join(' · ') || 'Restaurant';
+}
+
+function renderRestaurantChips(item) {
   const chips = [];
-  if (item.categorie) {
-    chips.push(`<span class="act-chip">${escapeHtml(getFieldLabel('categorie', item.categorie))}</span>`);
+  if (item.type) {
+    chips.push(`<span class="act-chip">${escapeHtml(getFieldLabel('type', item.type))}</span>`);
+  }
+  if (item.cuisine) {
+    chips.push(`<span class="act-chip">${escapeHtml(getFieldLabel('cuisine', item.cuisine))}</span>`);
   }
   if (item.prix) {
     chips.push(`<span class="act-chip act-chip--muted">${escapeHtml(formatPrice(item.prix))}</span>`);
@@ -237,8 +263,8 @@ function renderActivityChips(item) {
   return chips.length ? `<div class="act-chips">${chips.join('')}</div>` : '';
 }
 
-function renderActivityLocation(item) {
-  if (!item.localisation) return '';
+function renderRestaurantLocation(item) {
+  if (!item.adresse) return '';
   const mapsUrl = getMapsUrl(item);
   if (mapsUrl) {
     return `
@@ -247,7 +273,7 @@ function renderActivityLocation(item) {
           <path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/>
           <circle cx="12" cy="10" r="3"/>
         </svg>
-        <span>${escapeHtml(item.localisation)}</span>
+        <span>${escapeHtml(item.adresse)}</span>
       </a>
     `;
   }
@@ -257,7 +283,7 @@ function renderActivityLocation(item) {
         <path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/>
         <circle cx="12" cy="10" r="3"/>
       </svg>
-      <span>${escapeHtml(item.localisation)}</span>
+      <span>${escapeHtml(item.adresse)}</span>
     </p>
   `;
 }
@@ -267,7 +293,7 @@ function renderDailyCard(items) {
   const inner = document.getElementById('daily-inner');
   if (!inner) return;
 
-  const picked = items.length ? findItemById(getLatestPickId()) : null;
+  const picked = items.length ? findItemById(getLatestPickId(PICK_SCOPE)) : null;
 
   if (!picked) {
     hero?.classList.add('hidden');
@@ -285,18 +311,18 @@ function renderDailyCard(items) {
       Recommandation du jour
     </p>
     <h2 class="act-feature-title">${escapeHtml(picked.nom)}</h2>
-    ${renderActivityChips(picked)}
-    ${renderActivityLocation(picked)}
+    ${renderRestaurantChips(picked)}
+    ${renderRestaurantLocation(picked)}
   `;
 }
 
 function updateDiceQuota() {
   const quotaEl = document.getElementById('dice-quota');
   const btn = document.getElementById('dice-roll-btn');
-  const remaining = getRemainingPicks();
+  const remaining = getRemainingPicks(PICK_SCOPE);
   const pickable = getPickableItems();
 
-  if (quotaEl) quotaEl.textContent = getPickQuotaLabel();
+  if (quotaEl) quotaEl.textContent = getPickQuotaLabel(PICK_SCOPE);
 
   if (btn) {
     btn.disabled = isRolling || !pickable.length || remaining === 0;
@@ -315,22 +341,22 @@ function renderDiceEmptyState() {
   }
 
   const pickable = getPickableItems();
-  const hasUndone = allItems.some((item) => !item.done);
+  const hasUntested = allItems.some((item) => !item.done);
 
-  if (!hasUndone) {
+  if (!hasUntested) {
     resultEl.innerHTML = `
       <p class="act-dice-result-label">Bravo !</p>
-      <p class="act-dice-result-name">Toutes vos idées sont faites</p>
+      <p class="act-dice-result-name">Toutes vos adresses sont testées</p>
     `;
     return;
   }
 
-  if (!pickable.length && canPickToday()) {
-    resultEl.innerHTML = hasUndone ? `
+  if (!pickable.length && canPickToday(PICK_SCOPE)) {
+    resultEl.innerHTML = hasUntested ? `
       <p class="act-dice-result-label">Déjà piochées</p>
-      <p class="act-dice-result-name">Toutes vos idées à faire l'ont été aujourd'hui</p>
+      <p class="act-dice-result-name">Toutes vos adresses à tester l'ont été aujourd'hui</p>
     ` : `
-      <p class="act-dice-result-label">Plus d'idées dispo</p>
+      <p class="act-dice-result-label">Plus d'adresses dispo</p>
       <p class="act-dice-result-name">Ajoutez-en de nouvelles à piocher</p>
     `;
     return;
@@ -345,25 +371,25 @@ function updateDiceIdleState() {
 
   const pickable = getPickableItems();
 
-  if (!allItems.length || (!pickable.length && canPickToday())) {
+  if (!allItems.length || (!pickable.length && canPickToday(PICK_SCOPE))) {
     renderDiceEmptyState();
     updateDiceQuota();
     return;
   }
 
-  const latest = findItemById(getLatestPickId());
+  const latest = findItemById(getLatestPickId(PICK_SCOPE));
 
   if (latest) {
-    const canRollAgain = canPickToday() && getRemainingPicks() > 0;
+    const canRollAgain = canPickToday(PICK_SCOPE) && getRemainingPicks(PICK_SCOPE) > 0;
     renderDiceResult(
       latest,
-      canRollAgain ? 'Votre pioche' : 'Votre idée du jour',
+      canRollAgain ? 'Votre pioche' : 'Votre adresse du jour',
       canRollAgain ? 'Envie d\'autre chose ? Relancez le dé' : '',
     );
   } else {
     resultEl.classList.remove('is-rolling');
     resultEl.innerHTML = `
-      <p class="act-dice-result-label">Toujours pas d'idée ?</p>
+      <p class="act-dice-result-label">Pas d'inspiration ?</p>
       <p class="act-dice-result-name">Un clic et c'est réglé</p>
     `;
   }
@@ -371,37 +397,8 @@ function updateDiceIdleState() {
   updateDiceQuota();
 }
 
-function reorderActivitiesList(items) {
-  const listEl = document.getElementById('activities-list');
-  const subEl = document.getElementById('list-sub');
-  if (!listEl || !items.length) return false;
-
-  const rowById = new Map();
-  listEl.querySelectorAll('.act-list-item [data-activity-id]').forEach((inner) => {
-    const li = inner.closest('.act-list-item');
-    if (li) rowById.set(inner.dataset.activityId, li);
-  });
-
-  if (rowById.size !== items.length) return false;
-
-  for (const item of items) {
-    const li = rowById.get(item.id);
-    if (!li) return false;
-    if (li.classList.contains('act-list-item--done') !== Boolean(item.done)) return false;
-    listEl.appendChild(li);
-  }
-
-  listEl.classList.add('act-list--instant');
-
-  if (subEl) {
-    updateListSub(items.length);
-  }
-
-  return true;
-}
-
-function renderActivitiesList(items, { animate = false } = {}) {
-  const listEl = document.getElementById('activities-list');
+function renderRestaurantsList(items, { animate = false } = {}) {
+  const listEl = document.getElementById('restaurants-list');
   const subEl = document.getElementById('list-sub');
   if (!listEl) return;
 
@@ -413,17 +410,17 @@ function renderActivitiesList(items, { animate = false } = {}) {
   }
 
   if (!items.length) {
-    const filtersActive = (activeFilters.categorie?.length || 0) > 0;
+    const filtersActive = filtersAreActive();
     const hasAny = allItems.length > 0;
     listEl.innerHTML = `
       <li class="act-list-empty">
         <div class="cat-recent-empty">
-          <span class="cat-recent-empty-icon">${sidebarIcon('activity')}</span>
-          <p>${filtersActive && hasAny ? 'Aucune activité ne correspond à ces filtres' : 'Aucune activité enregistrée'}</p>
+          <span class="cat-recent-empty-icon">${sidebarIcon('restaurant')}</span>
+          <p>${filtersActive && hasAny ? 'Aucun restaurant ne correspond à ces filtres' : 'Aucun restaurant enregistré'}</p>
           ${filtersActive && hasAny ? `
             <button type="button" class="cat-empty-cta" id="act-filter-reset-inline">Réinitialiser les filtres</button>
           ` : `
-            <button type="button" class="cat-empty-cta" data-add-category="activities">Ajouter une activité</button>
+            <button type="button" class="cat-empty-cta" data-add-category="restaurants">Ajouter un restaurant</button>
           `}
         </div>
       </li>
@@ -433,13 +430,13 @@ function renderActivitiesList(items, { animate = false } = {}) {
 
   listEl.innerHTML = items.map((item, index) => `
     <li class="act-list-item${item.done ? ' act-list-item--done' : ''}"${animate ? ` style="animation-delay: ${index * 40}ms"` : ''}>
-      <div class="act-list-item-inner" data-activity-id="${item.id}" role="button" tabindex="0" aria-label="Voir ${escapeHtml(item.nom)}">
+      <div class="act-list-item-inner" data-restaurant-id="${item.id}" role="button" tabindex="0" aria-label="Voir ${escapeHtml(item.nom)}">
         <span class="cat-panel-accent" aria-hidden="true"></span>
         <div class="act-list-item-head">
-          <span class="cat-panel-icon">${renderActivityTypeIcon(item.categorie)}</span>
+          <span class="cat-panel-icon">${renderRestaurantTypeIcon(item.type)}</span>
           <div class="act-list-item-body">
             <h3>${escapeHtml(item.nom)}</h3>
-            <p>${escapeHtml(getFieldLabel('categorie', item.categorie) || 'Activité')}${item.prix ? ` · ${escapeHtml(formatPrice(item.prix))}` : ''}</p>
+            <p>${escapeHtml(renderItemMeta(item))}</p>
           </div>
           <span class="act-list-status ${item.done ? 'act-list-status--done' : 'act-list-status--todo'}">
             ${item.done ? `
@@ -451,10 +448,10 @@ function renderActivitiesList(items, { animate = false } = {}) {
                 <circle cx="12" cy="12" r="9"/>
               </svg>
             `}
-            ${item.done ? 'Fait' : 'Non fait'}
+            ${item.done ? 'Testé' : 'À tester'}
           </span>
         </div>
-        ${item.localisation ? renderActivityLocation(item) : ''}
+        ${item.adresse ? renderRestaurantLocation(item) : ''}
       </div>
     </li>
   `).join('');
@@ -467,10 +464,10 @@ function updateHeader(items) {
   const total = items.length;
   const todo = items.filter((item) => !item.done).length;
 
-  if (total === 0) subEl.textContent = 'Ajoutez vos premières sorties';
-  else if (todo === 0) subEl.textContent = 'Toutes vos idées sont faites';
-  else if (todo === 1) subEl.textContent = '1 idée à explorer';
-  else subEl.textContent = `${todo} idées à explorer`;
+  if (total === 0) subEl.textContent = 'Ajoutez vos premières adresses';
+  else if (todo === 0) subEl.textContent = 'Toutes vos adresses sont testées';
+  else if (todo === 1) subEl.textContent = '1 adresse à tester';
+  else subEl.textContent = `${todo} adresses à tester`;
 }
 
 function renderDicePicking(phase = 'pick') {
@@ -497,7 +494,7 @@ function renderDiceResult(item, label = 'Direction →', hint = '') {
   if (!item) {
     resultEl.innerHTML = `
       <p class="act-dice-result-label">Rien à piocher</p>
-      <p class="act-dice-result-name">Ajoutez des idées d'abord</p>
+      <p class="act-dice-result-name">Ajoutez des adresses d'abord</p>
     `;
     return;
   }
@@ -505,7 +502,7 @@ function renderDiceResult(item, label = 'Direction →', hint = '') {
   resultEl.innerHTML = `
     <p class="act-dice-result-label">${escapeHtml(label)}</p>
     <p class="act-dice-result-name">${escapeHtml(item.nom)}</p>
-    <p class="act-dice-result-meta">${escapeHtml(getFieldLabel('categorie', item.categorie) || 'Activité')}${item.localisation ? ` · ${escapeHtml(item.localisation)}` : ''}</p>
+    <p class="act-dice-result-meta">${escapeHtml(renderItemMeta(item))}${item.adresse ? ` · ${escapeHtml(item.adresse)}` : ''}</p>
     ${hint ? `<p class="act-dice-result-hint">${escapeHtml(hint)}</p>` : ''}
   `;
 }
@@ -513,7 +510,7 @@ function renderDiceResult(item, label = 'Direction →', hint = '') {
 async function rollDice() {
   const pool = getPickableItems();
 
-  if (isRolling || !pool.length || !canPickToday()) {
+  if (isRolling || !pool.length || !canPickToday(PICK_SCOPE)) {
     renderDiceEmptyState();
     updateDiceQuota();
     return;
@@ -528,7 +525,7 @@ async function rollDice() {
   const start = performance.now();
 
   const finish = async () => {
-    await addTodayPick(pickedItem.id);
+    await addTodayPick(pickedItem.id, PICK_SCOPE);
     renderDiceResult(pickedItem, 'Allez, ce sera…');
     renderDailyCard(allItems);
     isRolling = false;
@@ -561,24 +558,24 @@ function bindEvents(signal) {
     filterModal?.open();
   }, { signal });
 
-  document.getElementById('activities-list')?.addEventListener('click', (event) => {
+  document.getElementById('restaurants-list')?.addEventListener('click', (event) => {
     if (event.target.closest('#act-filter-reset-inline')) {
       resetListSettings();
       return;
     }
     if (event.target.closest('.act-location')) return;
-    const row = event.target.closest('[data-activity-id]');
+    const row = event.target.closest('[data-restaurant-id]');
     if (!row || !detailModal) return;
-    const item = findItemById(row.dataset.activityId);
+    const item = findItemById(row.dataset.restaurantId);
     if (item) detailModal.open(item);
   }, { signal });
 
-  document.getElementById('activities-list')?.addEventListener('keydown', (event) => {
+  document.getElementById('restaurants-list')?.addEventListener('keydown', (event) => {
     if (event.key !== 'Enter' && event.key !== ' ') return;
-    const row = event.target.closest('[data-activity-id]');
+    const row = event.target.closest('[data-restaurant-id]');
     if (!row || !detailModal) return;
     event.preventDefault();
-    const item = findItemById(row.dataset.activityId);
+    const item = findItemById(row.dataset.restaurantId);
     if (item) detailModal.open(item);
   }, { signal });
 
@@ -590,14 +587,14 @@ function bindEvents(signal) {
   }, { signal });
 }
 
-async function loadActivities() {
-  const activitiesList = document.getElementById('activities-list');
+async function loadRestaurants() {
+  const listEl = document.getElementById('restaurants-list');
   const dailyHero = document.getElementById('daily-hero');
   const dailyInner = document.getElementById('daily-inner');
 
-  if (activitiesList) {
-    activitiesList.classList.add('is-loading');
-    activitiesList.innerHTML = `
+  if (listEl) {
+    listEl.classList.add('is-loading');
+    listEl.innerHTML = `
       <li class="skel-block skel-block--line skel-shimmer" aria-hidden="true"></li>
       <li class="skel-block skel-block--line skel-shimmer" aria-hidden="true"></li>
       <li class="skel-block skel-block--line skel-shimmer" aria-hidden="true"></li>
@@ -606,10 +603,10 @@ async function loadActivities() {
 
   const [items] = await Promise.all([
     fetchAllItems(COLLECTION),
-    loadTodayPicks(),
+    loadTodayPicks(PICK_SCOPE),
   ]);
 
-  const hasPick = Boolean(getLatestPickId());
+  const hasPick = Boolean(getLatestPickId(PICK_SCOPE));
 
   if (hasPick && dailyInner) {
     dailyHero?.classList.remove('hidden');
@@ -626,17 +623,17 @@ async function loadActivities() {
   updateDiceIdleState();
 }
 
-export function refreshActivitiesPage() {
-  return loadActivities();
+export function refreshRestaurantsPage() {
+  return loadRestaurants();
 }
 
-export function destroyActivitiesPage() {
+export function destroyRestaurantsPage() {
   isRolling = false;
   listHasAnimated = false;
   currentSort = 'recent';
-  activeFilters = { categorie: [] };
-  activitiesAbort?.abort();
-  activitiesAbort = null;
+  activeFilters = { type: [], cuisine: [] };
+  restaurantsAbort?.abort();
+  restaurantsAbort = null;
   filterModal?.destroy();
   filterModal = null;
   detailModal?.destroy?.();
@@ -644,43 +641,37 @@ export function destroyActivitiesPage() {
   detailModal = null;
 }
 
-export async function initActivitiesPage(user, { addItemModal: sharedModal } = {}) {
-  destroyActivitiesPage();
-  activitiesAbort = new AbortController();
-  const { signal } = activitiesAbort;
+export async function initRestaurantsPage(user, { addItemModal: sharedModal } = {}) {
+  destroyRestaurantsPage();
+  restaurantsAbort = new AbortController();
+  const { signal } = restaurantsAbort;
 
   getUserDisplayName(user);
 
-  if (new URLSearchParams(window.location.search).get('reset-pioche') === '1') {
-    await resetTodayPicks();
-    const url = new URL(window.location.href);
-    url.searchParams.delete('reset-pioche');
-    window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
-  }
-
   addItemModal = sharedModal ?? initAddItem({
     user,
-    onAdded: () => loadActivities(),
-    onUpdated: () => loadActivities(),
+    onAdded: () => loadRestaurants(),
+    onUpdated: () => loadRestaurants(),
   });
 
-  detailModal = initActivityDetail({
-    theme: getCategoryById('activities')?.theme || 'cyan',
-    onChanged: () => loadActivities(),
+  detailModal = initRestaurantDetail({
+    theme: getCategoryById('restaurants')?.theme || 'rose',
+    onChanged: () => loadRestaurants(),
     onEdit: async (item) => {
       await detailModal.close();
-      addItemModal.openEdit('activities', item);
+      addItemModal.openEdit('restaurants', item);
     },
   });
 
   mountListToolbar();
 
   filterModal = initListFilters({
-    theme: getCategoryById('activities')?.theme || 'cyan',
+    theme: getCategoryById('restaurants')?.theme || 'rose',
     title: 'Filtres',
     defaults: {
       sort: 'recent',
-      categorie: [],
+      type: [],
+      cuisine: [],
     },
     sections: [
       {
@@ -690,10 +681,16 @@ export async function initActivitiesPage(user, { addItemModal: sharedModal } = {
         options: SORT_OPTIONS.map((opt) => ({ value: opt.id, label: opt.label })),
       },
       {
-        id: 'categorie',
-        label: 'Type',
+        id: 'type',
+        label: 'Type de lieu',
         mode: 'multi',
-        getOptions: () => getAvailableCategorieOptions(),
+        getOptions: () => getAvailableFilterOptions('type'),
+      },
+      {
+        id: 'cuisine',
+        label: 'Cuisine',
+        mode: 'multi',
+        getOptions: () => getAvailableFilterOptions('cuisine'),
       },
     ],
     getState: getFilterState,
@@ -702,5 +699,5 @@ export async function initActivitiesPage(user, { addItemModal: sharedModal } = {
 
   bindEvents(signal);
   filterModal.updateTriggerBadge();
-  loadActivities();
+  loadRestaurants();
 }

@@ -1,6 +1,10 @@
 /** Date de début de la relation — à personnaliser */
 export const COUPLE_START_DATE = '2026-06-27';
 
+/** Nom affiché dans l'onglet, le menu et l'icône d'installation */
+export const APP_NAME = 'Our Space';
+export const APP_TAGLINE = 'À nous deux';
+
 /** Prénoms affichés — clé = uid Firebase */
 export const USER_DISPLAY_NAMES = {
   fiiTfAA6tWRWSiIi9mhni91XU2y1: 'Bastien',
@@ -16,6 +20,9 @@ export function getUserDisplayName(user) {
   if (!part) return '';
   return part.charAt(0).toUpperCase() + part.slice(1);
 }
+
+/** Thème accueil — couleurs dans css/themes.css [data-theme="base"] */
+export const BASE_THEME = 'base';
 
 export const NAV_ITEMS = [
   {
@@ -79,7 +86,7 @@ export const HOME_CATEGORIES = [
         { value: 'balade', label: 'Balade' },
         { value: 'escape_game', label: 'Escape game' },
         { value: 'concert', label: 'Concert' },
-        { value: 'spectacle', label: 'Spectacle' },
+        { value: 'feux_d_artifices', label: 'Feux d\'artifices' },
         { value: 'sport', label: 'Sport' },
       ], default: 'musee' },
       { name: 'localisation', label: 'Adresse ou lieu', type: 'address', placeholder: 'Commencez à taper une adresse…' },
@@ -104,7 +111,7 @@ export const HOME_CATEGORIES = [
         { value: 'cafe', label: 'Café' },
         { value: 'brasserie', label: 'Brasserie' },
         { value: 'bar_a_vin', label: 'Bar à vin' },
-        { value: 'fast_food', label: 'Fast-food' },
+        { value: 'fast_food', label: 'Restauration rapide' },
       ], default: 'restaurant' },
       { name: 'cuisine', label: 'Type de cuisine', type: 'select', allowCustom: true, options: [
         { value: 'francaise', label: 'Française' },

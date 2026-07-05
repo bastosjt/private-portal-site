@@ -2,15 +2,17 @@ import { auth } from './firebase-config.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js';
 import { login, logout } from './core/auth.js';
 import { isAllowedUser } from './core/protected.js';
-import { NAV_ITEMS } from './config.js';
-import { initRouter, navigate } from './core/router.js?v=2';
-import { renderSidebar, initSidebar, updateSidebarActive } from './components/sidebar.js?v=8';
+import { NAV_ITEMS, APP_NAME } from './config.js';
+import { initRouter, navigate } from './core/router.js';
+import { renderSidebar, initSidebar, updateSidebarActive } from './components/sidebar.js';
 import { initAddItem } from './components/add-item.js';
 import { waitForTransition, nextFrame } from './utils/motion.js';
 import { initHomePage, destroyHomePage, refreshHomePage } from './pages/home.js';
 import { initActivitiesPage, destroyActivitiesPage, refreshActivitiesPage } from './pages/activities.js';
+import { initRestaurantsPage, destroyRestaurantsPage, refreshRestaurantsPage } from './pages/restaurants.js';
 import { HOME_VIEW_HTML } from './views/home.js';
 import { ACTIVITIES_VIEW_HTML } from './views/activities.js';
+import { RESTAURANTS_VIEW_HTML } from './views/restaurants.js';
 import { getPlaceholderViewHtml } from './views/placeholder.js';
 
 const PAGE_TITLES = {
@@ -37,18 +39,20 @@ const pageRoot = document.getElementById('page-root');
 const sidebarRoot = document.getElementById('sidebar-root');
 
 function setPageTitle(routeId) {
-  const label = PAGE_TITLES[routeId] || 'Notre espace';
-  document.title = `${label} - Notre espace`;
+  const label = PAGE_TITLES[routeId] || APP_NAME;
+  document.title = `${label} — ${APP_NAME}`;
 }
 
 function destroyCurrentView() {
   destroyHomePage();
   destroyActivitiesPage();
+  destroyRestaurantsPage();
 }
 
 function refreshCurrentView() {
   if (currentRoute === 'accueil') return refreshHomePage();
   if (currentRoute === 'activites') return refreshActivitiesPage();
+  if (currentRoute === 'restaurants') return refreshRestaurantsPage();
   return undefined;
 }
 
@@ -112,6 +116,14 @@ async function mountRoute(routeId) {
     return;
   }
 
+  if (routeId === 'restaurants') {
+    pageRoot.innerHTML = RESTAURANTS_VIEW_HTML;
+    await finishPageEnter();
+    if (token !== pageTransitionToken) return;
+    await initRestaurantsPage(currentUser, { addItemModal: sharedModal });
+    return;
+  }
+
   pageRoot.innerHTML = getPlaceholderViewHtml(routeId);
   await finishPageEnter();
 }
@@ -128,7 +140,7 @@ function showAuthView() {
   document.body.classList.remove('app-page');
   authView?.classList.remove('hidden');
   appView?.classList.add('hidden');
-  document.title = 'Connexion';
+  document.title = `${APP_NAME}`;
 }
 
 function showAppView(user) {

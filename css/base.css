@@ -15,6 +15,19 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+html.scroll-locked,
+body.scroll-locked {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+body.scroll-locked {
+  position: fixed;
+  width: 100%;
+  left: 0;
+  right: 0;
+}
+
 .hidden {
   display: none !important;
 }

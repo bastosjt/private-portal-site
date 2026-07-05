@@ -65,7 +65,7 @@ function getGreeting() {
 function buildHeaderSubtitle(total, weekCount) {
   if (weekCount === 1) return '1 nouvelle idée cette semaine';
   if (weekCount > 1) return `${weekCount} nouvelles idées cette semaine`;
-  if (total === 0) return 'Votre espace partagé';
+  if (total === 0) return 'Bienvenue dans Our Space';
   return `${total} idée${total > 1 ? 's' : ''} enregistrée${total > 1 ? 's' : ''}`;
 }
 

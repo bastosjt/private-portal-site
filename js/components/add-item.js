@@ -10,8 +10,9 @@ import {
   renderSelectField,
   ADD_OPTION_VALUE,
 } from './select-custom.js';
+import { formatPrice, isMoneyField, formatOptionLabel } from '../utils/format.js';
 import { getCustomOptions } from '../services/custom-options.js';
-import { formatPrice, isMoneyField } from '../utils/format.js';
+import { lockScroll, unlockScroll } from '../utils/scroll-lock.js';
 
 function escapeHtml(str) {
   return String(str)
@@ -155,7 +156,7 @@ export function initAddItem({ user, onAdded, onUpdated } = {}) {
     const base = field?.options?.find((opt) => opt.value === value);
     if (base) return base.label;
     const custom = getCustomOptions(`${categoryId}.${fieldName}`).find((opt) => opt.value === value);
-    return custom?.label || value.replace(/_/g, ' ');
+    return custom?.label || formatOptionLabel(value.replace(/_/g, ' '));
   }
 
   function populateForm(form, category, item) {
@@ -342,6 +343,7 @@ export function initAddItem({ user, onAdded, onUpdated } = {}) {
 
     overlay.classList.add('is-active');
     document.body.classList.add('modal-open');
+    lockScroll();
   }
 
   function openEdit(categoryId, item) {
@@ -358,6 +360,7 @@ export function initAddItem({ user, onAdded, onUpdated } = {}) {
 
     overlay.classList.remove('is-active');
     document.body.classList.remove('modal-open');
+    unlockScroll();
 
     await waitForTransition(overlay, MODAL_MS);
     if (token !== modalTransitionToken) return;

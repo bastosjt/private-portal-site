@@ -5,6 +5,7 @@ import {
   makeUniqueValue,
   slugifyLabel,
 } from '../services/custom-options.js';
+import { formatOptionLabel } from '../utils/format.js';
 
 function escapeHtml(str) {
   return String(str)
@@ -173,7 +174,7 @@ export function ensureSelectOption(select, value, label) {
   const addOption = select.querySelector(`option[value="${ADD_OPTION_VALUE}"]`);
   const el = document.createElement('option');
   el.value = value;
-  el.textContent = label || value.replace(/_/g, ' ');
+  el.textContent = label ? formatOptionLabel(label) : formatOptionLabel(value.replace(/_/g, ' '));
 
   if (addOption) {
     select.insertBefore(el, addOption);

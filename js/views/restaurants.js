@@ -1,23 +1,18 @@
 import { getCategoryById } from '../config.js';
+import { renderNavIcon } from '../utils/lucide-icon.js';
 
-const THEME = getCategoryById('activities')?.theme || 'cyan';
+const THEME = getCategoryById('restaurants')?.theme || 'rose';
 
-export const ACTIVITIES_VIEW_HTML = `
+export const RESTAURANTS_VIEW_HTML = `
   <header class="page-header page-header--themed page-header--activities" data-theme="${THEME}">
     <button type="button" class="btn-menu" id="menu-toggle" aria-label="Ouvrir le menu">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <line x1="4" x2="20" y1="12" y2="12"/>
-        <line x1="4" x2="20" y1="6" y2="6"/>
-        <line x1="4" x2="20" y1="18" y2="18"/>
-      </svg>
+      ${renderNavIcon('menu', { strokeWidth: 1.75 })}
     </button>
     <div class="page-header-mobile-icon" data-theme="${THEME}" aria-hidden="true">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M6 19V5"/><path d="M10 19V6.8"/><path d="M14 19v-7.8"/><path d="M18 5v4"/><path d="M18 19v-6"/><path d="M22 19V9"/><path d="M2 19V9a4 4 0 0 1 4-4c2 0 4 1.33 6 4s4 4 6 4a4 4 0 1 0-3-6.65"/>
-      </svg>
+      ${renderNavIcon('restaurant', { strokeWidth: 2 })}
     </div>
     <div class="page-header-content">
-      <h1 class="page-header-title" id="page-title">Activités</h1>
+      <h1 class="page-header-title" id="page-title">Restaurants</h1>
       <p class="page-header-sub" id="page-header-sub">-</p>
     </div>
   </header>
@@ -38,7 +33,7 @@ export const ACTIVITIES_VIEW_HTML = `
           <span class="cat-panel-accent" aria-hidden="true"></span>
           <div class="act-box-body act-dice-body">
             <div class="act-dice-result" id="dice-result" aria-live="polite">
-              <p class="act-dice-result-label">Toujours pas d'idée ?</p>
+              <p class="act-dice-result-label">Pas d'inspiration ?</p>
               <p class="act-dice-result-name">Un clic et c'est réglé</p>
             </div>
             <p class="act-dice-quota" id="dice-quota">2 pioches disponibles aujourd'hui</p>
@@ -57,14 +52,14 @@ export const ACTIVITIES_VIEW_HTML = `
     <section class="act-list-section" aria-labelledby="list-heading">
       <div class="section-head">
         <div>
-          <h2 id="list-heading">Toutes nos idées</h2>
+          <h2 id="list-heading">Toutes nos adresses</h2>
           <p id="list-sub">Votre liste complète</p>
         </div>
       </div>
       <div class="act-cat-panel">
         <span class="cat-panel-accent" aria-hidden="true"></span>
         <div class="act-list-toolbar" id="act-list-toolbar"></div>
-        <ul class="act-list is-loading" id="activities-list"></ul>
+        <ul class="act-list is-loading" id="restaurants-list"></ul>
       </div>
     </section>
   </main>

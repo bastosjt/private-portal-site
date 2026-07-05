@@ -11,3 +11,9 @@ export function formatPrice(value) {
   if (/€/.test(trimmed) || /\beur\b/i.test(trimmed)) return trimmed;
   return `${trimmed} €`;
 }
+
+export function formatOptionLabel(label) {
+  const trimmed = String(label).trim().replace(/\s+/g, ' ');
+  if (!trimmed) return trimmed;
+  return trimmed.charAt(0).toLocaleUpperCase('fr') + trimmed.slice(1).toLocaleLowerCase('fr');
+}

@@ -1,3 +1,5 @@
+import { formatOptionLabel } from '../utils/format.js';
+
 const STORAGE_KEY = 'portal-custom-options';
 
 function readAll() {
@@ -15,18 +17,26 @@ function writeAll(data) {
 
 export function getCustomOptions(storageKey) {
   const all = readAll();
-  return Array.isArray(all[storageKey]) ? all[storageKey] : [];
+  if (!Array.isArray(all[storageKey])) return [];
+  return all[storageKey].map((opt) => ({
+    ...opt,
+    label: formatOptionLabel(opt.label),
+  }));
 }
 
 export function addCustomOption(storageKey, option) {
   const all = readAll();
-  const current = getCustomOptions(storageKey);
-  const exists = current.some((item) => item.value === option.value);
-  if (exists) return option;
+  const raw = Array.isArray(all[storageKey]) ? all[storageKey] : [];
+  const normalized = {
+    ...option,
+    label: formatOptionLabel(option.label),
+  };
+  const exists = raw.some((item) => item.value === normalized.value);
+  if (exists) return normalized;
 
-  all[storageKey] = [...current, option];
+  all[storageKey] = [...raw, normalized];
   writeAll(all);
-  return option;
+  return normalized;
 }
 
 export function slugifyLabel(label) {

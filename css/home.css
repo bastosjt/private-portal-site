@@ -23,7 +23,7 @@
   font-weight: 600;
   color: var(--text-primary);
   background: var(--surface);
-  border: 1px solid color-mix(in srgb, var(--cat-color, var(--accent)) 28%, transparent);
+  border: 1px solid var(--cat-border);
   box-shadow: var(--neu-up-sm);
   transition: box-shadow 0.25s ease, transform 0.2s ease, border-color 0.25s ease;
 }
@@ -36,8 +36,9 @@
   justify-content: center;
   border-radius: 50%;
   flex-shrink: 0;
-  color: var(--cat-color, var(--accent));
-  background: color-mix(in srgb, var(--cat-color, var(--accent)) 12%, var(--bg));
+  color: var(--cat-color);
+  background: var(--cat-bg);
+  border: 1px solid var(--cat-border);
   box-shadow: var(--neu-in);
 }
 
@@ -51,8 +52,8 @@
 }
 
 .home-hub-cta:hover {
-  border-color: color-mix(in srgb, var(--cat-color, var(--accent)) 45%, transparent);
-  box-shadow: var(--neu-up-sm), 0 0 22px var(--cat-glow, var(--accent-glow));
+  border-color: color-mix(in srgb, var(--cat-color) 45%, transparent);
+  box-shadow: var(--neu-up-sm), 0 0 22px var(--cat-glow);
   transform: translateY(-1px);
 }
 
@@ -552,7 +553,6 @@
 }
 
 .section-head strong {
-  color: var(--accent);
   font-weight: 600;
 }
 
@@ -736,33 +736,8 @@
 }
 
 /* ── Accueil — ambiance plus vivante ── */
-.page-header--home .page-header-title {
-  background: linear-gradient(135deg, #f5f0ff 0%, #c4b5fd 38%, #22d3ee 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.page-header--home .page-header-sub {
-  color: #c4b5fd;
-  font-weight: 500;
-}
-
 .page-header--home .page-header-mobile-icon {
-  color: #f472b6;
-  box-shadow: var(--neu-up-sm), 0 0 16px rgba(244, 114, 182, 0.2);
-}
-
-.home-page .section-head h2 {
-  background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent-soft) 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.home-page .section-head strong {
-  color: var(--accent);
-  text-shadow: 0 0 20px rgba(0, 212, 255, 0.35);
+  box-shadow: var(--neu-up-sm), 0 0 16px var(--cat-glow);
 }
 
 .home-page .cat-card-inner {
