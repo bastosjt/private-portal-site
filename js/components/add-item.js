@@ -58,11 +58,12 @@ function renderField(field, categoryId) {
   }
 
   const inputType = field.type === 'url' ? 'url' : 'text';
+  const numericAttrs = isMoneyField(field.name) ? ' inputmode="decimal" autocomplete="off"' : '';
   return `
     <label class="form-field" for="${id}">
       <span class="form-field-label">${escapeHtml(field.label)}</span>
       <div class="form-input-wrap">
-        <input type="${inputType}" id="${id}" name="${field.name}" class="form-input"${placeholder}${required}>
+        <input type="${inputType}" id="${id}" name="${field.name}" class="form-input"${placeholder}${required}${numericAttrs}>
       </div>
     </label>
   `;

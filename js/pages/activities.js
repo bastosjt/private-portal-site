@@ -245,6 +245,7 @@ function renderActivityChips(item) {
 const scheduleNoteOptions = {
   getDisponibiliteLabel: (value) => getFieldLabel('disponibilite', value),
   escapeHtml,
+  showPeriod: false,
 };
 
 function getActivityMetaLine(item) {
@@ -459,7 +460,6 @@ function renderActivitiesList(items, { animate = false } = {}) {
           <div class="act-list-item-body">
             <h3>${escapeHtml(item.nom)}</h3>
             <p class="act-list-meta">${escapeHtml(getActivityMetaLine(item))}</p>
-            ${renderActivityScheduleNote(item, scheduleNoteOptions)}
           </div>
           <span class="act-list-status ${item.done ? 'act-list-status--done' : 'act-list-status--todo'}">
             ${item.done ? `
@@ -474,6 +474,7 @@ function renderActivitiesList(items, { animate = false } = {}) {
             ${item.done ? 'Fait' : 'Non fait'}
           </span>
         </div>
+        ${renderActivityScheduleNote(item, scheduleNoteOptions)}
         ${item.localisation ? renderActivityLocation(item) : ''}
       </div>
     </li>

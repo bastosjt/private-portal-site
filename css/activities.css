@@ -241,6 +241,21 @@
     0 0 18px color-mix(in srgb, var(--cat-color) 10%, transparent);
 }
 
+.act-list-item-inner > .act-schedule-note,
+.act-detail-content .act-schedule-note {
+  width: 100%;
+}
+
+.act-list-item-inner > .act-schedule-note {
+  margin-top: 10px;
+}
+
+.act-list-item-inner > .act-schedule-note-copy,
+.act-detail-content .act-schedule-note-copy {
+  flex: 1;
+  min-width: 0;
+}
+
 .act-schedule-note-icon {
   display: inline-flex;
   flex-shrink: 0;
@@ -259,7 +274,7 @@
   align-items: baseline;
   column-gap: 6px;
   row-gap: 2px;
-  min-width: 0;
+  min-width: min-content;
 }
 
 .act-schedule-note-tag {
@@ -299,7 +314,7 @@
 }
 
 .act-feature-inner .act-chips + .act-schedule-note,
-.act-list-item-body .act-list-meta + .act-schedule-note,
+.act-list-item-inner > .act-schedule-note,
 .act-detail-content .act-chips + .act-schedule-note {
   margin-top: 10px;
 }
@@ -1160,14 +1175,14 @@
 
 .act-list-item-body {
   grid-column: 2;
-  grid-row: 1 / span 2;
+  grid-row: 1;
   min-width: 0;
   padding-right: 4px;
 }
 
 .act-list-item-head .cat-panel-icon {
   grid-column: 1;
-  grid-row: 1 / span 2;
+  grid-row: 1;
   width: 40px;
   height: 40px;
   display: flex;
@@ -1191,7 +1206,9 @@
   font-weight: 600;
   line-height: 1.3;
   margin-bottom: 2px;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .act-list-item-head p {
@@ -1209,7 +1226,17 @@
 }
 
 .act-list-item .act-location {
+  display: flex;
+  width: 100%;
+  min-width: 0;
   margin-top: 12px;
+}
+
+.act-list-item .act-location span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .act-list-desc {
@@ -1451,8 +1478,21 @@
     margin-top: 10px;
   }
 
-  .act-list-item .act-location span {
-    overflow-wrap: anywhere;
+  .act-schedule-note-copy {
+    flex-direction: column;
+    align-items: flex-start;
+    flex-wrap: nowrap;
+    row-gap: 2px;
+    column-gap: 0;
+  }
+
+  .act-schedule-note-tag + .act-schedule-note-period::before {
+    content: none;
+  }
+
+  .act-schedule-note-period {
+    white-space: nowrap;
+    max-width: 100%;
   }
 }
 
