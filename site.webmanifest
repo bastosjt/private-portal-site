@@ -1,7 +1,7 @@
 {
   "name": "Our Space",
   "short_name": "Our Space",
-  "description": "Your private space for two",
+  "description": "Your private space for two. Ideas, activities, restaurants and more.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
@@ -9,13 +9,13 @@
   "theme_color": "#1f2229",
   "icons": [
     {
-      "src": "apple-touch-icon.png",
+      "src": "icons/apple-touch-icon.png",
       "sizes": "180x180",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "favicon.png",
+      "src": "icons/favicon.png",
       "sizes": "283x283",
       "type": "image/png",
       "purpose": "any"

@@ -48,7 +48,7 @@ jobs:
       - name: Prepare site
         run: |
           mkdir -p _site
-          cp index.html accueil.html activites.html restaurant.html restaurants.html _site/
+          cp index.html accueil.html activites.html restaurant.html restaurants.html site.webmanifest _site/
           cp -r css js icons _site/
           touch _site/.nojekyll
           echo "Fichiers déployés :"
