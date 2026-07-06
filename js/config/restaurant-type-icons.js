@@ -21,7 +21,6 @@ const ICON_REGISTRY = {
 
 export const RESTAURANT_TYPE_ICONS = {
   restaurant: 'utensils-crossed',
-  bistro: 'utensils-crossed',
   cafe: 'coffee',
   brasserie: 'beer',
   bar_a_cocktail: 'martini',

@@ -1,5 +1,5 @@
 import { getCategoryById, getUserDisplayName } from '../config.js';
-import { formatPrice, formatOptionLabel } from '../utils/format.js';
+import { formatItemPrice, formatOptionLabel, sortOptionsByLabel, compareItemsByPrice, hasItemPrice } from '../utils/format.js';
 import { fetchAllItems } from '../api/firestore.js';
 import { sidebarIcon } from '../components/sidebar.js';
 import { renderRestaurantTypeIcon } from '../config/restaurant-type-icons.js';
@@ -29,15 +29,22 @@ const SORT_OPTIONS = [
   { id: 'price-desc', label: 'Prix décroissant', shortLabel: 'Prix ↓' },
 ];
 
+const STATUS_FILTER_OPTIONS = [
+  { value: 'all', label: 'Tout' },
+  { value: 'todo', label: 'À tester' },
+  { value: 'done', label: 'Testé' },
+];
+
 let allItems = [];
 let currentSort = 'alpha';
-let activeFilters = { type: [], cuisine: [] };
+let activeFilters = { type: [], cuisine: [], status: 'all' };
 let listHasAnimated = false;
 let addItemModal = null;
 let detailModal = null;
 let filterModal = null;
 let isRolling = false;
 let restaurantsAbort = null;
+let listViewMode = 'list';
 
 function escapeHtml(str) {
   return String(str)
@@ -68,22 +75,19 @@ function getMapsUrl(item) {
   return null;
 }
 
-function parsePrice(value) {
-  if (value == null || value === '') return null;
-  const num = parseFloat(String(value).replace(/[^\d,.-]/g, '').replace(',', '.'));
-  return Number.isFinite(num) ? num : null;
-}
+const DEPRECATED_CUISINE = new Set(['pizza', 'burgers', 'burger', 'americaine']);
 
 function getFieldOptions(fieldName) {
   const field = CATEGORY.fields.find((f) => f.name === fieldName);
   const base = field?.options || [];
   const custom = getCustomOptions(`restaurants.${fieldName}`);
   const seen = new Set();
-  return [...base, ...custom].filter((opt) => {
+  return sortOptionsByLabel([...base, ...custom].filter((opt) => {
     if (seen.has(opt.value)) return false;
+    if (fieldName === 'cuisine' && DEPRECATED_CUISINE.has(opt.value)) return false;
     seen.add(opt.value);
     return true;
-  });
+  }));
 }
 
 function getAvailableFilterOptions(fieldName, items = allItems) {
@@ -110,7 +114,7 @@ function getAvailableFilterOptions(fieldName, items = allItems) {
     }
   }
 
-  return result;
+  return sortOptionsByLabel(result);
 }
 
 function pruneActiveFilters() {
@@ -123,12 +127,19 @@ function pruneActiveFilters() {
     type.length !== (activeFilters.type?.length || 0)
     || cuisine.length !== (activeFilters.cuisine?.length || 0)
   ) {
-    activeFilters = { type, cuisine };
+    activeFilters = { ...activeFilters, type, cuisine };
   }
+}
+
+function filtersAreActive() {
+  return (activeFilters.type?.length || 0) > 0
+    || (activeFilters.cuisine?.length || 0) > 0
+    || activeFilters.status !== 'all';
 }
 
 function getFilterState() {
   return {
+    status: activeFilters.status || 'all',
     sort: currentSort,
     type: activeFilters.type || [],
     cuisine: activeFilters.cuisine || [],
@@ -136,10 +147,18 @@ function getFilterState() {
 }
 
 function applyFilters(items) {
+  let result = items;
+
+  if (activeFilters.status === 'todo') {
+    result = result.filter((item) => !item.done);
+  } else if (activeFilters.status === 'done') {
+    result = result.filter((item) => item.done);
+  }
+
   const types = activeFilters.type || [];
   const cuisines = activeFilters.cuisine || [];
 
-  return items.filter((item) => {
+  return result.filter((item) => {
     if (types.length && (!item.type || !types.includes(item.type))) return false;
     if (cuisines.length && (!item.cuisine || !cuisines.includes(item.cuisine))) return false;
     return true;
@@ -159,21 +178,10 @@ function sortItems(items, sortId = currentSort) {
 
   if (sortId === 'price-asc' || sortId === 'price-desc') {
     const dir = sortId === 'price-asc' ? 1 : -1;
-    return copy.sort((a, b) => {
-      const pa = parsePrice(a.prix);
-      const pb = parsePrice(b.prix);
-      if (pa == null && pb == null) return 0;
-      if (pa == null) return 1;
-      if (pb == null) return -1;
-      return (pa - pb) * dir;
-    });
+    return copy.sort((a, b) => compareItemsByPrice(a, b, dir));
   }
 
   return copy;
-}
-
-function filtersAreActive() {
-  return (activeFilters.type?.length || 0) > 0 || (activeFilters.cuisine?.length || 0) > 0;
 }
 
 function mountListToolbar() {
@@ -189,6 +197,27 @@ function mountListToolbar() {
       <span class="act-filter-badge hidden" aria-hidden="true">0</span>
     </button>
   `;
+}
+
+function setRestaurantsViewMode(mode) {
+  listViewMode = mode === 'map' ? 'map' : 'list';
+
+  const listPanel = document.getElementById('restaurants-list-panel');
+  const mapPanel = document.getElementById('restaurants-map-panel');
+  const listBtn = document.getElementById('restaurants-view-list');
+  const mapBtn = document.getElementById('restaurants-view-map');
+  if (!listPanel || !mapPanel || !listBtn || !mapBtn) return;
+
+  const isList = listViewMode === 'list';
+  listPanel.classList.toggle('hidden', !isList);
+  listPanel.toggleAttribute('hidden', !isList);
+  mapPanel.classList.toggle('hidden', isList);
+  mapPanel.toggleAttribute('hidden', isList);
+
+  listBtn.classList.toggle('is-active', isList);
+  listBtn.setAttribute('aria-selected', isList ? 'true' : 'false');
+  mapBtn.classList.toggle('is-active', !isList);
+  mapBtn.setAttribute('aria-selected', !isList ? 'true' : 'false');
 }
 
 function updateListSub(count, total = allItems.length) {
@@ -210,20 +239,21 @@ function updateListSub(count, total = allItems.length) {
   subEl.textContent = `${count} adresse${count > 1 ? 's' : ''} enregistrée${count > 1 ? 's' : ''}`;
 }
 
-function applyListSettings({ sort, type, cuisine }) {
+function applyListSettings({ sort, type, cuisine, status }) {
   if (sort && SORT_OPTIONS.some((opt) => opt.id === sort)) {
     currentSort = sort;
   }
   activeFilters = {
     type: type || [],
     cuisine: cuisine || [],
+    status: STATUS_FILTER_OPTIONS.some((opt) => opt.value === status) ? status : 'all',
   };
   refreshListView();
 }
 
 function resetListSettings() {
   currentSort = 'alpha';
-  activeFilters = { type: [], cuisine: [] };
+  activeFilters = { type: [], cuisine: [], status: 'all' };
   refreshListView();
 }
 
@@ -246,8 +276,27 @@ function renderItemMeta(item) {
   const parts = [];
   if (item.type) parts.push(getFieldLabel('type', item.type));
   if (item.cuisine) parts.push(getFieldLabel('cuisine', item.cuisine));
-  if (item.prix) parts.push(formatPrice(item.prix));
+  if (hasItemPrice(item)) parts.push(formatItemPrice(item));
   return parts.join(' · ') || 'Restaurant';
+}
+
+function renderRestaurantListMeta(item) {
+  const type = item.type ? escapeHtml(getFieldLabel('type', item.type)) : 'Restaurant';
+  const cuisine = item.cuisine ? escapeHtml(getFieldLabel('cuisine', item.cuisine)) : '';
+  const price = hasItemPrice(item) ? escapeHtml(formatItemPrice(item)) : '';
+  const hasSub = Boolean(cuisine || price);
+
+  return `
+    <div class="act-list-meta act-list-meta--restaurant">
+      <span class="act-list-meta-type">${type}</span>
+      ${hasSub ? `
+        <span class="act-list-meta-sub">
+          ${cuisine ? `<span class="act-list-meta-cuisine">${cuisine}</span>` : ''}
+          ${price ? `<span class="act-list-meta-price">${price}</span>` : ''}
+        </span>
+      ` : ''}
+    </div>
+  `;
 }
 
 function renderRestaurantChips(item) {
@@ -258,8 +307,8 @@ function renderRestaurantChips(item) {
   if (item.cuisine) {
     chips.push(`<span class="act-chip">${escapeHtml(getFieldLabel('cuisine', item.cuisine))}</span>`);
   }
-  if (item.prix) {
-    chips.push(`<span class="act-chip act-chip--muted">${escapeHtml(formatPrice(item.prix))}</span>`);
+  if (hasItemPrice(item)) {
+    chips.push(`<span class="act-chip act-chip--muted">${escapeHtml(formatItemPrice(item))}</span>`);
   }
   return chips.length ? `<div class="act-chips">${chips.join('')}</div>` : '';
 }
@@ -437,7 +486,7 @@ function renderRestaurantsList(items, { animate = false } = {}) {
           <span class="cat-panel-icon">${renderRestaurantTypeIcon(item.type)}</span>
           <div class="act-list-item-body">
             <h3>${escapeHtml(item.nom)}</h3>
-            <p>${escapeHtml(renderItemMeta(item))}</p>
+            ${renderRestaurantListMeta(item)}
           </div>
           <span class="act-list-status ${item.done ? 'act-list-status--done' : 'act-list-status--todo'}">
             ${item.done ? `
@@ -555,6 +604,12 @@ async function rollDice() {
 function bindEvents(signal) {
   document.getElementById('dice-roll-btn')?.addEventListener('click', rollDice, { signal });
 
+  document.getElementById('restaurants-view-switch')?.addEventListener('click', (event) => {
+    const btn = event.target.closest('[data-view]');
+    if (!btn) return;
+    setRestaurantsViewMode(btn.dataset.view);
+  }, { signal });
+
   document.getElementById('act-filter-btn')?.addEventListener('click', () => {
     filterModal?.open();
   }, { signal });
@@ -631,8 +686,9 @@ export function refreshRestaurantsPage() {
 export function destroyRestaurantsPage() {
   isRolling = false;
   listHasAnimated = false;
+  listViewMode = 'list';
   currentSort = 'alpha';
-  activeFilters = { type: [], cuisine: [] };
+  activeFilters = { type: [], cuisine: [], status: 'all' };
   restaurantsAbort?.abort();
   restaurantsAbort = null;
   filterModal?.destroy();
@@ -672,16 +728,25 @@ export async function initRestaurantsPage(user, { addItemModal: sharedModal } = 
   });
 
   mountListToolbar();
+  setRestaurantsViewMode('list');
 
   filterModal = initListFilters({
     theme: getCategoryById('restaurants')?.theme || 'rose',
     title: 'Filtres',
     defaults: {
+      status: 'all',
       sort: 'alpha',
       type: [],
       cuisine: [],
     },
     sections: [
+      {
+        id: 'status',
+        label: 'Statut',
+        mode: 'single',
+        collapsible: false,
+        options: STATUS_FILTER_OPTIONS,
+      },
       {
         id: 'sort',
         label: 'Trier',

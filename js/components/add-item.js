@@ -9,8 +9,15 @@ import {
   setSelectFieldValue,
   renderSelectField,
   ADD_OPTION_VALUE,
+  PLACEHOLDER_OPTION_VALUE,
 } from './select-custom.js';
-import { formatPrice, isMoneyField, formatOptionLabel } from '../utils/format.js';
+import { formatPrice, formatOptionLabel, isMoneyField } from '../utils/format.js';
+import {
+  collectPriceRangeData,
+  populatePriceRangeFields,
+  renderPriceRangeField,
+  validatePriceRangeFields,
+} from '../utils/price-form.js';
 import { getCustomOptions } from '../services/custom-options.js';
 import { lockScroll, unlockScroll } from '../utils/scroll-lock.js';
 
@@ -38,6 +45,10 @@ function renderField(field, categoryId) {
 
   if (field.type === 'select') {
     return renderSelectField(field, categoryId);
+  }
+
+  if (field.type === 'priceRange') {
+    return renderPriceRangeField(field);
   }
 
   if (field.type === 'address') {
@@ -162,6 +173,11 @@ export function initAddItem({ user, onAdded, onUpdated } = {}) {
 
   function populateForm(form, category, item) {
     for (const field of category.fields) {
+      if (field.type === 'priceRange') {
+        populatePriceRangeFields(form, item);
+        continue;
+      }
+
       const value = item[field.name];
       if (value == null || value === '') continue;
 
@@ -171,6 +187,7 @@ export function initAddItem({ user, onAdded, onUpdated } = {}) {
           field,
           value,
           getFieldDisplayLabel(category.id, field.name, value),
+          category.id,
         );
         continue;
       }
@@ -376,10 +393,15 @@ export function initAddItem({ user, onAdded, onUpdated } = {}) {
   function collectFormData(form, category) {
     const data = {};
     for (const field of category.fields) {
+      if (field.type === 'priceRange') {
+        Object.assign(data, collectPriceRangeData(form, { isEdit: Boolean(editingItemId) }));
+        continue;
+      }
+
       let value = '';
 
       if (field.type === 'select') {
-        value = getSelectFieldValue(form, field);
+        value = getSelectFieldValue(form, field, category.id);
       } else {
         const el = form.elements[field.name];
         if (!el) continue;
@@ -418,7 +440,7 @@ export function initAddItem({ user, onAdded, onUpdated } = {}) {
 
     if (requiredField) {
       const requiredValue = requiredField.type === 'select'
-        ? getSelectFieldValue(form, requiredField)
+        ? getSelectFieldValue(form, requiredField, category.id)
         : form.elements[requiredField.name]?.value.trim();
 
       if (!requiredValue || requiredValue === ADD_OPTION_VALUE) {
@@ -430,10 +452,21 @@ export function initAddItem({ user, onAdded, onUpdated } = {}) {
     }
 
     for (const field of category.fields) {
+      if (field.type === 'priceRange') {
+        const priceError = validatePriceRangeFields(form);
+        if (priceError) {
+          errorEl.textContent = priceError;
+          errorEl.classList.remove('hidden');
+          form.elements.prixMin?.focus();
+          return;
+        }
+        continue;
+      }
+
       if (field.type !== 'select' || !field.allowCustom) continue;
-      const value = getSelectFieldValue(form, field);
-      if (value === ADD_OPTION_VALUE) {
-        errorEl.textContent = `Choisissez ou ajoutez un « ${field.label} ».`;
+      const value = getSelectFieldValue(form, field, category.id);
+      if (!value || value === ADD_OPTION_VALUE || value === PLACEHOLDER_OPTION_VALUE) {
+        errorEl.textContent = `Choisissez un « ${field.label} ».`;
         errorEl.classList.remove('hidden');
         form.elements[field.name]?.focus();
         return;

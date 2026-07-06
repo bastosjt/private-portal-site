@@ -1,6 +1,6 @@
 import { getCategoryById } from '../config.js';
 import { updateItem, deleteItem } from '../api/firestore.js';
-import { formatPrice, formatOptionLabel } from '../utils/format.js';
+import { formatItemPrice, formatOptionLabel, hasItemPrice } from '../utils/format.js';
 import { getCustomOptions } from '../services/custom-options.js';
 import { waitForTransition, nextFrame } from '../utils/motion.js';
 import { lockScroll, unlockScroll } from '../utils/scroll-lock.js';
@@ -124,8 +124,8 @@ export function initRestaurantDetail({ onChanged, onEdit, theme = 'rose' } = {})
     if (item.cuisine) {
       chips.push(`<span class="act-chip">${escapeHtml(getFieldLabel(category, 'cuisine', item.cuisine))}</span>`);
     }
-    if (item.prix) {
-      chips.push(`<span class="act-chip act-chip--muted">${escapeHtml(formatPrice(item.prix))}</span>`);
+    if (hasItemPrice(item)) {
+      chips.push(`<span class="act-chip act-chip--muted">${escapeHtml(formatItemPrice(item))}</span>`);
     }
 
     bodyEl.innerHTML = `

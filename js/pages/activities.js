@@ -1,5 +1,5 @@
 import { getCategoryById, getUserDisplayName } from '../config.js';
-import { formatPrice, formatOptionLabel } from '../utils/format.js';
+import { formatItemPrice, formatOptionLabel, sortOptionsByLabel, compareItemsByPrice, hasItemPrice } from '../utils/format.js';
 import { fetchAllItems } from '../api/firestore.js';
 import { sidebarIcon } from '../components/sidebar.js';
 import { renderActivityTypeIcon } from '../config/activity-type-icons.js';
@@ -33,15 +33,22 @@ const SORT_OPTIONS = [
   { id: 'price-desc', label: 'Prix décroissant', shortLabel: 'Prix ↓' },
 ];
 
+const STATUS_FILTER_OPTIONS = [
+  { value: 'all', label: 'Tout' },
+  { value: 'todo', label: 'Non fait' },
+  { value: 'done', label: 'Fait' },
+];
+
 let allItems = [];
 let currentSort = 'alpha';
-let activeFilters = { categorie: [] };
+let activeFilters = { categorie: [], status: 'all' };
 let listHasAnimated = false;
 let addItemModal = null;
 let detailModal = null;
 let filterModal = null;
 let isRolling = false;
 let activitiesAbort = null;
+let listViewMode = 'list';
 
 function escapeHtml(str) {
   return String(str)
@@ -51,8 +58,14 @@ function escapeHtml(str) {
     .replace(/"/g, '&quot;');
 }
 
+const DEPRECATED_CUISINE = new Set(['pizza', 'burgers', 'burger', 'americaine']);
+const DEPRECATED_ACTIVITY_CATEGORIES = new Set(['feux_d_artifices']);
+
 function getFieldLabel(fieldName, value) {
   if (!value) return '';
+  if (fieldName === 'categorie' && value === 'feux_d_artifices') {
+    return 'Feux d\'artifice';
+  }
   const field = CATEGORY.fields.find((f) => f.name === fieldName);
   const base = field?.options?.find((opt) => opt.value === value);
   if (base) return base.label;
@@ -71,22 +84,18 @@ function getMapsUrl(item) {
   return null;
 }
 
-function parsePrice(value) {
-  if (value == null || value === '') return null;
-  const num = parseFloat(String(value).replace(/[^\d,.-]/g, '').replace(',', '.'));
-  return Number.isFinite(num) ? num : null;
-}
-
 function getFieldOptions(fieldName) {
   const field = CATEGORY.fields.find((f) => f.name === fieldName);
   const base = field?.options || [];
   const custom = getCustomOptions(`activities.${fieldName}`);
   const seen = new Set();
-  return [...base, ...custom].filter((opt) => {
+  return sortOptionsByLabel([...base, ...custom].filter((opt) => {
     if (seen.has(opt.value)) return false;
+    if (fieldName === 'cuisine' && DEPRECATED_CUISINE.has(opt.value)) return false;
+    if (fieldName === 'categorie' && DEPRECATED_ACTIVITY_CATEGORIES.has(opt.value)) return false;
     seen.add(opt.value);
     return true;
-  });
+  }));
 }
 
 function getCategorieOptions() {
@@ -116,30 +125,43 @@ function getAvailableCategorieOptions(items = allItems) {
     }
   }
 
-  return result;
+  return sortOptionsByLabel(result);
 }
 
 function pruneActiveFilters() {
   const available = new Set(getAvailableCategorieOptions().map((opt) => opt.value));
   const categorie = (activeFilters.categorie || []).filter((value) => available.has(value));
   if (categorie.length !== (activeFilters.categorie?.length || 0)) {
-    activeFilters = { categorie };
+    activeFilters = { ...activeFilters, categorie };
   }
+}
+
+function filtersAreActive() {
+  return (activeFilters.categorie?.length || 0) > 0 || activeFilters.status !== 'all';
 }
 
 function getFilterState() {
   return {
+    status: activeFilters.status || 'all',
     sort: currentSort,
     categorie: activeFilters.categorie || [],
   };
 }
 
 function applyFilters(items) {
+  let result = items;
+
+  if (activeFilters.status === 'todo') {
+    result = result.filter((item) => !item.done);
+  } else if (activeFilters.status === 'done') {
+    result = result.filter((item) => item.done);
+  }
+
   const categories = activeFilters.categorie || [];
-  if (!categories.length) return items;
+  if (!categories.length) return result;
 
   const allowed = new Set(categories);
-  return items.filter((item) => item.categorie && allowed.has(item.categorie));
+  return result.filter((item) => item.categorie && allowed.has(item.categorie));
 }
 
 function getFilteredItems() {
@@ -155,14 +177,7 @@ function sortItems(items, sortId = currentSort) {
 
   if (sortId === 'price-asc' || sortId === 'price-desc') {
     const dir = sortId === 'price-asc' ? 1 : -1;
-    return copy.sort((a, b) => {
-      const pa = parsePrice(a.prix);
-      const pb = parsePrice(b.prix);
-      if (pa == null && pb == null) return 0;
-      if (pa == null) return 1;
-      if (pb == null) return -1;
-      return (pa - pb) * dir;
-    });
+    return copy.sort((a, b) => compareItemsByPrice(a, b, dir));
   }
 
   return copy;
@@ -183,11 +198,32 @@ function mountListToolbar() {
   `;
 }
 
+function setActivitiesViewMode(mode) {
+  listViewMode = mode === 'map' ? 'map' : 'list';
+
+  const listPanel = document.getElementById('activities-list-panel');
+  const mapPanel = document.getElementById('activities-map-panel');
+  const listBtn = document.getElementById('activities-view-list');
+  const mapBtn = document.getElementById('activities-view-map');
+  if (!listPanel || !mapPanel || !listBtn || !mapBtn) return;
+
+  const isList = listViewMode === 'list';
+  listPanel.classList.toggle('hidden', !isList);
+  listPanel.toggleAttribute('hidden', !isList);
+  mapPanel.classList.toggle('hidden', isList);
+  mapPanel.toggleAttribute('hidden', isList);
+
+  listBtn.classList.toggle('is-active', isList);
+  listBtn.setAttribute('aria-selected', isList ? 'true' : 'false');
+  mapBtn.classList.toggle('is-active', !isList);
+  mapBtn.setAttribute('aria-selected', !isList ? 'true' : 'false');
+}
+
 function updateListSub(count, total = allItems.length) {
   const subEl = document.getElementById('list-sub');
   if (!subEl) return;
 
-  const filtersActive = (activeFilters.categorie?.length || 0) > 0;
+  const filtersActive = filtersAreActive();
 
   if (!count) {
     subEl.textContent = filtersActive ? 'Aucun résultat pour ces filtres' : 'Votre liste complète';
@@ -202,17 +238,20 @@ function updateListSub(count, total = allItems.length) {
   subEl.textContent = `${count} activité${count > 1 ? 's' : ''} enregistrée${count > 1 ? 's' : ''}`;
 }
 
-function applyListSettings({ sort, categorie }) {
+function applyListSettings({ sort, categorie, status }) {
   if (sort && SORT_OPTIONS.some((opt) => opt.id === sort)) {
     currentSort = sort;
   }
-  activeFilters = { categorie: categorie || [] };
+  activeFilters = {
+    categorie: categorie || [],
+    status: STATUS_FILTER_OPTIONS.some((opt) => opt.value === status) ? status : 'all',
+  };
   refreshListView();
 }
 
 function resetListSettings() {
   currentSort = 'alpha';
-  activeFilters = { categorie: [] };
+  activeFilters = { categorie: [], status: 'all' };
   refreshListView();
 }
 
@@ -236,8 +275,8 @@ function renderActivityChips(item) {
   if (item.categorie) {
     chips.push(`<span class="act-chip">${escapeHtml(getFieldLabel('categorie', item.categorie))}</span>`);
   }
-  if (item.prix) {
-    chips.push(`<span class="act-chip act-chip--muted">${escapeHtml(formatPrice(item.prix))}</span>`);
+  if (hasItemPrice(item)) {
+    chips.push(`<span class="act-chip act-chip--muted">${escapeHtml(formatItemPrice(item))}</span>`);
   }
   return chips.length ? `<div class="act-chips">${chips.join('')}</div>` : '';
 }
@@ -251,7 +290,7 @@ const scheduleNoteOptions = {
 function getActivityMetaLine(item) {
   const parts = getActivityListMetaParts(item, {
     getCategorieLabel: (value) => getFieldLabel('categorie', value),
-    formatPrice,
+    formatItemPrice,
   });
   return parts.join(' · ') || 'Activité';
 }
@@ -433,7 +472,7 @@ function renderActivitiesList(items, { animate = false } = {}) {
   }
 
   if (!items.length) {
-    const filtersActive = (activeFilters.categorie?.length || 0) > 0;
+    const filtersActive = filtersAreActive();
     const hasAny = allItems.length > 0;
     listEl.innerHTML = `
       <li class="act-list-empty">
@@ -579,6 +618,12 @@ async function rollDice() {
 function bindEvents(signal) {
   document.getElementById('dice-roll-btn')?.addEventListener('click', rollDice, { signal });
 
+  document.getElementById('activities-view-switch')?.addEventListener('click', (event) => {
+    const btn = event.target.closest('[data-view]');
+    if (!btn) return;
+    setActivitiesViewMode(btn.dataset.view);
+  }, { signal });
+
   document.getElementById('act-filter-btn')?.addEventListener('click', () => {
     filterModal?.open();
   }, { signal });
@@ -655,8 +700,9 @@ export function refreshActivitiesPage() {
 export function destroyActivitiesPage() {
   isRolling = false;
   listHasAnimated = false;
+  listViewMode = 'list';
   currentSort = 'alpha';
-  activeFilters = { categorie: [] };
+  activeFilters = { categorie: [], status: 'all' };
   activitiesAbort?.abort();
   activitiesAbort = null;
   filterModal?.destroy();
@@ -696,15 +742,24 @@ export async function initActivitiesPage(user, { addItemModal: sharedModal } = {
   });
 
   mountListToolbar();
+  setActivitiesViewMode('list');
 
   filterModal = initListFilters({
     theme: getCategoryById('activities')?.theme || 'cyan',
     title: 'Filtres',
     defaults: {
+      status: 'all',
       sort: 'alpha',
       categorie: [],
     },
     sections: [
+      {
+        id: 'status',
+        label: 'Statut',
+        mode: 'single',
+        collapsible: false,
+        options: STATUS_FILTER_OPTIONS,
+      },
       {
         id: 'sort',
         label: 'Trier',

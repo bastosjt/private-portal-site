@@ -5,7 +5,11 @@ import {
   makeUniqueValue,
   slugifyLabel,
 } from '../services/custom-options.js';
-import { formatOptionLabel } from '../utils/format.js';
+import { formatOptionLabel, sortOptionsByLabel } from '../utils/format.js';
+
+const DEPRECATED_CUISINE_VALUES = new Set(['pizza', 'burgers', 'burger', 'americaine']);
+const DEPRECATED_ACTIVITY_CATEGORIES = new Set(['feux_d_artifices']);
+export const PLACEHOLDER_OPTION_VALUE = '';
 
 function escapeHtml(str) {
   return String(str)
@@ -19,24 +23,69 @@ function getStorageKey(categoryId, fieldName) {
   return `${categoryId}.${fieldName}`;
 }
 
-function buildOptionsHtml(field, categoryId) {
+function isExcludedOption(field, value, categoryId) {
+  if (field.name === 'cuisine' && DEPRECATED_CUISINE_VALUES.has(value)) return true;
+  if (field.name === 'categorie' && categoryId === 'activities' && DEPRECATED_ACTIVITY_CATEGORIES.has(value)) {
+    return true;
+  }
+  return false;
+}
+
+export function getMergedFieldOptions(field, categoryId, extra = []) {
   const custom = field.allowCustom
     ? getCustomOptions(getStorageKey(categoryId, field.name))
     : [];
 
   const base = field.options || [];
-  const all = [...base, ...custom];
+  const seen = new Set();
 
-  const options = all.map((opt) => {
-    const selected = opt.value === field.default ? ' selected' : '';
-    return `<option value="${escapeHtml(opt.value)}"${selected}>${escapeHtml(opt.label)}</option>`;
-  });
+  return sortOptionsByLabel([...base, ...custom, ...extra].filter((opt) => {
+    if (!opt?.value || seen.has(opt.value) || isExcludedOption(field, opt.value, categoryId)) return false;
+    seen.add(opt.value);
+    return true;
+  }));
+}
+
+function renderSelectOptions(field, options, selectedValue) {
+  const html = [];
 
   if (field.allowCustom) {
-    options.push(`<option value="${ADD_OPTION_VALUE}">➕ Ajouter…</option>`);
+    const placeholderSelected = !selectedValue ? ' selected' : '';
+    html.push(`<option value="${PLACEHOLDER_OPTION_VALUE}"${placeholderSelected}>-</option>`);
   }
 
-  return options.join('');
+  for (const opt of options) {
+    const selected = opt.value === selectedValue ? ' selected' : '';
+    html.push(`<option value="${escapeHtml(opt.value)}"${selected}>${escapeHtml(opt.label)}</option>`);
+  }
+
+  if (field.allowCustom) {
+    html.push(`<option value="${ADD_OPTION_VALUE}">➕ Ajouter…</option>`);
+  }
+
+  return html.join('');
+}
+
+function rebuildSelect(select, field, categoryId, selectedValue, extra = []) {
+  const options = getMergedFieldOptions(field, categoryId, extra);
+  const resolved = selectedValue && options.some((opt) => opt.value === selectedValue)
+    ? selectedValue
+    : PLACEHOLDER_OPTION_VALUE;
+  select.innerHTML = renderSelectOptions(field, options, resolved);
+  select.value = resolved;
+  return resolved;
+}
+
+function buildOptionsHtml(field, categoryId) {
+  if (field.allowCustom) {
+    const options = getMergedFieldOptions(field, categoryId);
+    return renderSelectOptions(field, options, PLACEHOLDER_OPTION_VALUE);
+  }
+
+  return (field.options || []).map((opt) => {
+    const selected = opt.value === field.default ? ' selected' : '';
+    return `<option value="${escapeHtml(opt.value)}"${selected}>${escapeHtml(opt.label)}</option>`;
+  }).join('');
 }
 
 export function renderSelectField(field, categoryId) {
@@ -87,22 +136,7 @@ function getUsedValues(select) {
   return new Set(Array.from(select.options).map((opt) => opt.value));
 }
 
-function insertOption(select, option, beforeAdd = true) {
-  const addOption = select.querySelector(`option[value="${ADD_OPTION_VALUE}"]`);
-  const el = document.createElement('option');
-  el.value = option.value;
-  el.textContent = option.label;
-
-  if (beforeAdd && addOption) {
-    select.insertBefore(el, addOption);
-  } else {
-    select.appendChild(el);
-  }
-
-  select.value = option.value;
-}
-
-function initCustomSelect(select) {
+function initCustomSelect(select, field, categoryId) {
   const storageKey = select.dataset.storageKey;
   const addPanel = document.getElementById(`${select.id}-add`);
   const addInput = document.getElementById(`${select.id}-add-input`);
@@ -134,7 +168,7 @@ function initCustomSelect(select) {
     const value = makeUniqueValue(slugifyLabel(label), used);
     const option = addCustomOption(storageKey, { value, label });
 
-    insertOption(select, option);
+    rebuildSelect(select, field, categoryId, option.value);
     toggleAddPanel(false);
   }
 
@@ -161,7 +195,8 @@ export function initFormSelectFields(form, category) {
     const select = form.elements[field.name];
     if (!select) continue;
 
-    cleanups.push(initCustomSelect(select));
+    rebuildSelect(select, field, category.id, select.value || PLACEHOLDER_OPTION_VALUE);
+    cleanups.push(initCustomSelect(select, field, category.id));
   }
 
   return () => cleanups.forEach((fn) => fn());
@@ -183,14 +218,21 @@ export function ensureSelectOption(select, value, label) {
   }
 }
 
-export function setSelectFieldValue(form, field, value, label) {
+export function setSelectFieldValue(form, field, value, label, categoryId) {
   const select = form.elements[field.name];
   if (!select || !value) return;
+
+  if (field.allowCustom && categoryId) {
+    const extra = [{ value, label: label || formatOptionLabel(value.replace(/_/g, ' ')) }];
+    rebuildSelect(select, field, categoryId, value, extra);
+    return;
+  }
+
   ensureSelectOption(select, value, label);
   select.value = value;
 }
 
-export function getSelectFieldValue(form, field) {
+export function getSelectFieldValue(form, field, categoryId) {
   const select = form.elements[field.name];
   if (!select) return '';
 
@@ -202,7 +244,7 @@ export function getSelectFieldValue(form, field) {
       const used = getUsedValues(select);
       const value = makeUniqueValue(slugifyLabel(customLabel), used);
       addCustomOption(storageKey, { value, label: customLabel });
-      insertOption(select, { value, label: customLabel });
+      rebuildSelect(select, field, categoryId, value);
       return value;
     }
     return ADD_OPTION_VALUE;

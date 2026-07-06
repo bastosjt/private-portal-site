@@ -1,6 +1,6 @@
 import { getCategoryById } from '../config.js';
 import { updateItem, deleteItem } from '../api/firestore.js';
-import { formatPrice, formatOptionLabel } from '../utils/format.js';
+import { formatItemPrice, formatOptionLabel, hasItemPrice } from '../utils/format.js';
 import { getCustomOptions } from '../services/custom-options.js';
 import { renderActivityScheduleNote } from '../utils/activity-schedule.js';
 import { waitForTransition, nextFrame } from '../utils/motion.js';
@@ -18,6 +18,9 @@ function escapeHtml(str) {
 
 function getFieldLabel(category, fieldName, value) {
   if (!value) return '';
+  if (fieldName === 'categorie' && value === 'feux_d_artifices') {
+    return 'Feux d\'artifice';
+  }
   const field = category.fields.find((f) => f.name === fieldName);
   const base = field?.options?.find((opt) => opt.value === value);
   if (base) return base.label;
@@ -120,8 +123,8 @@ export function initActivityDetail({ onChanged, onEdit, theme = 'cyan' } = {}) {
     if (item.categorie) {
       chips.push(`<span class="act-chip">${escapeHtml(getFieldLabel(category, 'categorie', item.categorie))}</span>`);
     }
-    if (item.prix) {
-      chips.push(`<span class="act-chip act-chip--muted">${escapeHtml(formatPrice(item.prix))}</span>`);
+    if (hasItemPrice(item)) {
+      chips.push(`<span class="act-chip act-chip--muted">${escapeHtml(formatItemPrice(item))}</span>`);
     }
 
     bodyEl.innerHTML = `

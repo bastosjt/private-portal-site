@@ -56,10 +56,42 @@ export const RESTAURANTS_VIEW_HTML = `
           <p id="list-sub">Votre liste complète</p>
         </div>
       </div>
-      <div class="act-cat-panel">
-        <span class="cat-panel-accent" aria-hidden="true"></span>
-        <div class="act-list-toolbar" id="act-list-toolbar"></div>
-        <ul class="act-list is-loading" id="restaurants-list"></ul>
+      <div class="act-view-switch" role="tablist" aria-label="Mode d'affichage" id="restaurants-view-switch">
+        <button type="button" class="act-view-switch-btn is-active" role="tab" id="restaurants-view-list" aria-selected="true" aria-controls="restaurants-list-panel" data-view="list">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 12h18"/><path d="M3 6h18"/><path d="M3 18h18"/>
+          </svg>
+          <span>Liste</span>
+        </button>
+        <button type="button" class="act-view-switch-btn" role="tab" id="restaurants-view-map" aria-selected="false" aria-controls="restaurants-map-panel" data-view="map">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z"/>
+            <path d="M15 5.764v15"/><path d="M9 3.236v15"/>
+          </svg>
+          <span>Carte</span>
+        </button>
+      </div>
+      <div class="act-view-panel" id="restaurants-list-panel" role="tabpanel" aria-labelledby="restaurants-view-list">
+        <div class="act-cat-panel">
+          <span class="cat-panel-accent" aria-hidden="true"></span>
+          <div class="act-list-toolbar" id="act-list-toolbar"></div>
+          <ul class="act-list is-loading" id="restaurants-list"></ul>
+        </div>
+      </div>
+      <div class="act-view-panel hidden" id="restaurants-map-panel" role="tabpanel" aria-labelledby="restaurants-view-map" hidden>
+        <div class="act-cat-panel act-cat-panel--map">
+          <span class="cat-panel-accent" aria-hidden="true"></span>
+          <div class="act-map-placeholder">
+            <span class="act-map-placeholder-icon" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z"/>
+                <path d="M15 5.764v15"/><path d="M9 3.236v15"/>
+              </svg>
+            </span>
+            <p class="act-map-placeholder-title">Carte bientôt disponible</p>
+            <p class="act-map-placeholder-text">Vos adresses s'afficheront ici sur une carte interactive.</p>
+          </div>
+        </div>
       </div>
     </section>
   </main>

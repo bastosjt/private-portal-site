@@ -37,6 +37,7 @@ export const ACTIVITY_TYPE_ICONS = {
   escape_game: 'puzzle',
   concert: 'music',
   cinema: 'popcorn',
+  feux_d_artifice: 'sparkles',
   feux_d_artifices: 'sparkles',
   sport: 'biceps-flexed',
 };

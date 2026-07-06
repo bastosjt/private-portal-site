@@ -1,5 +1,6 @@
 import { CalendarClock } from 'https://esm.sh/lucide@1.23.0';
 import { renderLucideIcon } from './lucide-icon.js';
+import { formatItemPrice } from './format.js';
 
 const SCHEDULE_ICON = renderLucideIcon(CalendarClock, { strokeWidth: 2, width: 16, height: 16 });
 
@@ -18,23 +19,25 @@ export function hasActivitySchedule(item) {
   return (item.disponibilite && item.disponibilite !== 'permanent') || Boolean(formatActivityPeriod(item));
 }
 
-export function getActivityListMetaParts(item, { getCategorieLabel, formatPrice }) {
+export function getActivityListMetaParts(item, { getCategorieLabel, formatItemPrice: formatPriceFn = formatItemPrice }) {
   const parts = [];
   if (item.categorie) parts.push(getCategorieLabel(item.categorie));
-  if (item.prix) parts.push(formatPrice(item.prix));
+  const priceLabel = formatPriceFn(item);
+  if (priceLabel) parts.push(priceLabel);
   return parts;
 }
 
-export function getActivityMetaParts(item, { getCategorieLabel, getDisponibiliteLabel, formatPrice }) {
-  const parts = getActivityListMetaParts(item, { getCategorieLabel, formatPrice });
+export function getActivityMetaParts(item, { getCategorieLabel, getDisponibiliteLabel, formatItemPrice: formatPriceFn = formatItemPrice }) {
+  const parts = getActivityListMetaParts(item, { getCategorieLabel, formatItemPrice: formatPriceFn });
   const periode = formatActivityPeriod(item);
+  const priceLabel = formatPriceFn(item);
 
   if (item.disponibilite && item.disponibilite !== 'permanent') {
     const label = getDisponibiliteLabel(item.disponibilite);
     if (label) parts.splice(item.categorie ? 1 : 0, 0, label);
   }
   if (periode) {
-    const insertAt = parts.length > 0 && item.prix && parts[parts.length - 1] === formatPrice(item.prix)
+    const insertAt = parts.length > 0 && priceLabel && parts[parts.length - 1] === priceLabel
       ? parts.length - 1
       : parts.length;
     parts.splice(insertAt, 0, periode);
