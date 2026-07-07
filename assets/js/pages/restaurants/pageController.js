@@ -8,6 +8,7 @@ import { initAddItem } from '../../ui/add-item.js';
 import { initRestaurantDetail } from '../../ui/restaurant-detail.js';
 import { initListFilters } from '../../ui/list-filters.js';
 import { getCustomOptions } from '../../lib/custom-types.js';
+import { sanitizeHttpsUrl } from '../../lib/safe-url.js';
 import {
   addTodayPick,
   canPickToday,
@@ -66,7 +67,8 @@ function getFieldLabel(fieldName, value) {
 }
 
 function getMapsUrl(item) {
-  if (item.lienMaps) return item.lienMaps;
+  const safeLienMaps = sanitizeHttpsUrl(item.lienMaps);
+  if (safeLienMaps) return safeLienMaps;
   if (item.latitude != null && item.longitude != null) {
     return `https://www.google.com/maps/search/?api=1&query=${item.latitude},${item.longitude}`;
   }
@@ -316,7 +318,7 @@ function renderRestaurantLocation(item) {
   const mapsUrl = getMapsUrl(item);
   if (mapsUrl) {
     return `
-      <a href="${mapsUrl}" class="act-location" target="_blank" rel="noopener noreferrer">
+      <a href="${escapeHtml(mapsUrl)}" class="act-location" target="_blank" rel="noopener noreferrer">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/>
           <circle cx="12" cy="10" r="3"/>

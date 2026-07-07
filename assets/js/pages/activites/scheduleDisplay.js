@@ -1,4 +1,4 @@
-import { CalendarClock } from 'https://esm.sh/lucide@1.23.0';
+import { CalendarClock } from '../../vendor/lucide.mjs';
 import { renderLucideIcon } from '../../lib/lucide-icon.js';
 import { formatItemPrice } from '../../lib/price-format.js';
 

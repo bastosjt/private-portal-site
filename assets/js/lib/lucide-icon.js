@@ -1,4 +1,4 @@
-import { createElement } from 'https://esm.sh/lucide@1.23.0';
+import { createElement } from '../vendor/lucide.mjs';
 import {
   Clapperboard,
   Heart,
@@ -8,7 +8,7 @@ import {
   RollerCoaster,
   Utensils,
   X,
-} from 'https://esm.sh/lucide@1.23.0';
+} from '../vendor/lucide.mjs';
 
 /** Rend une icône Lucide en HTML string (pour innerHTML / templates). */
 export function renderLucideIcon(Icon, { strokeWidth = 2, width, height, ...attrs } = {}) {

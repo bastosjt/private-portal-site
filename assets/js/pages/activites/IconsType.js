@@ -14,7 +14,7 @@ import {
   RollerCoaster,
   Sparkles,
   Tickets,
-} from 'https://esm.sh/lucide@1.23.0';
+} from '../../vendor/lucide.mjs';
 import { renderLucideIcon } from '../../lib/lucide-icon.js';
 
 const ICON_REGISTRY = {

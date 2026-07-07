@@ -5,6 +5,7 @@ import { formatOptionLabel } from '../lib/options-labels.js';
 import { getCustomOptions } from '../lib/custom-types.js';
 import { waitForTransition, nextFrame } from '../lib/transitions.js';
 import { lockScroll, unlockScroll } from '../lib/scroll-lock.js';
+import { sanitizeHttpsUrl } from '../lib/safe-url.js';
 
 const MODAL_MS = 420;
 const COLLECTION = 'restaurants';
@@ -76,7 +77,8 @@ function updateDoneToggleUI(root, done, busy = false) {
 }
 
 function getMapsUrl(item) {
-  if (item.lienMaps) return item.lienMaps;
+  const safeLienMaps = sanitizeHttpsUrl(item.lienMaps);
+  if (safeLienMaps) return safeLienMaps;
   if (item.latitude != null && item.longitude != null) {
     return `https://www.google.com/maps/search/?api=1&query=${item.latitude},${item.longitude}`;
   }
@@ -135,7 +137,7 @@ export function initRestaurantDetail({ onChanged, onEdit, theme = 'rose' } = {})
         ${chips.length ? `<div class="act-chips">${chips.join('')}</div>` : ''}
         ${item.adresse ? `
           ${mapsUrl ? `
-            <a href="${mapsUrl}" class="act-location" target="_blank" rel="noopener noreferrer">
+            <a href="${escapeHtml(mapsUrl)}" class="act-location" target="_blank" rel="noopener noreferrer">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/>
                 <circle cx="12" cy="10" r="3"/>

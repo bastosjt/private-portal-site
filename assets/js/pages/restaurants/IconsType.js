@@ -8,7 +8,7 @@ import {
   Martini,
   PaperBag,
   UtensilsCrossed,
-} from 'https://esm.sh/lucide@1.23.0';
+} from '../../vendor/lucide.mjs';
 import { renderLucideIcon } from '../../lib/lucide-icon.js';
 
 const ICON_REGISTRY = {

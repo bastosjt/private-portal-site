@@ -21,6 +21,7 @@ import {
 } from '../lib/form-price-field.js';
 import { getCustomOptions } from '../lib/custom-types.js';
 import { lockScroll, unlockScroll } from '../lib/scroll-lock.js';
+import { sanitizeHttpsUrl } from '../lib/safe-url.js';
 
 function escapeHtml(str) {
   return String(str)
@@ -414,6 +415,10 @@ export function initAddItem({ user, onAdded, onUpdated } = {}) {
         }
       }
 
+      if (field.type === 'url') {
+        value = sanitizeHttpsUrl(value);
+      }
+
       if (value && value !== ADD_OPTION_VALUE) {
         data[field.name] = isMoneyField(field.name) ? formatPrice(value) : value;
       }
@@ -459,6 +464,17 @@ export function initAddItem({ user, onAdded, onUpdated } = {}) {
           errorEl.textContent = priceError;
           errorEl.classList.remove('hidden');
           form.elements.prixMin?.focus();
+          return;
+        }
+        continue;
+      }
+
+      if (field.type === 'url') {
+        const rawUrl = form.elements[field.name]?.value.trim();
+        if (rawUrl && !sanitizeHttpsUrl(rawUrl)) {
+          errorEl.textContent = `Le champ « ${field.label} » doit être un lien https:// valide.`;
+          errorEl.classList.remove('hidden');
+          form.elements[field.name]?.focus();
           return;
         }
         continue;
