@@ -4,11 +4,12 @@
   <meta charset="UTF-8">
   <meta http-equiv="Content-Security-Policy" content="
     default-src 'self';
-    script-src 'self' https://www.gstatic.com;
+    script-src 'self' https://www.gstatic.com https://apis.google.com;
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
     font-src https://fonts.gstatic.com;
     img-src 'self' data:;
-    connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://api-adresse.data.gouv.fr https://photon.komoot.io;
+    connect-src 'self' https://www.gstatic.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://api-adresse.data.gouv.fr https://photon.komoot.io;
+    frame-src https://*.firebaseapp.com;
     object-src 'none';
     base-uri 'self';
     form-action 'self';
@@ -29,8 +30,8 @@
   <link rel="stylesheet" href="assets/css/base.css?v=12">
   <link rel="stylesheet" href="assets/css/auth.css?v=6">
   <link rel="stylesheet" href="assets/css/layout.css?v=10">
-  <link rel="stylesheet" href="assets/css/home.css?v=35">
-  <link rel="stylesheet" href="assets/css/activities.css?v=48">
+  <link rel="stylesheet" href="assets/css/home.css?v=38">
+  <link rel="stylesheet" href="assets/css/activities.css?v=62">
   <link rel="stylesheet" href="assets/css/add-item.css?v=14">
 </head>
 <body class="auth-page">

@@ -10,6 +10,10 @@ import { initAddItem } from '../../ui/add-item.js';
 import { loadTodayPicks, getLatestPickId } from '../../firebase/dailyPicks.js';
 
 const COLLECTION_IDS = HOME_CATEGORIES.map((cat) => cat.id);
+const DAILY_PICK_SCOPES = {
+  activities: 'activities',
+  restaurants: 'restaurants',
+};
 let currentUserName = '';
 let addItemModal = null;
 let homeAbort = null;
@@ -177,7 +181,27 @@ function getMealCtaLabel() {
   return 'On mange quoi à midi ?';
 }
 
-function renderHomeHub(pickedActivity) {
+function renderDailyPick(cat, pickedItem) {
+  if (!pickedItem) return '';
+
+  const title = getItemTitle(pickedItem, cat.titleKey);
+  return `
+    <a href="${cat.href}" class="pick-snippet" data-theme="${cat.theme}">
+      <span class="pick-snippet-icon" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect width="18" height="18" x="3" y="3" rx="2"/>
+          <path d="M16 8h.01"/><path d="M8 8h.01"/><path d="M8 16h.01"/><path d="M16 16h.01"/><path d="M12 12h.01"/>
+        </svg>
+      </span>
+      <span class="pick-snippet-copy">
+        <span class="pick-snippet-label">Pioche du jour</span>
+        <span class="pick-snippet-name">${escapeHtml(title)}</span>
+      </span>
+    </a>
+  `;
+}
+
+function renderHomeHub() {
   const hubEl = document.getElementById('home-hub');
   if (!hubEl) return;
 
@@ -186,19 +210,6 @@ function renderHomeHub(pickedActivity) {
   const activitiesTheme = activitiesCat?.theme || 'cyan';
   const restaurantsTheme = restaurantsCat?.theme || 'rose';
   const restaurantsHref = restaurantsCat?.href || '#restaurants';
-
-  const pickHtml = pickedActivity ? `
-    <a href="#activites" class="home-daily-pick" data-theme="${activitiesTheme}">
-      <span class="home-daily-pick-icon">${sidebarIcon('activity')}</span>
-      <span class="home-daily-pick-copy">
-        <span class="home-daily-pick-label">Votre idée du jour</span>
-        <span class="home-daily-pick-name">${escapeHtml(pickedActivity.nom)}</span>
-      </span>
-      <svg class="home-daily-pick-arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
-      </svg>
-    </a>
-  ` : '';
 
   hubEl.innerHTML = `
     <a href="#activites" class="home-hub-cta" data-theme="${activitiesTheme}">
@@ -214,7 +225,6 @@ function renderHomeHub(pickedActivity) {
       <span class="home-hub-cta-icon" aria-hidden="true">${sidebarIcon('restaurant')}</span>
       <span class="home-hub-cta-text">${escapeHtml(getMealCtaLabel())}</span>
     </a>
-    ${pickHtml}
   `;
 }
 
@@ -232,7 +242,7 @@ async function loadHomeData() {
   }
 
   const [, counts, recents, weekCount] = await Promise.all([
-    loadTodayPicks(),
+    Promise.all(Object.values(DAILY_PICK_SCOPES).map((scope) => loadTodayPicks(scope))),
     Promise.all(
       HOME_CATEGORIES.map(async (cat) => ({
         ...cat,
@@ -248,13 +258,17 @@ async function loadHomeData() {
     fetchWeekItemsCount(COLLECTION_IDS),
   ]);
 
-  const pickId = getLatestPickId();
-  let pickedActivity = null;
-  if (pickId) {
-    const activities = await fetchAllItems('activities');
-    pickedActivity = activities.find((item) => item.id === pickId) ?? null;
-  }
-  renderHomeHub(pickedActivity);
+  const pickedByCategory = {};
+  await Promise.all(
+    Object.entries(DAILY_PICK_SCOPES).map(async ([categoryId, scope]) => {
+      const pickId = getLatestPickId(scope);
+      if (!pickId) return;
+
+      const items = await fetchAllItems(categoryId);
+      pickedByCategory[categoryId] = items.find((item) => item.id === pickId) ?? null;
+    }),
+  );
+  renderHomeHub();
 
   const total = counts.reduce((sum, cat) => sum + cat.count, 0);
   initPageHeader(total, weekCount);
@@ -307,6 +321,7 @@ async function loadHomeData() {
               <span class="cat-panel-link">Voir tout</span>
             </div>
             ${itemsHtml}
+            ${renderDailyPick(cat, pickedByCategory[cat.id])}
           </div>
         </section>
       `;

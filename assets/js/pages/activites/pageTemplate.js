@@ -23,36 +23,30 @@ export const ACTIVITIES_VIEW_HTML = `
   </header>
 
   <main class="page-content activities-page" data-theme="${THEME}">
-    <section class="act-hero hidden" aria-labelledby="daily-heading" id="daily-hero">
-      <article class="act-feature-card" data-theme="${THEME}" id="daily-card">
-        <div class="act-feature-inner is-loading" id="daily-inner">
-          <div class="skel-block skel-block--daily-title skel-shimmer" aria-hidden="true"></div>
-          <div class="skel-block skel-block--daily-meta skel-shimmer" aria-hidden="true"></div>
-        </div>
-      </article>
-    </section>
-
-    <div class="act-grid act-grid--solo">
-      <section class="act-grid-card" aria-label="Pioche au hasard">
-        <div class="act-box act-dice-box" data-theme="${THEME}">
-          <span class="cat-panel-accent" aria-hidden="true"></span>
-          <div class="act-box-body act-dice-body">
-            <div class="act-dice-result" id="dice-result" aria-live="polite">
-              <p class="act-dice-result-label">Toujours pas d'idée ?</p>
-              <p class="act-dice-result-name">Un clic et c'est réglé</p>
+    <section class="act-pick-wrap hidden" id="act-pick-wrap" aria-label="Pioche du jour">
+      <article class="act-pick-card" data-theme="${THEME}">
+        <span class="cat-panel-accent" aria-hidden="true"></span>
+        <div class="act-pick-inner is-loading" id="act-pick-inner">
+          <header class="act-pick-head">
+            <div class="act-pick-head-copy">
+              <p class="act-pick-eyebrow">Pioche du jour</p>
+              <p class="act-pick-quota" id="act-pick-quota"></p>
             </div>
-            <p class="act-dice-quota" id="dice-quota">2 pioches disponibles aujourd'hui</p>
-            <button type="button" class="act-dice-btn" id="dice-roll-btn">
+            <div class="act-pick-chances" id="act-pick-chances" aria-hidden="true"></div>
+          </header>
+          <div class="act-pick-body" id="act-pick-body" aria-live="polite"></div>
+          <footer class="act-pick-foot" id="act-pick-foot">
+            <button type="button" class="act-pick-btn" id="dice-roll-btn">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <rect width="18" height="18" x="3" y="3" rx="2"/>
                 <path d="M16 8h.01"/><path d="M8 8h.01"/><path d="M8 16h.01"/><path d="M16 16h.01"/><path d="M12 12h.01"/>
               </svg>
-              Au pif !
+              <span id="act-pick-btn-label">Au pif !</span>
             </button>
-          </div>
+          </footer>
         </div>
-      </section>
-    </div>
+      </article>
+    </section>
 
     <section class="act-list-section" aria-labelledby="list-heading">
       <div class="section-head">

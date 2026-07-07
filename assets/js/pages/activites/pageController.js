@@ -8,6 +8,12 @@ import { initAddItem } from '../../ui/add-item.js';
 import { initActivityDetail } from '../../ui/activity-detail.js';
 import { initListFilters } from '../../ui/list-filters.js';
 import {
+  cleanupPickRollAnimation,
+  runPickRollAnimation,
+  syncPickInnerLayout,
+} from '../../ui/pick-roll-animation.js';
+import { renderPickLocationLine } from '../../ui/pick-result-display.js';
+import {
   getActivityListMetaParts,
   hasActivitySchedule,
   renderActivityScheduleNote,
@@ -21,6 +27,7 @@ import {
   getRemainingPicks,
   getTodayPickIds,
   loadTodayPicks,
+  MAX_DAILY_PICKS,
   resetTodayPicks,
 } from '../../firebase/dailyPicks.js';
 
@@ -313,114 +320,142 @@ function renderActivityLocation(item) {
   `;
 }
 
-function renderDailyCard(items) {
-  const hero = document.getElementById('daily-hero');
-  const inner = document.getElementById('daily-inner');
-  if (!inner) return;
+function renderPickChances() {
+  const el = document.getElementById('act-pick-chances');
+  if (!el) return;
 
-  const picked = items.length ? findItemById(getLatestPickId()) : null;
+  const remaining = getRemainingPicks();
+  el.innerHTML = Array.from({ length: MAX_DAILY_PICKS }, (_, index) => {
+    const isAvailable = index < remaining;
+    return `<span class="act-pick-chance${isAvailable ? ' is-available' : ''}"></span>`;
+  }).join('');
+}
 
-  if (!picked) {
-    hero?.classList.add('hidden');
-    inner.classList.remove('is-loading');
-    return;
-  }
-
-  hero?.classList.remove('hidden');
-  inner.classList.remove('is-loading');
-  inner.className = 'act-feature-inner';
-  inner.innerHTML = `
-    <span class="cat-panel-accent" aria-hidden="true"></span>
-    <p class="act-feature-eyebrow" id="daily-heading">
-      <span class="act-feature-eyebrow-dot" aria-hidden="true"></span>
-      Recommandation du jour
-    </p>
-    <h2 class="act-feature-title">${escapeHtml(picked.nom)}</h2>
-    ${renderActivityChips(picked)}
-    ${renderActivityScheduleNote(picked, scheduleNoteOptions)}
-    ${renderActivityLocation(picked)}
+function renderPickResultItem(item) {
+  return `
+    <div class="act-pick-result" role="button" tabindex="0" data-activity-id="${escapeHtml(item.id)}" aria-label="Voir ${escapeHtml(item.nom)}">
+      <div class="act-list-item-head">
+        <span class="cat-panel-icon">${renderActivityTypeIcon(item.categorie)}</span>
+        <div class="act-list-item-body">
+          <h3>${escapeHtml(item.nom)}</h3>
+          <p class="act-list-meta">${escapeHtml(getActivityMetaLine(item))}</p>
+        </div>
+      </div>
+      ${item.localisation ? renderPickLocationLine(escapeHtml(item.localisation)) : ''}
+    </div>
   `;
 }
 
-function updateDiceQuota() {
-  const quotaEl = document.getElementById('dice-quota');
+function renderPickMessage(title, text) {
+  return `
+    <div class="act-pick-message">
+      <p class="act-pick-message-title">${escapeHtml(title)}</p>
+      <p class="act-pick-message-text">${escapeHtml(text)}</p>
+    </div>
+  `;
+}
+
+function renderPickIdle() {
+  return `
+    <div class="act-pick-message act-pick-message--centered">
+      <p class="act-pick-message-title">Toujours pas d'idée ?</p>
+      <p class="act-pick-message-text">Lancez le dé pour piocher une activité</p>
+    </div>
+  `;
+}
+
+function updatePickCard() {
+  const wrap = document.getElementById('act-pick-wrap');
+  const inner = document.getElementById('act-pick-inner');
+  const body = document.getElementById('act-pick-body');
+  const foot = document.getElementById('act-pick-foot');
   const btn = document.getElementById('dice-roll-btn');
-  const remaining = getRemainingPicks();
-  const pickable = getPickableItems();
+  const btnLabel = document.getElementById('act-pick-btn-label');
+  const quotaEl = document.getElementById('act-pick-quota');
+  if (!wrap || !body) return;
+
+  if (isRolling) return;
+
+  inner?.classList.remove('is-loading');
+  body.classList.remove('is-rolling');
+  delete body.dataset.rollingPhase;
+  renderPickChances();
 
   if (quotaEl) quotaEl.textContent = getPickQuotaLabel();
 
-  if (btn) {
-    btn.disabled = isRolling || !pickable.length || remaining === 0;
-  }
-}
-
-function renderDiceEmptyState() {
-  const resultEl = document.getElementById('dice-result');
-  if (!resultEl) return;
-
-  resultEl.classList.remove('is-rolling');
-
-  if (!allItems.length) {
-    renderDiceResult(null);
-    return;
-  }
-
   const pickable = getPickableItems();
+  const remaining = getRemainingPicks();
+  const latest = findItemById(getLatestPickId());
   const hasUndone = allItems.some((item) => !item.done);
 
+  if (!allItems.length) {
+    wrap.classList.remove('hidden');
+    body.innerHTML = renderPickMessage('Rien à piocher', 'Ajoutez des activités pour commencer.');
+    foot?.classList.add('hidden');
+    syncPickInnerLayout();
+    return;
+  }
+
+  wrap.classList.remove('hidden');
+
   if (!hasUndone) {
-    resultEl.innerHTML = `
-      <p class="act-dice-result-label">Bravo !</p>
-      <p class="act-dice-result-name">Toutes vos idées sont faites</p>
-    `;
+    body.innerHTML = renderPickMessage('Bravo !', 'Toutes vos idées sont faites.');
+    foot?.classList.add('hidden');
+    syncPickInnerLayout();
     return;
   }
 
-  if (!pickable.length && canPickToday()) {
-    resultEl.innerHTML = hasUndone ? `
-      <p class="act-dice-result-label">Déjà piochées</p>
-      <p class="act-dice-result-name">Toutes vos idées à faire l'ont été aujourd'hui</p>
-    ` : `
-      <p class="act-dice-result-label">Plus d'idées dispo</p>
-      <p class="act-dice-result-name">Ajoutez-en de nouvelles à piocher</p>
-    `;
+  if (!pickable.length && canPickToday() && hasUndone) {
+    body.innerHTML = latest
+      ? `${renderPickResultItem(latest)}${renderPickMessage('C\'est tout pour aujourd\'hui', 'Revenez demain pour de nouvelles pioches.')}`
+      : renderPickMessage('C\'est tout pour aujourd\'hui', 'Vous avez pioché toutes vos idées disponibles. Revenez demain !');
+    foot?.classList.add('hidden');
+    syncPickInnerLayout();
     return;
   }
-
-  renderDiceResult(null);
-}
-
-function updateDiceIdleState() {
-  const resultEl = document.getElementById('dice-result');
-  if (!resultEl || isRolling) return;
-
-  const pickable = getPickableItems();
-
-  if (!allItems.length || (!pickable.length && canPickToday())) {
-    renderDiceEmptyState();
-    updateDiceQuota();
-    return;
-  }
-
-  const latest = findItemById(getLatestPickId());
 
   if (latest) {
-    const canRollAgain = canPickToday() && getRemainingPicks() > 0;
-    renderDiceResult(
-      latest,
-      canRollAgain ? 'Votre pioche' : 'Votre idée du jour',
-      canRollAgain ? 'Envie d\'autre chose ? Relancez le dé' : '',
-    );
-  } else {
-    resultEl.classList.remove('is-rolling');
-    resultEl.innerHTML = `
-      <p class="act-dice-result-label">Toujours pas d'idée ?</p>
-      <p class="act-dice-result-name">Un clic et c'est réglé</p>
+    const canRollAgain = remaining > 0 && pickable.length > 0;
+    body.innerHTML = `
+      <div class="act-pick-result-wrap">
+        ${renderPickResultItem(latest)}
+        <p class="act-pick-hint">${canRollAgain ? 'Envie d\'autre chose ? Relancez le dé.' : ''}</p>
+      </div>
     `;
+    foot?.classList.toggle('hidden', !canRollAgain);
+    if (btnLabel) btnLabel.textContent = 'Relancer';
+    if (btn) btn.disabled = !canRollAgain;
+    syncPickInnerLayout();
+    return;
   }
 
-  updateDiceQuota();
+  body.innerHTML = renderPickIdle();
+  foot?.classList.remove('hidden');
+  if (btnLabel) btnLabel.textContent = 'Au pif !';
+  if (btn) btn.disabled = !pickable.length || remaining === 0;
+  syncPickInnerLayout();
+}
+
+async function rollDice() {
+  const pool = getPickableItems();
+
+  if (isRolling || !pool.length || !canPickToday()) {
+    updatePickCard();
+    return;
+  }
+
+  const btn = document.getElementById('dice-roll-btn');
+  const pickedItem = pool[Math.floor(Math.random() * pool.length)];
+  isRolling = true;
+  if (btn) btn.disabled = true;
+
+  runPickRollAnimation({
+    onComplete: async () => {
+      await addTodayPick(pickedItem.id);
+      isRolling = false;
+      updatePickCard();
+    },
+  });
 }
 
 function reorderActivitiesList(items) {
@@ -526,90 +561,15 @@ function updateHeader(items) {
   else subEl.textContent = `${todo} idées à explorer`;
 }
 
-function renderDicePicking(phase = 'pick') {
-  const resultEl = document.getElementById('dice-result');
-  if (!resultEl) return;
-
-  const label = phase === 'almost' ? 'Allez, ce sera…' : 'On pioche…';
-  resultEl.innerHTML = `
-    <p class="act-dice-result-label">${label}</p>
-    <div class="act-dice-mask" aria-hidden="true">
-      <span class="act-dice-mask-bar"></span>
-      <span class="act-dice-mask-bar act-dice-mask-bar--short"></span>
-    </div>
-  `;
-  resultEl.classList.add('is-rolling');
-}
-
-function renderDiceResult(item, label = 'Direction →', hint = '') {
-  const resultEl = document.getElementById('dice-result');
-  if (!resultEl) return;
-
-  resultEl.classList.remove('is-rolling');
-
-  if (!item) {
-    resultEl.innerHTML = `
-      <p class="act-dice-result-label">Rien à piocher</p>
-      <p class="act-dice-result-name">Ajoutez des idées d'abord</p>
-    `;
-    return;
-  }
-
-  resultEl.innerHTML = `
-    <p class="act-dice-result-label">${escapeHtml(label)}</p>
-    <p class="act-dice-result-name">${escapeHtml(item.nom)}</p>
-    <p class="act-dice-result-meta">${escapeHtml(getActivityMetaLine(item))}${item.localisation ? ` · ${escapeHtml(item.localisation)}` : ''}</p>
-    ${renderActivityScheduleNote(item, scheduleNoteOptions)}
-    ${hint ? `<p class="act-dice-result-hint">${escapeHtml(hint)}</p>` : ''}
-  `;
-}
-
-async function rollDice() {
-  const pool = getPickableItems();
-
-  if (isRolling || !pool.length || !canPickToday()) {
-    renderDiceEmptyState();
-    updateDiceQuota();
-    return;
-  }
-
-  const btn = document.getElementById('dice-roll-btn');
-  const pickedItem = pool[Math.floor(Math.random() * pool.length)];
-  isRolling = true;
-  if (btn) btn.disabled = true;
-
-  const duration = 3600;
-  const start = performance.now();
-
-  const finish = async () => {
-    await addTodayPick(pickedItem.id);
-    renderDiceResult(pickedItem, 'Allez, ce sera…');
-    renderDailyCard(allItems);
-    isRolling = false;
-    updateDiceIdleState();
-  };
-
-  const tick = (now) => {
-    const progress = Math.min((now - start) / duration, 1);
-
-    if (progress < 0.88) {
-      renderDicePicking('pick');
-    } else if (progress < 1) {
-      renderDicePicking('almost');
-    } else {
-      finish();
-      return;
-    }
-
-    requestAnimationFrame(tick);
-  };
-
-  renderDicePicking('pick');
-  requestAnimationFrame(tick);
-}
-
 function bindEvents(signal) {
   document.getElementById('dice-roll-btn')?.addEventListener('click', rollDice, { signal });
+
+  document.getElementById('act-pick-wrap')?.addEventListener('click', (event) => {
+    const pick = event.target.closest('.act-pick-result[data-activity-id]');
+    if (!pick || !detailModal) return;
+    const item = findItemById(pick.dataset.activityId);
+    if (item) detailModal.open(item);
+  }, { signal });
 
   document.getElementById('activities-view-switch')?.addEventListener('click', (event) => {
     const btn = event.target.closest('[data-view]');
@@ -652,8 +612,8 @@ function bindEvents(signal) {
 
 async function loadActivities() {
   const activitiesList = document.getElementById('activities-list');
-  const dailyHero = document.getElementById('daily-hero');
-  const dailyInner = document.getElementById('daily-inner');
+  const pickWrap = document.getElementById('act-pick-wrap');
+  const pickInner = document.getElementById('act-pick-inner');
 
   if (activitiesList) {
     activitiesList.classList.add('is-loading');
@@ -664,26 +624,21 @@ async function loadActivities() {
     `;
   }
 
+  if (pickWrap && pickInner) {
+    pickWrap.classList.remove('hidden');
+    pickInner.classList.add('is-loading');
+  }
+
   const [items] = await Promise.all([
     fetchAllItems(COLLECTION),
     loadTodayPicks(),
   ]);
 
-  const hasPick = Boolean(getLatestPickId());
-
-  if (hasPick && dailyInner) {
-    dailyHero?.classList.remove('hidden');
-    dailyInner.classList.add('is-loading');
-  } else {
-    dailyHero?.classList.add('hidden');
-  }
-
   allItems = items;
   pruneActiveFilters();
   updateHeader(allItems);
-  renderDailyCard(allItems);
+  updatePickCard();
   refreshListView();
-  updateDiceIdleState();
 }
 
 export function refreshActivitiesPage() {
@@ -692,6 +647,7 @@ export function refreshActivitiesPage() {
 
 export function destroyActivitiesPage() {
   isRolling = false;
+  cleanupPickRollAnimation();
   listHasAnimated = false;
   listViewMode = 'list';
   currentSort = 'alpha';
