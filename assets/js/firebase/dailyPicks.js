@@ -21,6 +21,15 @@ const cachedPickIdsByScope = {
   restaurants: [],
 };
 
+const cachedYesterdayPickIdsByScope = {
+  activities: [],
+  restaurants: [],
+};
+
+const resetListeners = new Set();
+let cachedDateKey = null;
+let midnightTimer = null;
+
 function resolveScope(scope = 'activities') {
   return SCOPE_FIELDS[scope] ? scope : 'activities';
 }
@@ -37,11 +46,69 @@ export function getTodayKey() {
   return `${y}-${m}-${d}`;
 }
 
-function pickDocRef() {
-  return doc(db, COLLECTION, getTodayKey());
+function getYesterdayKey() {
+  const now = new Date();
+  const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+  const y = yesterday.getFullYear();
+  const m = String(yesterday.getMonth() + 1).padStart(2, '0');
+  const d = String(yesterday.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function syncCacheWithToday() {
+  const today = getTodayKey();
+  if (cachedDateKey === today) return false;
+
+  cachedDateKey = today;
+  for (const scope of Object.keys(cachedPickIdsByScope)) {
+    cachedPickIdsByScope[scope] = [];
+    cachedYesterdayPickIdsByScope[scope] = [];
+  }
+  return true;
+}
+
+function getMsUntilMidnight() {
+  const now = new Date();
+  const nextMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  return Math.max(0, nextMidnight.getTime() - now.getTime());
+}
+
+async function handleMidnightReset() {
+  syncCacheWithToday();
+  await Promise.all(Object.keys(SCOPE_FIELDS).map((scope) => loadDailyPicks(scope)));
+  resetListeners.forEach((listener) => {
+    try {
+      listener();
+    } catch (err) {
+      console.warn('dailyPickReset listener:', err);
+    }
+  });
+}
+
+function scheduleMidnightReset() {
+  clearTimeout(midnightTimer);
+  midnightTimer = setTimeout(async () => {
+    await handleMidnightReset();
+    scheduleMidnightReset();
+  }, getMsUntilMidnight() + 50);
+}
+
+export function startDailyPickMidnightReset(listener) {
+  syncCacheWithToday();
+  if (listener) resetListeners.add(listener);
+  scheduleMidnightReset();
+
+  return () => {
+    if (listener) resetListeners.delete(listener);
+  };
+}
+
+function pickDocRef(dateKey = getTodayKey()) {
+  return doc(db, COLLECTION, dateKey);
 }
 
 export function getTodayPickIds(scope = 'activities') {
+  syncCacheWithToday();
   return cachedPickIdsByScope[resolveScope(scope)];
 }
 
@@ -58,6 +125,22 @@ export function getLatestPickId(scope = 'activities') {
   return ids.length ? ids[ids.length - 1] : null;
 }
 
+export function getLatestYesterdayPickId(scope = 'activities') {
+  syncCacheWithToday();
+  const ids = cachedYesterdayPickIdsByScope[resolveScope(scope)];
+  return ids.length ? ids[ids.length - 1] : null;
+}
+
+export function getDisplayedLatestPick(scope = 'activities') {
+  const todayId = getLatestPickId(scope);
+  if (todayId) return { id: todayId, isYesterday: false };
+
+  const yesterdayId = getLatestYesterdayPickId(scope);
+  if (yesterdayId) return { id: yesterdayId, isYesterday: true };
+
+  return null;
+}
+
 export function getPickQuotaLabel(scope = 'activities') {
   const remaining = getRemainingPicks(scope);
   if (remaining === 0) return 'Plus de pioches aujourd\'hui - à demain !';
@@ -66,9 +149,11 @@ export function getPickQuotaLabel(scope = 'activities') {
 }
 
 export async function loadTodayPicks(scope = 'activities') {
+  syncCacheWithToday();
+
   const resolvedScope = resolveScope(scope);
   const field = getScopeField(resolvedScope);
-  const ref = pickDocRef();
+  const ref = pickDocRef(getTodayKey());
   const snap = await getDoc(ref);
 
   if (snap.exists()) {
@@ -81,8 +166,35 @@ export async function loadTodayPicks(scope = 'activities') {
   return cachedPickIdsByScope[resolvedScope];
 }
 
+export async function loadYesterdayPicks(scope = 'activities') {
+  syncCacheWithToday();
+
+  const resolvedScope = resolveScope(scope);
+  const field = getScopeField(resolvedScope);
+  const ref = pickDocRef(getYesterdayKey());
+  const snap = await getDoc(ref);
+
+  if (snap.exists()) {
+    const ids = snap.data()?.[field];
+    cachedYesterdayPickIdsByScope[resolvedScope] = Array.isArray(ids)
+      ? ids.slice(0, MAX_DAILY_PICKS)
+      : [];
+    return cachedYesterdayPickIdsByScope[resolvedScope];
+  }
+
+  cachedYesterdayPickIdsByScope[resolvedScope] = [];
+  return cachedYesterdayPickIdsByScope[resolvedScope];
+}
+
+export async function loadDailyPicks(scope = 'activities') {
+  await Promise.all([loadTodayPicks(scope), loadYesterdayPicks(scope)]);
+  return getTodayPickIds(scope);
+}
+
 export async function addTodayPick(itemId, scope = 'activities') {
   if (!itemId) return false;
+
+  syncCacheWithToday();
 
   const resolvedScope = resolveScope(scope);
   const field = getScopeField(resolvedScope);
@@ -116,6 +228,8 @@ export async function addTodayPick(itemId, scope = 'activities') {
 }
 
 export async function resetTodayPicks(scope = 'activities') {
+  syncCacheWithToday();
+
   const resolvedScope = resolveScope(scope);
   const field = getScopeField(resolvedScope);
   cachedPickIdsByScope[resolvedScope] = [];

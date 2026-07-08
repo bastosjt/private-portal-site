@@ -7,7 +7,8 @@ import {
 } from '../../firebase/firestore.js';
 import { sidebarIcon } from '../../ui/sidebar.js';
 import { initAddItem } from '../../ui/add-item.js';
-import { loadTodayPicks, getLatestPickId } from '../../firebase/dailyPicks.js';
+import { loadDailyPicks, getDisplayedLatestPick } from '../../firebase/dailyPicks.js';
+import { reloadCustomOptions } from '../../lib/custom-types.js';
 
 const COLLECTION_IDS = HOME_CATEGORIES.map((cat) => cat.id);
 const DAILY_PICK_SCOPES = {
@@ -128,8 +129,9 @@ export function destroyHomePage() {
   homeAbort = null;
 }
 
-export function initHomePage(user, { addItemModal: sharedModal } = {}) {
+export async function initHomePage(user, { addItemModal: sharedModal } = {}) {
   destroyHomePage();
+  await reloadCustomOptions();
   homeAbort = new AbortController();
   const { signal } = homeAbort;
 
@@ -181,12 +183,12 @@ function getMealCtaLabel() {
   return 'On mange quoi à midi ?';
 }
 
-function renderDailyPick(cat, pickedItem) {
+function renderDailyPick(cat, pickedItem, { isYesterday = false } = {}) {
   if (!pickedItem) return '';
 
   const title = getItemTitle(pickedItem, cat.titleKey);
   return `
-    <a href="${cat.href}" class="pick-snippet" data-theme="${cat.theme}">
+    <a href="${cat.href}" class="pick-snippet${isYesterday ? ' pick-snippet--yesterday' : ''}" data-theme="${cat.theme}">
       <span class="pick-snippet-icon" aria-hidden="true">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <rect width="18" height="18" x="3" y="3" rx="2"/>
@@ -194,7 +196,7 @@ function renderDailyPick(cat, pickedItem) {
         </svg>
       </span>
       <span class="pick-snippet-copy">
-        <span class="pick-snippet-label">Pioche du jour</span>
+        <span class="pick-snippet-label">${isYesterday ? 'Pioche d\'hier' : 'Pioche du jour'}</span>
         <span class="pick-snippet-name">${escapeHtml(title)}</span>
       </span>
     </a>
@@ -229,6 +231,8 @@ function renderHomeHub() {
 }
 
 async function loadHomeData() {
+  await reloadCustomOptions();
+
   const statsEl = document.getElementById('stats-grid');
   const recentEl = document.getElementById('recent-sections');
 
@@ -242,7 +246,7 @@ async function loadHomeData() {
   }
 
   const [, counts, recents, weekCount] = await Promise.all([
-    Promise.all(Object.values(DAILY_PICK_SCOPES).map((scope) => loadTodayPicks(scope))),
+    Promise.all(Object.values(DAILY_PICK_SCOPES).map((scope) => loadDailyPicks(scope))),
     Promise.all(
       HOME_CATEGORIES.map(async (cat) => ({
         ...cat,
@@ -259,13 +263,15 @@ async function loadHomeData() {
   ]);
 
   const pickedByCategory = {};
+  const pickMetaByCategory = {};
   await Promise.all(
     Object.entries(DAILY_PICK_SCOPES).map(async ([categoryId, scope]) => {
-      const pickId = getLatestPickId(scope);
-      if (!pickId) return;
+      const displayed = getDisplayedLatestPick(scope);
+      if (!displayed?.id) return;
 
+      pickMetaByCategory[categoryId] = displayed;
       const items = await fetchAllItems(categoryId);
-      pickedByCategory[categoryId] = items.find((item) => item.id === pickId) ?? null;
+      pickedByCategory[categoryId] = items.find((item) => item.id === displayed.id) ?? null;
     }),
   );
   renderHomeHub();
@@ -321,7 +327,9 @@ async function loadHomeData() {
               <span class="cat-panel-link">Voir tout</span>
             </div>
             ${itemsHtml}
-            ${renderDailyPick(cat, pickedByCategory[cat.id])}
+            ${renderDailyPick(cat, pickedByCategory[cat.id], {
+              isYesterday: pickMetaByCategory[cat.id]?.isYesterday,
+            })}
           </div>
         </section>
       `;

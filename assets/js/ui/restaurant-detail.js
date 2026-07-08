@@ -1,8 +1,7 @@
 import { getCategoryById } from '../config.js';
 import { updateItem, deleteItem } from '../firebase/firestore.js';
 import { formatItemPrice, hasItemPrice } from '../lib/price-format.js';
-import { formatOptionLabel } from '../lib/options-labels.js';
-import { getCustomOptions } from '../lib/custom-types.js';
+import { getFieldOptionLabel, reloadCustomOptions } from '../lib/custom-types.js';
 import { waitForTransition, nextFrame } from '../lib/transitions.js';
 import { lockScroll, unlockScroll } from '../lib/scroll-lock.js';
 import { sanitizeHttpsUrl } from '../lib/safe-url.js';
@@ -19,12 +18,7 @@ function escapeHtml(str) {
 }
 
 function getFieldLabel(category, fieldName, value) {
-  if (!value) return '';
-  const field = category.fields.find((f) => f.name === fieldName);
-  const base = field?.options?.find((opt) => opt.value === value);
-  if (base) return base.label;
-  const custom = getCustomOptions(`${category.id}.${fieldName}`).find((opt) => opt.value === value);
-  return custom?.label || formatOptionLabel(value.replace(/_/g, ' '));
+  return getFieldOptionLabel(category.id, fieldName, value);
 }
 
 function renderDoneToggle(done, busy = false) {
@@ -228,8 +222,9 @@ export function initRestaurantDetail({ onChanged, onEdit, theme = 'rose' } = {})
     }
   }
 
-  function open(item) {
+  async function open(item) {
     if (!item) return;
+    await reloadCustomOptions();
     currentItem = item;
     confirmDelete = false;
     isBusy = false;

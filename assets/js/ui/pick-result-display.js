@@ -9,3 +9,8 @@ export function renderPickLocationLine(escapedAddress) {
     </p>
   `;
 }
+
+export function renderPickPeriodLabel(isYesterday = false) {
+  if (!isYesterday) return '';
+  return '<p class="act-pick-period-label">Pioche d\'hier</p>';
+}

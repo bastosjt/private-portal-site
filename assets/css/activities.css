@@ -429,6 +429,19 @@
   visibility: hidden;
 }
 
+.act-pick-period-label {
+  margin: 0 0 10px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.act-pick-result--yesterday {
+  opacity: 0.92;
+}
+
 .act-pick-foot.hidden {
   display: none;
 }
@@ -745,8 +758,9 @@
 }
 
 .act-list-meta--restaurant .act-list-meta-cuisine + .act-list-meta-price::before {
-  content: ' · ';
-  margin: 0;
+  content: '·';
+  margin-left: 0.25em;
+  margin-right: 0.25em;
   opacity: 0.65;
 }
 

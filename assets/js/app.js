@@ -8,6 +8,8 @@ import { renderSidebar, initSidebar, updateSidebarActive } from './ui/sidebar.js
 import { initAddItem } from './ui/add-item.js';
 import { waitForTransition, nextFrame } from './lib/transitions.js';
 import { init as initAccueil, destroy as destroyAccueil, refresh as refreshAccueil, HOME_VIEW_HTML } from './pages/accueil/index.js';
+import { initCustomOptions, reloadCustomOptions } from './lib/custom-types.js';
+import { startDailyPickMidnightReset } from './firebase/dailyPicks.js';
 import { init as initActivites, destroy as destroyActivites, refresh as refreshActivites, ACTIVITIES_VIEW_HTML } from './pages/activites/index.js';
 import { init as initRestaurants, destroy as destroyRestaurants, refresh as refreshRestaurants, RESTAURANTS_VIEW_HTML } from './pages/restaurants/index.js';
 import { getPlaceholderViewHtml } from './navigation/placeholder.js';
@@ -27,6 +29,7 @@ let addItemModal = null;
 let stopRouter = null;
 let sidebarInitialized = false;
 let pageTransitionToken = 0;
+let stopDailyPickReset = null;
 
 const PAGE_TRANSITION_MS = 300;
 
@@ -101,7 +104,7 @@ async function mountRoute(routeId) {
     pageRoot.innerHTML = HOME_VIEW_HTML;
     await finishPageEnter();
     if (token !== pageTransitionToken) return;
-    initAccueil(currentUser, { addItemModal: sharedModal });
+    await initAccueil(currentUser, { addItemModal: sharedModal });
     return;
   }
 
@@ -121,12 +124,21 @@ async function mountRoute(routeId) {
     return;
   }
 
+  if (routeId === 'voyages') {
+    await reloadCustomOptions();
+    pageRoot.innerHTML = getPlaceholderViewHtml(routeId);
+    await finishPageEnter();
+    return;
+  }
+
   pageRoot.innerHTML = getPlaceholderViewHtml(routeId);
   await finishPageEnter();
 }
 
 function showAuthView() {
   destroyCurrentView();
+  stopDailyPickReset?.();
+  stopDailyPickReset = null;
   stopRouter?.();
   stopRouter = null;
   currentUser = null;
@@ -140,10 +152,16 @@ function showAuthView() {
   document.title = `${APP_NAME}`;
 }
 
-function showAppView(user) {
+async function showAppView(user) {
+  await initCustomOptions();
   currentUser = user;
   authView?.classList.add('hidden');
   appView?.classList.remove('hidden');
+
+  stopDailyPickReset?.();
+  stopDailyPickReset = startDailyPickMidnightReset(() => {
+    refreshCurrentView();
+  });
 
   renderSidebar(sidebarRoot, { user, activeId: currentRoute || 'accueil' });
 
@@ -207,7 +225,7 @@ function setupLoginForm() {
         return;
       }
 
-      showAppView(user);
+      await showAppView(user);
     } catch (err) {
       console.error(err.code, err.message);
 
@@ -233,7 +251,7 @@ setupLoginForm();
 
 onAuthStateChanged(auth, async (user) => {
   if (user && isAllowedUser(user)) {
-    showAppView(user);
+    await showAppView(user);
     return;
   }
 

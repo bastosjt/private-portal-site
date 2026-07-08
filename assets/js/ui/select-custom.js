@@ -1,8 +1,10 @@
 import {
   ADD_OPTION_VALUE,
   addCustomOption,
-  getCustomOptions,
+  getCategoryFieldOptions,
+  getStorageKey,
   makeUniqueValue,
+  reloadCustomOptions,
   slugifyLabel,
 } from '../lib/custom-types.js';
 import { formatOptionLabel, sortOptionsByLabel } from '../lib/options-labels.js';
@@ -17,19 +19,14 @@ function escapeHtml(str) {
     .replace(/"/g, '&quot;');
 }
 
-function getStorageKey(categoryId, fieldName) {
-  return `${categoryId}.${fieldName}`;
-}
-
 function getMergedFieldOptions(field, categoryId, extra = []) {
-  const custom = field.allowCustom
-    ? getCustomOptions(getStorageKey(categoryId, field.name))
-    : [];
+  const options = field.allowCustom
+    ? getCategoryFieldOptions(categoryId, field.name)
+    : (field.options || []);
 
-  const base = field.options || [];
   const seen = new Set();
 
-  return sortOptionsByLabel([...base, ...custom, ...extra].filter((opt) => {
+  return sortOptionsByLabel([...options, ...extra].filter((opt) => {
     if (!opt?.value || seen.has(opt.value)) return false;
     seen.add(opt.value);
     return true;
@@ -154,12 +151,22 @@ function initCustomSelect(select, field, categoryId) {
       return;
     }
 
+    addBtn.disabled = true;
+
     const used = getUsedValues(select);
     const value = makeUniqueValue(slugifyLabel(label), used);
-    const option = addCustomOption(storageKey, { value, label });
 
-    rebuildSelect(select, field, categoryId, option.value);
-    toggleAddPanel(false);
+    addCustomOption(storageKey, { value, label })
+      .then((option) => {
+        rebuildSelect(select, field, categoryId, option.value);
+        toggleAddPanel(false);
+      })
+      .catch((err) => {
+        console.error('addCustomOption:', err);
+      })
+      .finally(() => {
+        addBtn.disabled = false;
+      });
   }
 
   select.addEventListener('change', onSelectChange);
@@ -176,7 +183,9 @@ function initCustomSelect(select, field, categoryId) {
   };
 }
 
-export function initFormSelectFields(form, category) {
+export async function initFormSelectFields(form, category) {
+  await reloadCustomOptions();
+
   const cleanups = [];
 
   for (const field of category.fields) {
@@ -222,7 +231,7 @@ export function setSelectFieldValue(form, field, value, label, categoryId) {
   select.value = value;
 }
 
-export function getSelectFieldValue(form, field, categoryId) {
+export async function getSelectFieldValue(form, field, categoryId) {
   const select = form.elements[field.name];
   if (!select) return '';
 
@@ -233,7 +242,7 @@ export function getSelectFieldValue(form, field, categoryId) {
       const storageKey = select.dataset.storageKey;
       const used = getUsedValues(select);
       const value = makeUniqueValue(slugifyLabel(customLabel), used);
-      addCustomOption(storageKey, { value, label: customLabel });
+      await addCustomOption(storageKey, { value, label: customLabel });
       rebuildSelect(select, field, categoryId, value);
       return value;
     }

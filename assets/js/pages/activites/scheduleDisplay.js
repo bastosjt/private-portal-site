@@ -9,7 +9,7 @@ export function formatActivityPeriod(item) {
   const fin = item.periode_fin?.trim() || '';
 
   if (debut && fin) return `Du ${debut} au ${fin}`;
-  if (debut) return `À partir du ${debut}`;
+  if (debut) return `À partir de ${debut}`;
   if (fin) return `Jusqu'au ${fin}`;
   return '';
 }

@@ -24,6 +24,7 @@ export function initListFilters({
   defaults = {},
   getState,
   onApply,
+  beforeOpen,
 } = {}) {
   let draftState = {};
   let expandedSections = new Set();
@@ -242,6 +243,7 @@ export function initListFilters({
   }
 
   async function open() {
+    await beforeOpen?.();
     draftState = cloneState(getState());
     expandedSections.clear();
     for (const section of sections) {

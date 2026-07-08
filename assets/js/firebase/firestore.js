@@ -5,6 +5,7 @@ import {
   orderBy,
   limit,
   getDocs,
+  setDoc,
   where,
   Timestamp,
   addDoc,
@@ -12,6 +13,8 @@ import {
   deleteDoc,
   doc,
 } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js';
+
+const CUSTOM_OPTIONS_COLLECTION = 'customOptions';
 
 export async function fetchRecentItems(collectionName, max = 3) {
   try {
@@ -100,4 +103,31 @@ export async function updateItem(collectionName, id, data) {
 
 export async function deleteItem(collectionName, id) {
   await deleteDoc(doc(db, collectionName, id));
+}
+
+export async function fetchAllCustomOptions() {
+  try {
+    const snapshot = await getDocs(collection(db, CUSTOM_OPTIONS_COLLECTION));
+    const result = {};
+
+    snapshot.docs.forEach((entry) => {
+      const options = entry.data().options;
+      if (Array.isArray(options)) {
+        result[entry.id] = options;
+      }
+    });
+
+    return result;
+  } catch (err) {
+    console.warn('fetchAllCustomOptions:', err.message);
+    return {};
+  }
+}
+
+export async function persistCustomOptions(storageKey, options) {
+  const ref = doc(db, CUSTOM_OPTIONS_COLLECTION, storageKey);
+  await setDoc(ref, {
+    options,
+    updatedAt: Timestamp.now(),
+  }, { merge: true });
 }

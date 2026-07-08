@@ -80,22 +80,13 @@ export const HOME_CATEGORIES = [
     modalTitle: 'Nouvelle activité',
     fields: [
       { name: 'nom', label: 'Nom', type: 'text', required: true, placeholder: 'Ex. Escape game' },
-      { name: 'categorie', label: 'Type', type: 'select', allowCustom: true, options: [
-        { value: 'musee', label: 'Musée' },
-        { value: 'expo', label: 'Exposition' },
-        { value: 'balade', label: 'Balade' },
-        { value: 'escape_game', label: 'Escape game' },
-        { value: 'concert', label: 'Concert' },
-        { value: 'cinema', label: 'Cinéma' },
-        { value: 'feux_d_artifice', label: 'Feux d\'artifice' },
-        { value: 'sport', label: 'Sport' },
-      ] },
+      { name: 'categorie', label: 'Type', type: 'select', allowCustom: true },
       { name: 'disponibilite', label: 'Disponibilité', type: 'select', options: [
         { value: 'permanent', label: 'Sans limite de date' },
         { value: 'a_venir', label: 'À venir' },
         { value: 'duree_limitee', label: 'Durée limitée' },
       ], default: 'permanent' },
-      { name: 'periode_debut', label: 'À partir du', type: 'text', placeholder: 'Ex. 1er déc. 2026' },
+      { name: 'periode_debut', label: 'À partir de', type: 'text', placeholder: 'Ex. 1er déc. 2026' },
       { name: 'periode_fin', label: 'Jusqu\'au', type: 'text', placeholder: 'Ex. 28 fév. 2027' },
       { name: 'localisation', label: 'Adresse ou lieu', type: 'address', placeholder: 'Commencez à taper une adresse…' },
       { name: 'prix', label: 'Prix estimé', type: 'priceRange', placeholderMin: 'Min', placeholderMax: 'Max' },
@@ -112,24 +103,8 @@ export const HOME_CATEGORIES = [
     modalTitle: 'Nouveau restaurant',
     fields: [
       { name: 'nom', label: 'Nom', type: 'text', required: true, placeholder: 'Ex. Le Comptoir' },
-      { name: 'type', label: 'Type', type: 'select', allowCustom: true, options: [
-        { value: 'restaurant', label: 'Restaurant' },
-        { value: 'cafe', label: 'Café' },
-        { value: 'brasserie', label: 'Brasserie' },
-        { value: 'bar_a_cocktail', label: 'Bar à cocktail' },
-        { value: 'fast_food', label: 'Restauration rapide' },
-      ] },
-      { name: 'cuisine', label: 'Type de cuisine', type: 'select', allowCustom: true, options: [
-        { value: 'chinoise', label: 'Chinoise' },
-        { value: 'francaise', label: 'Française' },
-        { value: 'indienne', label: 'Indienne' },
-        { value: 'italienne', label: 'Italienne' },
-        { value: 'japonaise', label: 'Japonaise' },
-        { value: 'libanaise', label: 'Libanaise' },
-        { value: 'mexicaine', label: 'Mexicaine' },
-        { value: 'thai', label: 'Thaï' },
-        { value: 'vegetarien', label: 'Végétarien' },
-      ] },
+      { name: 'type', label: 'Type', type: 'select', allowCustom: true },
+      { name: 'cuisine', label: 'Type de cuisine', type: 'select', allowCustom: true },
       { name: 'adresse', label: 'Adresse', type: 'address', placeholder: 'Numéro, rue, ville…', fills: { lienMaps: 'mapsUrl' } },
       { name: 'prix', label: 'Prix estimé', type: 'priceRange', placeholderMin: 'Min', placeholderMax: 'Max' },
       { name: 'lienMaps', label: 'Lien Google Maps', type: 'url', placeholder: 'Rempli automatiquement' },
@@ -146,10 +121,7 @@ export const HOME_CATEGORIES = [
     modalTitle: 'Nouveau film ou série',
     fields: [
       { name: 'titre', label: 'Titre', type: 'text', required: true, placeholder: 'Ex. Interstellar' },
-      { name: 'type', label: 'Type', type: 'select', allowCustom: true, options: [
-        { value: 'film', label: 'Film' },
-        { value: 'serie', label: 'Série' },
-      ] },
+      { name: 'type', label: 'Type', type: 'select', allowCustom: true },
     ],
   },
   {
@@ -163,6 +135,7 @@ export const HOME_CATEGORIES = [
     modalTitle: 'Nouveau voyage',
     fields: [
       { name: 'destination', label: 'Destination', type: 'text', required: true, placeholder: 'Ex. Lisbonne' },
+      { name: 'type', label: 'Type', type: 'select', allowCustom: true },
       { name: 'pays', label: 'Pays', type: 'text', placeholder: 'Ex. Portugal' },
       { name: 'budget', label: 'Budget estimé', type: 'text', placeholder: 'Ex. 800' },
       { name: 'periode', label: 'Période', type: 'text', placeholder: 'Ex. Été 2026' },

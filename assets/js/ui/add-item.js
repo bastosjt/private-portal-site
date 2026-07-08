@@ -12,14 +12,24 @@ import {
   PLACEHOLDER_OPTION_VALUE,
 } from './select-custom.js';
 import { formatPrice, isMoneyField } from '../lib/price-format.js';
-import { formatOptionLabel } from '../lib/options-labels.js';
 import {
   collectPriceRangeData,
   populatePriceRangeFields,
   renderPriceRangeField,
   validatePriceRangeFields,
 } from '../lib/form-price-field.js';
-import { getCustomOptions } from '../lib/custom-types.js';
+import { getFieldOptionLabel } from '../lib/custom-types.js';
+import {
+  applyFormDraft,
+  clearFormDraft,
+  loadFormDraft,
+  saveFormDraft,
+} from '../lib/form-draft.js';
+import {
+  ensureAuthSession,
+  getSubmitErrorMessage,
+  isRetryableFirestoreError,
+} from '../auth/ensure-auth.js';
 import { lockScroll, unlockScroll } from '../lib/scroll-lock.js';
 import { sanitizeHttpsUrl } from '../lib/safe-url.js';
 
@@ -110,12 +120,13 @@ function renderForm(category) {
   `;
 }
 
-export function initAddItem({ user, onAdded, onUpdated } = {}) {
+export function initAddItem({ onAdded, onUpdated } = {}) {
   let activeCategoryId = null;
   let editingItemId = null;
   let isSubmitting = false;
   let addressCleanup = null;
   let selectCleanup = null;
+  let draftCleanup = null;
   let bodyTransitionToken = 0;
   let modalTransitionToken = 0;
   let isBodyTransitioning = false;
@@ -164,13 +175,7 @@ export function initAddItem({ user, onAdded, onUpdated } = {}) {
   const closeBtn = overlay.querySelector('#add-modal-close');
 
   function getFieldDisplayLabel(categoryId, fieldName, value) {
-    if (!value) return '';
-    const category = getCategoryById(categoryId);
-    const field = category?.fields.find((f) => f.name === fieldName);
-    const base = field?.options?.find((opt) => opt.value === value);
-    if (base) return base.label;
-    const custom = getCustomOptions(`${categoryId}.${fieldName}`).find((opt) => opt.value === value);
-    return custom?.label || formatOptionLabel(value.replace(/_/g, ' '));
+    return getFieldOptionLabel(categoryId, fieldName, value);
   }
 
   function populateForm(form, category, item) {
@@ -230,9 +235,69 @@ export function initAddItem({ user, onAdded, onUpdated } = {}) {
     addressCleanup = null;
     selectCleanup?.();
     selectCleanup = null;
+    draftCleanup?.();
+    draftCleanup = null;
   }
 
-  function bindForm(panel, categoryId, item = null) {
+  function getActiveForm() {
+    return getContentEl()?.querySelector('#add-form') || null;
+  }
+
+  function saveDraftNow() {
+    if (!activeCategoryId || overlay.classList.contains('hidden')) return;
+    const form = getActiveForm();
+    const category = getCategoryById(activeCategoryId);
+    if (!form || !category) return;
+    saveFormDraft(activeCategoryId, editingItemId, form, category);
+  }
+
+  function showDraftNote(form) {
+    if (form.querySelector('.add-form-draft-note')) return;
+    const note = document.createElement('p');
+    note.className = 'add-form-draft-note';
+    note.textContent = 'Brouillon restauré — vos infos sont conservées si vous quittez l’app.';
+    form.insertBefore(note, form.firstChild);
+  }
+
+  function setupDraftAutosave(form, category) {
+    draftCleanup?.();
+    let timer = null;
+
+    const scheduleSave = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => saveDraftNow(), 400);
+    };
+
+    const onVisibilityChange = () => {
+      if (document.hidden) {
+        saveDraftNow();
+        return;
+      }
+      ensureAuthSession().catch(() => {});
+    };
+
+    form.addEventListener('input', scheduleSave);
+    form.addEventListener('change', scheduleSave);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
+    draftCleanup = () => {
+      clearTimeout(timer);
+      form.removeEventListener('input', scheduleSave);
+      form.removeEventListener('change', scheduleSave);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
+  }
+
+  async function persistFormData(category, data) {
+    const sessionUser = await ensureAuthSession();
+    if (editingItemId) {
+      await updateItem(category.id, editingItemId, data);
+      return editingItemId;
+    }
+    return addItem(category.id, data, sessionUser.uid);
+  }
+
+  async function bindForm(panel, categoryId, item = null) {
     const category = getCategoryById(categoryId);
     if (!category) return false;
 
@@ -247,7 +312,27 @@ export function initAddItem({ user, onAdded, onUpdated } = {}) {
     }
 
     addressCleanup = initFormAddressFields(form, category);
-    selectCleanup = initFormSelectFields(form, category);
+    selectCleanup = await initFormSelectFields(form, category);
+
+    const draft = loadFormDraft(categoryId, editingItemId);
+    if (draft) {
+      applyFormDraft(form, category, draft);
+      for (const field of category.fields) {
+        if (field.type !== 'select') continue;
+        const value = draft.fields[field.name];
+        if (!value || value === PLACEHOLDER_OPTION_VALUE) continue;
+        setSelectFieldValue(
+          form,
+          field,
+          value,
+          getFieldDisplayLabel(categoryId, field.name, value),
+          categoryId,
+        );
+      }
+      showDraftNote(form);
+    }
+
+    setupDraftAutosave(form, category);
     return true;
   }
 
@@ -266,7 +351,7 @@ export function initAddItem({ user, onAdded, onUpdated } = {}) {
     staggerPickerItems(getContentEl());
   }
 
-  function mountForm(categoryId, item = null) {
+  async function mountForm(categoryId, item = null) {
     clearFieldCleanups();
 
     const category = getCategoryById(categoryId);
@@ -284,7 +369,7 @@ export function initAddItem({ user, onAdded, onUpdated } = {}) {
       content.innerHTML = renderForm(category);
     }
 
-    return bindForm(getContentEl(), categoryId, item);
+    return await bindForm(getContentEl(), categoryId, item);
   }
 
   async function transitionContent(mountFn, { direction = 'forward', animate = true } = {}) {
@@ -306,7 +391,7 @@ export function initAddItem({ user, onAdded, onUpdated } = {}) {
       content.classList.remove('is-leaving', 'is-leaving-back');
     }
 
-    mountFn();
+    await mountFn();
 
     if (token !== bodyTransitionToken) {
       isBodyTransitioning = false;
@@ -325,6 +410,7 @@ export function initAddItem({ user, onAdded, onUpdated } = {}) {
   }
 
   async function showPicker({ animate = true } = {}) {
+    saveDraftNow();
     await transitionContent(mountPicker, { direction: 'back', animate });
   }
 
@@ -352,7 +438,7 @@ export function initAddItem({ user, onAdded, onUpdated } = {}) {
     bodyEl.innerHTML = '<div class="add-modal-content"></div>';
 
     if (categoryId) {
-      mountForm(categoryId, item);
+      await mountForm(categoryId, item);
     } else {
       mountPicker();
     }
@@ -374,6 +460,8 @@ export function initAddItem({ user, onAdded, onUpdated } = {}) {
   async function close() {
     if (isBodyTransitioning) return;
 
+    saveDraftNow();
+
     const token = ++modalTransitionToken;
     bodyTransitionToken += 1;
     isBodyTransitioning = false;
@@ -392,7 +480,7 @@ export function initAddItem({ user, onAdded, onUpdated } = {}) {
     bodyEl.innerHTML = '';
   }
 
-  function collectFormData(form, category) {
+  async function collectFormData(form, category) {
     const data = {};
     for (const field of category.fields) {
       if (field.type === 'priceRange') {
@@ -403,7 +491,7 @@ export function initAddItem({ user, onAdded, onUpdated } = {}) {
       let value = '';
 
       if (field.type === 'select') {
-        value = getSelectFieldValue(form, field, category.id);
+        value = await getSelectFieldValue(form, field, category.id);
       } else {
         const el = form.elements[field.name];
         if (!el) continue;
@@ -446,7 +534,7 @@ export function initAddItem({ user, onAdded, onUpdated } = {}) {
 
     if (requiredField) {
       const requiredValue = requiredField.type === 'select'
-        ? getSelectFieldValue(form, requiredField, category.id)
+        ? await getSelectFieldValue(form, requiredField, category.id)
         : form.elements[requiredField.name]?.value.trim();
 
       if (!requiredValue || requiredValue === ADD_OPTION_VALUE) {
@@ -481,7 +569,7 @@ export function initAddItem({ user, onAdded, onUpdated } = {}) {
       }
 
       if (field.type !== 'select' || !field.allowCustom) continue;
-      const value = getSelectFieldValue(form, field, category.id);
+      const value = await getSelectFieldValue(form, field, category.id);
       if (!value || value === ADD_OPTION_VALUE || value === PLACEHOLDER_OPTION_VALUE) {
         errorEl.textContent = `Choisissez un « ${field.label} ».`;
         errorEl.classList.remove('hidden');
@@ -495,25 +583,31 @@ export function initAddItem({ user, onAdded, onUpdated } = {}) {
     submitBtn.textContent = 'Enregistrement…';
 
     try {
-      const data = collectFormData(form, category);
-      if (editingItemId) {
-        await updateItem(category.id, editingItemId, data);
-        const itemId = editingItemId;
-        close();
-        onUpdated?.(category.id, itemId);
-      } else {
-        await addItem(category.id, data, user.uid);
-        close();
-        onAdded?.(category.id);
+      const data = await collectFormData(form, category);
+      saveDraftNow();
+
+      try {
+        await persistFormData(category, data);
+      } catch (err) {
+        if (!isRetryableFirestoreError(err)) throw err;
+        await ensureAuthSession();
+        await persistFormData(category, data);
       }
+
+      clearFormDraft(activeCategoryId, editingItemId);
+      const itemId = editingItemId;
+      close();
+      if (itemId) onUpdated?.(category.id, itemId);
+      else onAdded?.(category.id);
     } catch (err) {
       console.error(editingItemId ? 'updateItem:' : 'addItem:', err);
-      errorEl.textContent = 'Impossible d’enregistrer. Réessayez.';
+      saveDraftNow();
+      errorEl.textContent = getSubmitErrorMessage(err);
       errorEl.classList.remove('hidden');
     } finally {
       isSubmitting = false;
       submitBtn.disabled = false;
-      submitBtn.textContent = 'Enregistrer';
+      submitBtn.textContent = editingItemId ? 'Mettre à jour' : 'Enregistrer';
     }
   }
 
