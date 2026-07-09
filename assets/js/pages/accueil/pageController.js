@@ -14,6 +14,7 @@ const COLLECTION_IDS = HOME_CATEGORIES.map((cat) => cat.id);
 const DAILY_PICK_SCOPES = {
   activities: 'activities',
   restaurants: 'restaurants',
+  movies: 'movies',
 };
 let currentUserName = '';
 let addItemModal = null;
@@ -139,6 +140,7 @@ export async function initHomePage(user, { addItemModal: sharedModal } = {}) {
   addItemModal = sharedModal ?? initAddItem({ user, onAdded: () => loadHomeData() });
   initPageHeader();
   renderDaysCounter();
+  renderHomeHub();
   document.addEventListener('click', onAddCategoryClick, { signal });
   loadHomeData();
 }
@@ -183,20 +185,28 @@ function getMealCtaLabel() {
   return 'On mange quoi à midi ?';
 }
 
-function renderDailyPick(cat, pickedItem, { isYesterday = false } = {}) {
+function getMovieCtaLabel() {
+  const hour = new Date().getHours();
+  if (hour >= 22) return 'On regarde quoi demain ?';
+  return 'On regarde quoi ce soir ?';
+}
+
+function getPickPeriodLabel(period = 'today') {
+  if (period === 'yesterday') return 'Pioche d\'hier';
+  if (period === 'recent') return 'Dernière pioche';
+  return 'Pioche du jour';
+}
+
+function renderDailyPick(cat, pickedItem, { period = 'today' } = {}) {
   if (!pickedItem) return '';
 
   const title = getItemTitle(pickedItem, cat.titleKey);
+  const periodLabel = getPickPeriodLabel(period);
   return `
-    <a href="${cat.href}" class="pick-snippet${isYesterday ? ' pick-snippet--yesterday' : ''}" data-theme="${cat.theme}">
-      <span class="pick-snippet-icon" aria-hidden="true">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect width="18" height="18" x="3" y="3" rx="2"/>
-          <path d="M16 8h.01"/><path d="M8 8h.01"/><path d="M8 16h.01"/><path d="M16 16h.01"/><path d="M12 12h.01"/>
-        </svg>
-      </span>
+    <a href="${cat.href}" class="pick-snippet${period !== 'today' ? ' pick-snippet--yesterday' : ''}" data-theme="${cat.theme}">
+      <span class="pick-snippet-icon" aria-hidden="true">${sidebarIcon(cat.icon)}</span>
       <span class="pick-snippet-copy">
-        <span class="pick-snippet-label">${isYesterday ? 'Pioche d\'hier' : 'Pioche du jour'}</span>
+        <span class="pick-snippet-label">${periodLabel}</span>
         <span class="pick-snippet-name">${escapeHtml(title)}</span>
       </span>
     </a>
@@ -209,23 +219,25 @@ function renderHomeHub() {
 
   const activitiesCat = getCategoryById('activities');
   const restaurantsCat = getCategoryById('restaurants');
+  const moviesCat = getCategoryById('movies');
   const activitiesTheme = activitiesCat?.theme || 'cyan';
   const restaurantsTheme = restaurantsCat?.theme || 'rose';
+  const moviesTheme = moviesCat?.theme || 'violet';
   const restaurantsHref = restaurantsCat?.href || '#restaurants';
+  const moviesHref = moviesCat?.href || '#films';
 
   hubEl.innerHTML = `
     <a href="#activites" class="home-hub-cta" data-theme="${activitiesTheme}">
-      <span class="home-hub-cta-icon" aria-hidden="true">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect width="18" height="18" x="3" y="3" rx="2"/>
-          <path d="M16 8h.01"/><path d="M8 8h.01"/><path d="M8 16h.01"/><path d="M16 16h.01"/><path d="M12 12h.01"/>
-        </svg>
-      </span>
+      <span class="home-hub-cta-icon" aria-hidden="true">${sidebarIcon('activity')}</span>
       <span class="home-hub-cta-text">On fait quoi aujourd'hui ?</span>
     </a>
     <a href="${restaurantsHref}" class="home-hub-cta" data-theme="${restaurantsTheme}">
       <span class="home-hub-cta-icon" aria-hidden="true">${sidebarIcon('restaurant')}</span>
       <span class="home-hub-cta-text">${escapeHtml(getMealCtaLabel())}</span>
+    </a>
+    <a href="${moviesHref}" class="home-hub-cta" data-theme="${moviesTheme}">
+      <span class="home-hub-cta-icon" aria-hidden="true">${sidebarIcon('film')}</span>
+      <span class="home-hub-cta-text">${escapeHtml(getMovieCtaLabel())}</span>
     </a>
   `;
 }
@@ -274,7 +286,6 @@ async function loadHomeData() {
       pickedByCategory[categoryId] = items.find((item) => item.id === displayed.id) ?? null;
     }),
   );
-  renderHomeHub();
 
   const total = counts.reduce((sum, cat) => sum + cat.count, 0);
   initPageHeader(total, weekCount);
@@ -328,7 +339,7 @@ async function loadHomeData() {
             </div>
             ${itemsHtml}
             ${renderDailyPick(cat, pickedByCategory[cat.id], {
-              isYesterday: pickMetaByCategory[cat.id]?.isYesterday,
+              period: pickMetaByCategory[cat.id]?.period,
             })}
           </div>
         </section>

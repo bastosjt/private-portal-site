@@ -251,14 +251,6 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
     saveFormDraft(activeCategoryId, editingItemId, form, category);
   }
 
-  function showDraftNote(form) {
-    if (form.querySelector('.add-form-draft-note')) return;
-    const note = document.createElement('p');
-    note.className = 'add-form-draft-note';
-    note.textContent = 'Brouillon restauré — vos infos sont conservées si vous quittez l’app.';
-    form.insertBefore(note, form.firstChild);
-  }
-
   function setupDraftAutosave(form, category) {
     draftCleanup?.();
     let timer = null;
@@ -329,7 +321,6 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
           categoryId,
         );
       }
-      showDraftNote(form);
     }
 
     setupDraftAutosave(form, category);

@@ -71,7 +71,7 @@ export const HOME_VIEW_HTML = `
       </article>
     </section>
 
-    <section class="home-hub" id="home-hub" aria-label="Ce soir"></section>
+    <section class="home-hub" id="home-hub" aria-label="Aujourd'hui"></section>
 
     <section class="stats-section" aria-labelledby="stats-heading">
       <div class="section-head">

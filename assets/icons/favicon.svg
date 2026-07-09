@@ -8,7 +8,7 @@
         stroke: #f472b6;
         stroke-linecap: round;
         stroke-linejoin: round;
-        stroke-width: 6px;
+        stroke-width: 8px;
       }
 
       .st1 {
@@ -16,6 +16,6 @@
       }
     </style>
   </defs>
-  <rect class="st1" width="141.73" height="141.73"/>
+  <rect class="st1" y="0" width="141.73" height="141.73"/>
   <path class="st0" d="M101.87,79.72c6.6-6.47,13.29-14.22,13.29-24.36,0-13.45-10.91-24.36-24.36-24.36-7.8,0-13.29,2.21-19.93,8.86-6.64-6.64-12.14-8.86-19.93-8.86-13.45,0-24.36,10.91-24.36,24.36,0,10.19,6.64,17.94,13.29,24.36l31,31,31-31Z"/>
 </svg>

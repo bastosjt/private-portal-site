@@ -8,22 +8,32 @@ import {
 } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js';
 
 const COLLECTION = 'dailyPicks';
+const FALLBACK_LOOKBACK_DAYS = 14;
 
 export const MAX_DAILY_PICKS = 2;
 
 const SCOPE_FIELDS = {
   activities: 'activityIds',
   restaurants: 'restaurantIds',
+  movies: 'movieIds',
 };
 
 const cachedPickIdsByScope = {
   activities: [],
   restaurants: [],
+  movies: [],
 };
 
 const cachedYesterdayPickIdsByScope = {
   activities: [],
   restaurants: [],
+  movies: [],
+};
+
+const cachedFallbackPickByScope = {
+  activities: null,
+  restaurants: null,
+  movies: null,
 };
 
 const resetListeners = new Set();
@@ -47,12 +57,124 @@ export function getTodayKey() {
 }
 
 function getYesterdayKey() {
+  const { key } = getDayKeyWithOffset(1);
+  return key;
+}
+
+function getDayKeyWithOffset(daysAgo = 0) {
   const now = new Date();
-  const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
-  const y = yesterday.getFullYear();
-  const m = String(yesterday.getMonth() + 1).padStart(2, '0');
-  const d = String(yesterday.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
+  const date = new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysAgo);
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return {
+    key: `${y}-${m}-${d}`,
+    daysAgo,
+  };
+}
+
+function getLatestId(ids) {
+  return Array.isArray(ids) && ids.length ? ids[ids.length - 1] : null;
+}
+
+function buildDisplayedPick(id, period, daysAgo = 0) {
+  if (!id) return null;
+  return {
+    id,
+    period,
+    daysAgo,
+    isYesterday: period === 'yesterday',
+  };
+}
+
+function getFallbackPick(scope = 'activities') {
+  syncCacheWithToday();
+  return cachedFallbackPickByScope[resolveScope(scope)];
+}
+
+function isFallbackDocValid(ids) {
+  return Array.isArray(ids) && ids.length > 0;
+}
+
+function normalizePickIds(rawIds) {
+  return Array.isArray(rawIds) ? rawIds.slice(0, MAX_DAILY_PICKS) : [];
+}
+
+async function loadFallbackPick(scope = 'activities', lookbackDays = FALLBACK_LOOKBACK_DAYS) {
+  syncCacheWithToday();
+
+  const resolvedScope = resolveScope(scope);
+  const field = getScopeField(resolvedScope);
+
+  cachedFallbackPickByScope[resolvedScope] = null;
+
+  for (let daysAgo = 2; daysAgo <= lookbackDays; daysAgo += 1) {
+    const { key } = getDayKeyWithOffset(daysAgo);
+    const snap = await getDoc(pickDocRef(key));
+    if (!snap.exists()) continue;
+
+    const ids = normalizePickIds(snap.data()?.[field]);
+    if (!isFallbackDocValid(ids)) continue;
+
+    cachedFallbackPickByScope[resolvedScope] = {
+      id: getLatestId(ids),
+      daysAgo,
+    };
+    return cachedFallbackPickByScope[resolvedScope];
+  }
+
+  return null;
+}
+
+function clearScopeCache(scope) {
+  cachedPickIdsByScope[scope] = [];
+  cachedYesterdayPickIdsByScope[scope] = [];
+  cachedFallbackPickByScope[scope] = null;
+}
+
+function refreshInMemoryFallbackForScope(scope) {
+  const resolvedScope = resolveScope(scope);
+  const todayId = getLatestPickId(resolvedScope);
+  if (todayId) {
+    cachedFallbackPickByScope[resolvedScope] = null;
+    return;
+  }
+
+  const yesterdayId = getLatestYesterdayPickId(resolvedScope);
+  if (yesterdayId) {
+    cachedFallbackPickByScope[resolvedScope] = null;
+  }
+}
+
+function runResetListeners() {
+  resetListeners.forEach((listener) => {
+    try {
+      listener();
+    } catch (err) {
+      console.warn('dailyPickReset listener:', err);
+    }
+  });
+}
+
+function ensureMaxLookbackDays(value) {
+  return Math.max(2, Number.isFinite(value) ? Math.floor(value) : FALLBACK_LOOKBACK_DAYS);
+}
+
+function getScopeFieldValue(data, field) {
+  return normalizePickIds(data?.[field]);
+}
+
+function readScopeIdsFromSnapshot(snap, field) {
+  if (!snap.exists()) return [];
+  return getScopeFieldValue(snap.data(), field);
+}
+
+function updateTodayCache(scope, ids) {
+  cachedPickIdsByScope[scope] = ids;
+}
+
+function updateYesterdayCache(scope, ids) {
+  cachedYesterdayPickIdsByScope[scope] = ids;
 }
 
 function syncCacheWithToday() {
@@ -60,10 +182,7 @@ function syncCacheWithToday() {
   if (cachedDateKey === today) return false;
 
   cachedDateKey = today;
-  for (const scope of Object.keys(cachedPickIdsByScope)) {
-    cachedPickIdsByScope[scope] = [];
-    cachedYesterdayPickIdsByScope[scope] = [];
-  }
+  for (const scope of Object.keys(cachedPickIdsByScope)) clearScopeCache(scope);
   return true;
 }
 
@@ -76,13 +195,7 @@ function getMsUntilMidnight() {
 async function handleMidnightReset() {
   syncCacheWithToday();
   await Promise.all(Object.keys(SCOPE_FIELDS).map((scope) => loadDailyPicks(scope)));
-  resetListeners.forEach((listener) => {
-    try {
-      listener();
-    } catch (err) {
-      console.warn('dailyPickReset listener:', err);
-    }
-  });
+  runResetListeners();
 }
 
 function scheduleMidnightReset() {
@@ -100,6 +213,7 @@ export function startDailyPickMidnightReset(listener) {
 
   return () => {
     if (listener) resetListeners.delete(listener);
+    if (resetListeners.size === 0) clearTimeout(midnightTimer);
   };
 }
 
@@ -122,21 +236,24 @@ export function canPickToday(scope = 'activities') {
 
 export function getLatestPickId(scope = 'activities') {
   const ids = getTodayPickIds(scope);
-  return ids.length ? ids[ids.length - 1] : null;
+  return getLatestId(ids);
 }
 
 export function getLatestYesterdayPickId(scope = 'activities') {
   syncCacheWithToday();
   const ids = cachedYesterdayPickIdsByScope[resolveScope(scope)];
-  return ids.length ? ids[ids.length - 1] : null;
+  return getLatestId(ids);
 }
 
 export function getDisplayedLatestPick(scope = 'activities') {
   const todayId = getLatestPickId(scope);
-  if (todayId) return { id: todayId, isYesterday: false };
+  if (todayId) return buildDisplayedPick(todayId, 'today', 0);
 
   const yesterdayId = getLatestYesterdayPickId(scope);
-  if (yesterdayId) return { id: yesterdayId, isYesterday: true };
+  if (yesterdayId) return buildDisplayedPick(yesterdayId, 'yesterday', 1);
+
+  const fallback = getFallbackPick(scope);
+  if (fallback?.id) return buildDisplayedPick(fallback.id, 'recent', fallback.daysAgo || 2);
 
   return null;
 }
@@ -155,14 +272,9 @@ export async function loadTodayPicks(scope = 'activities') {
   const field = getScopeField(resolvedScope);
   const ref = pickDocRef(getTodayKey());
   const snap = await getDoc(ref);
-
-  if (snap.exists()) {
-    const ids = snap.data()?.[field];
-    cachedPickIdsByScope[resolvedScope] = Array.isArray(ids) ? ids.slice(0, MAX_DAILY_PICKS) : [];
-    return cachedPickIdsByScope[resolvedScope];
-  }
-
-  cachedPickIdsByScope[resolvedScope] = [];
+  const ids = readScopeIdsFromSnapshot(snap, field);
+  updateTodayCache(resolvedScope, ids);
+  refreshInMemoryFallbackForScope(resolvedScope);
   return cachedPickIdsByScope[resolvedScope];
 }
 
@@ -173,21 +285,16 @@ export async function loadYesterdayPicks(scope = 'activities') {
   const field = getScopeField(resolvedScope);
   const ref = pickDocRef(getYesterdayKey());
   const snap = await getDoc(ref);
-
-  if (snap.exists()) {
-    const ids = snap.data()?.[field];
-    cachedYesterdayPickIdsByScope[resolvedScope] = Array.isArray(ids)
-      ? ids.slice(0, MAX_DAILY_PICKS)
-      : [];
-    return cachedYesterdayPickIdsByScope[resolvedScope];
-  }
-
-  cachedYesterdayPickIdsByScope[resolvedScope] = [];
+  const ids = readScopeIdsFromSnapshot(snap, field);
+  updateYesterdayCache(resolvedScope, ids);
+  refreshInMemoryFallbackForScope(resolvedScope);
   return cachedYesterdayPickIdsByScope[resolvedScope];
 }
 
 export async function loadDailyPicks(scope = 'activities') {
-  await Promise.all([loadTodayPicks(scope), loadYesterdayPicks(scope)]);
+  const lookback = ensureMaxLookbackDays(FALLBACK_LOOKBACK_DAYS);
+  await Promise.all([loadTodayPicks(scope), loadYesterdayPicks(scope), loadFallbackPick(scope, lookback)]);
+  refreshInMemoryFallbackForScope(scope);
   return getTodayPickIds(scope);
 }
 
@@ -220,6 +327,7 @@ export async function addTodayPick(itemId, scope = 'activities') {
 
     if (!nextIds) return false;
     cachedPickIdsByScope[resolvedScope] = nextIds;
+    refreshInMemoryFallbackForScope(resolvedScope);
     return true;
   } catch (err) {
     console.error('addTodayPick:', err);
@@ -233,6 +341,7 @@ export async function resetTodayPicks(scope = 'activities') {
   const resolvedScope = resolveScope(scope);
   const field = getScopeField(resolvedScope);
   cachedPickIdsByScope[resolvedScope] = [];
+  refreshInMemoryFallbackForScope(resolvedScope);
 
   try {
     const ref = pickDocRef();

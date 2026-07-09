@@ -68,6 +68,8 @@
   gap: 14px;
   padding: 16px 18px;
   border-radius: var(--radius-md);
+  text-decoration: none;
+  color: inherit;
   background: linear-gradient(160deg, var(--cat-bg) 0%, var(--surface) 58%);
   border: 1px solid var(--cat-border);
   box-shadow: var(--neu-in);
@@ -145,6 +147,8 @@
   margin-top: 12px;
   padding: 12px 14px;
   border-radius: var(--radius-sm);
+  text-decoration: none;
+  color: inherit;
   background: var(--bg);
   border: 1px solid color-mix(in srgb, var(--cat-border) 70%, transparent);
   box-shadow: var(--neu-in);

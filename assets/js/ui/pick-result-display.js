@@ -10,7 +10,12 @@ export function renderPickLocationLine(escapedAddress) {
   `;
 }
 
-export function renderPickPeriodLabel(isYesterday = false) {
-  if (!isYesterday) return '';
-  return '<p class="act-pick-period-label">Pioche d\'hier</p>';
+export function renderPickPeriodLabel(period = 'today') {
+  if (period === 'yesterday') {
+    return '<p class="act-pick-period-label">Pioche d\'hier</p>';
+  }
+  if (period === 'recent') {
+    return '<p class="act-pick-period-label">Dernière pioche</p>';
+  }
+  return '';
 }

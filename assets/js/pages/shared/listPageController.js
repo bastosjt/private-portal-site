@@ -94,6 +94,7 @@ export function createListPageController(config) {
     getItemRowClasses = () => '',
     renderItemBodyExtra = () => '',
     getPickLocation = () => '',
+    titleKey = 'nom',
   } = config;
 
   let allItems = [];
@@ -204,7 +205,7 @@ export function createListPageController(config) {
     const copy = [...items];
 
     if (sortId === 'alpha') {
-      return copy.sort((a, b) => (a.nom || '').localeCompare(b.nom || '', 'fr', { sensitivity: 'base' }));
+      return copy.sort((a, b) => (a[titleKey] || '').localeCompare(b[titleKey] || '', 'fr', { sensitivity: 'base' }));
     }
 
     if (sortId === 'price-asc' || sortId === 'price-desc') {
@@ -315,15 +316,15 @@ export function createListPageController(config) {
     formatItemPrice,
   };
 
-  function renderPickResultItem(item, { isYesterday = false } = {}) {
+  function renderPickResultItem(item, { period = 'today' } = {}) {
     const location = getPickLocation(item);
     return `
-      <div class="act-pick-result${isYesterday ? ' act-pick-result--yesterday' : ''}" role="button" tabindex="0" ${itemIdAttr}="${escapeHtml(item.id)}" aria-label="Voir ${escapeHtml(item.nom)}">
-        ${renderPickPeriodLabel(isYesterday)}
+      <div class="act-pick-result${period !== 'today' ? ' act-pick-result--yesterday' : ''}" role="button" tabindex="0" ${itemIdAttr}="${escapeHtml(item.id)}" aria-label="Voir ${escapeHtml(item[titleKey])}">
+        ${renderPickPeriodLabel(period)}
         <div class="act-list-item-head">
           <span class="cat-panel-icon">${renderTypeIcon(item)}</span>
           <div class="act-list-item-body">
-            <h3>${escapeHtml(item.nom)}</h3>
+            <h3>${escapeHtml(item[titleKey])}</h3>
             ${renderListMeta(item, renderCtx)}
           </div>
         </div>
@@ -375,7 +376,8 @@ export function createListPageController(config) {
     const remaining = getRemainingPicks(pickScope);
     const displayed = getDisplayedLatestPick(pickScope);
     const latest = displayed ? findItemById(displayed.id) : null;
-    const isYesterdayPick = Boolean(displayed?.isYesterday);
+    const pickPeriod = displayed?.period || 'today';
+    const isNonTodayPick = pickPeriod !== 'today';
     const hasPending = allItems.some((item) => !item.done);
 
     if (!allItems.length) {
@@ -397,7 +399,7 @@ export function createListPageController(config) {
 
     if (!pickable.length && canPickToday(pickScope) && hasPending) {
       body.innerHTML = latest
-        ? `${renderPickResultItem(latest, { isYesterday: isYesterdayPick })}${renderPickMessage('C\'est tout pour aujourd\'hui', 'Revenez demain pour de nouvelles pioches.')}`
+        ? `${renderPickResultItem(latest, { period: pickPeriod })}${renderPickMessage('C\'est tout pour aujourd\'hui', 'Revenez demain pour de nouvelles pioches.')}`
         : renderPickMessage('C\'est tout pour aujourd\'hui', labels.pickQuotaExhaustedText);
       foot?.classList.add('hidden');
       syncPickInnerLayout();
@@ -407,16 +409,16 @@ export function createListPageController(config) {
     if (latest) {
       const canRollAgain = remaining > 0 && pickable.length > 0;
       const hint = canRollAgain
-        ? (isYesterdayPick ? 'Envie d\'autre chose ? Lancez le dé.' : 'Envie d\'autre chose ? Relancez le dé.')
+        ? (isNonTodayPick ? 'Envie d\'autre chose ? Lancez le dé.' : 'Envie d\'autre chose ? Relancez le dé.')
         : '';
       body.innerHTML = `
         <div class="act-pick-result-wrap">
-          ${renderPickResultItem(latest, { isYesterday: isYesterdayPick })}
+          ${renderPickResultItem(latest, { period: pickPeriod })}
           <p class="act-pick-hint">${hint}</p>
         </div>
       `;
       foot?.classList.toggle('hidden', !canRollAgain);
-      if (btnLabel) btnLabel.textContent = isYesterdayPick && canRollAgain ? 'Au pif !' : 'Relancer';
+      if (btnLabel) btnLabel.textContent = isNonTodayPick && canRollAgain ? 'Au pif !' : 'Relancer';
       if (btn) btn.disabled = !canRollAgain;
       syncPickInnerLayout();
       return;
@@ -483,12 +485,12 @@ export function createListPageController(config) {
       const locationHtml = renderLocation(item, renderCtx);
       return `
         <li class="act-list-item${item.done ? ' act-list-item--done' : ''}${extraClasses}"${animate ? ` style="animation-delay: ${index * 40}ms"` : ''}>
-          <div class="act-list-item-inner" ${itemIdAttr}="${item.id}" role="button" tabindex="0" aria-label="Voir ${escapeHtml(item.nom)}">
+          <div class="act-list-item-inner" ${itemIdAttr}="${item.id}" role="button" tabindex="0" aria-label="Voir ${escapeHtml(item[titleKey])}">
             <span class="cat-panel-accent" aria-hidden="true"></span>
             <div class="act-list-item-head">
               <span class="cat-panel-icon">${renderTypeIcon(item)}</span>
               <div class="act-list-item-body">
-                <h3>${escapeHtml(item.nom)}</h3>
+                <h3>${escapeHtml(item[titleKey])}</h3>
                 ${renderListMeta(item, renderCtx)}
               </div>
               ${renderStatusBadge(item.done, { doneLabel: labels.statusDone, todoLabel: labels.statusTodo })}

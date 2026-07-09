@@ -2063,9 +2063,15 @@
   color: #ffb4b4;
 }
 
+#films-list-panel {
+  margin-top: 1.5rem;
+}
+
 @media (max-width: 540px) {
   .act-cat-panel {
-    padding: 16px 12px 14px;
+    padding: 16px 12px 14px;.act-list-section {
+  margin-bottom: 32px;
+}
   }
 
   .act-list-item-inner {

@@ -12,6 +12,7 @@ import { initCustomOptions, reloadCustomOptions } from './lib/custom-types.js';
 import { startDailyPickMidnightReset } from './firebase/dailyPicks.js';
 import { init as initActivites, destroy as destroyActivites, refresh as refreshActivites, ACTIVITIES_VIEW_HTML } from './pages/activites/index.js';
 import { init as initRestaurants, destroy as destroyRestaurants, refresh as refreshRestaurants, RESTAURANTS_VIEW_HTML } from './pages/restaurants/index.js';
+import { init as initFilms, destroy as destroyFilms, refresh as refreshFilms, FILMS_VIEW_HTML } from './pages/films/index.js';
 import { getPlaceholderViewHtml } from './navigation/placeholder.js';
 
 const PAGE_TITLES = {
@@ -47,12 +48,14 @@ function destroyCurrentView() {
   destroyAccueil();
   destroyActivites();
   destroyRestaurants();
+  destroyFilms();
 }
 
 function refreshCurrentView() {
   if (currentRoute === 'accueil') return refreshAccueil();
   if (currentRoute === 'activites') return refreshActivites();
   if (currentRoute === 'restaurants') return refreshRestaurants();
+  if (currentRoute === 'films') return refreshFilms();
   return undefined;
 }
 
@@ -121,6 +124,14 @@ async function mountRoute(routeId) {
     await finishPageEnter();
     if (token !== pageTransitionToken) return;
     await initRestaurants(currentUser, { addItemModal: sharedModal });
+    return;
+  }
+
+  if (routeId === 'films') {
+    pageRoot.innerHTML = FILMS_VIEW_HTML;
+    await finishPageEnter();
+    if (token !== pageTransitionToken) return;
+    await initFilms(currentUser, { addItemModal: sharedModal });
     return;
   }
 
