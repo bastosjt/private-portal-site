@@ -60,9 +60,20 @@ export function populatePriceRangeFields(form, item) {
   if (maxEl) maxEl.value = prixMax != null ? formatMoneyAmount(prixMax) : '';
 }
 
+function hasInvalidMoneyInput(value) {
+  if (value == null || String(value).trim() === '') return false;
+  return parseMoneyInput(value) == null;
+}
+
 export function validatePriceRangeFields(form) {
-  const prixMin = parseMoneyInput(form.elements.prixMin?.value);
-  const prixMax = parseMoneyInput(form.elements.prixMax?.value);
+  const minRaw = form.elements.prixMin?.value;
+  const maxRaw = form.elements.prixMax?.value;
+  const prixMin = parseMoneyInput(minRaw);
+  const prixMax = parseMoneyInput(maxRaw);
+
+  if (hasInvalidMoneyInput(minRaw) || hasInvalidMoneyInput(maxRaw)) {
+    return 'Saisissez un montant valide (ex. 25 ou 25,50).';
+  }
 
   if (prixMax != null && prixMin == null) {
     return 'Indiquez un prix minimum si vous renseignez un maximum.';
@@ -92,11 +103,15 @@ export function collectPriceRangeData(form, { isEdit = false } = {}) {
     prixMax = null;
   }
 
-  const data = {
+  if (!isEdit) {
+    const data = { prixMin };
+    if (prixMax != null) data.prixMax = prixMax;
+    return data;
+  }
+
+  return {
     prix: deleteField(),
     prixMin,
     prixMax: prixMax != null ? prixMax : deleteField(),
   };
-
-  return data;
 }

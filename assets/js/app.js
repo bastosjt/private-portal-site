@@ -13,6 +13,8 @@ import { startDailyPickMidnightReset } from './firebase/dailyPicks.js';
 import { init as initActivites, destroy as destroyActivites, refresh as refreshActivites, ACTIVITIES_VIEW_HTML } from './pages/activites/index.js';
 import { init as initRestaurants, destroy as destroyRestaurants, refresh as refreshRestaurants, RESTAURANTS_VIEW_HTML } from './pages/restaurants/index.js';
 import { init as initFilms, destroy as destroyFilms, refresh as refreshFilms, FILMS_VIEW_HTML } from './pages/films/index.js';
+import { init as initWishlist, destroy as destroyWishlist, refresh as refreshWishlist, WISHLIST_VIEW_HTML } from './pages/wishlist/index.js';
+import { init as initVoyages, destroy as destroyVoyages, refresh as refreshVoyages, VOYAGES_VIEW_HTML } from './pages/voyages/index.js';
 import { getPlaceholderViewHtml } from './navigation/placeholder.js';
 
 const PAGE_TITLES = {
@@ -49,6 +51,8 @@ function destroyCurrentView() {
   destroyActivites();
   destroyRestaurants();
   destroyFilms();
+  destroyWishlist();
+  destroyVoyages();
 }
 
 function refreshCurrentView() {
@@ -56,6 +60,8 @@ function refreshCurrentView() {
   if (currentRoute === 'activites') return refreshActivites();
   if (currentRoute === 'restaurants') return refreshRestaurants();
   if (currentRoute === 'films') return refreshFilms();
+  if (currentRoute === 'wishlist') return refreshWishlist();
+  if (currentRoute === 'voyages') return refreshVoyages();
   return undefined;
 }
 
@@ -135,10 +141,19 @@ async function mountRoute(routeId) {
     return;
   }
 
-  if (routeId === 'voyages') {
-    await reloadCustomOptions();
-    pageRoot.innerHTML = getPlaceholderViewHtml(routeId);
+  if (routeId === 'wishlist') {
+    pageRoot.innerHTML = WISHLIST_VIEW_HTML;
     await finishPageEnter();
+    if (token !== pageTransitionToken) return;
+    await initWishlist(currentUser, { addItemModal: sharedModal });
+    return;
+  }
+
+  if (routeId === 'voyages') {
+    pageRoot.innerHTML = VOYAGES_VIEW_HTML;
+    await finishPageEnter();
+    if (token !== pageTransitionToken) return;
+    await initVoyages(currentUser, { addItemModal: sharedModal });
     return;
   }
 

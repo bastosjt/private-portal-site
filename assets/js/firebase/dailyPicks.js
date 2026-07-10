@@ -16,24 +16,28 @@ const SCOPE_FIELDS = {
   activities: 'activityIds',
   restaurants: 'restaurantIds',
   movies: 'movieIds',
+  travels: 'travelIds',
 };
 
 const cachedPickIdsByScope = {
   activities: [],
   restaurants: [],
   movies: [],
+  travels: [],
 };
 
 const cachedYesterdayPickIdsByScope = {
   activities: [],
   restaurants: [],
   movies: [],
+  travels: [],
 };
 
 const cachedFallbackPickByScope = {
   activities: null,
   restaurants: null,
   movies: null,
+  travels: null,
 };
 
 const resetListeners = new Set();

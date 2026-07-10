@@ -1,7 +1,41 @@
 const STORAGE_PREFIX = 'portal-form-draft';
+const ADD_OPTION_VALUE = '__add__';
 
 function getStorageKey(categoryId, itemId = null) {
   return `${STORAGE_PREFIX}:${categoryId}:${itemId || 'new'}`;
+}
+
+function isMeaningfulFieldValue(field, value) {
+  if (field.type === 'priceRange') {
+    const min = String(value?.min ?? value?.prixMin ?? '').trim();
+    const max = String(value?.max ?? value?.prixMax ?? '').trim();
+    return Boolean(min || max);
+  }
+
+  const str = String(value ?? '').trim();
+  if (!str) return false;
+
+  if (field.type === 'select') {
+    if (str === ADD_OPTION_VALUE) return false;
+    if (field.default && str === field.default) return false;
+  }
+
+  return true;
+}
+
+function snapshotHasMeaningfulContent(fields, category) {
+  if (!fields || !category) return false;
+
+  return category.fields.some((field) => {
+    if (field.type === 'priceRange') {
+      return isMeaningfulFieldValue(field, {
+        min: fields.prixMin,
+        max: fields.prixMax,
+      });
+    }
+
+    return isMeaningfulFieldValue(field, fields[field.name]);
+  });
 }
 
 export function snapshotFormFields(form, category) {
@@ -28,8 +62,7 @@ export function snapshotFormFields(form, category) {
     }
   }
 
-  const hasContent = Object.values(fields).some((value) => String(value).trim());
-  if (!hasContent) return null;
+  if (!snapshotHasMeaningfulContent(fields, category)) return null;
 
   return {
     fields,
@@ -51,10 +84,20 @@ export function saveFormDraft(categoryId, itemId, form, category) {
   return true;
 }
 
-export function loadFormDraft(categoryId, itemId) {
+export function loadFormDraft(categoryId, itemId, category = null) {
   try {
     const raw = localStorage.getItem(getStorageKey(categoryId, itemId));
-    return raw ? JSON.parse(raw) : null;
+    if (!raw) return null;
+
+    const draft = JSON.parse(raw);
+    if (!draft?.fields) return null;
+
+    if (category && !snapshotHasMeaningfulContent(draft.fields, category)) {
+      clearFormDraft(categoryId, itemId);
+      return null;
+    }
+
+    return draft;
   } catch {
     return null;
   }
@@ -62,6 +105,10 @@ export function loadFormDraft(categoryId, itemId) {
 
 export function clearFormDraft(categoryId, itemId) {
   localStorage.removeItem(getStorageKey(categoryId, itemId));
+}
+
+export function hasFormDraft(categoryId, itemId, category = null) {
+  return loadFormDraft(categoryId, itemId, category) != null;
 }
 
 export function applyFormDraft(form, category, draft) {

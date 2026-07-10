@@ -111,6 +111,22 @@ function renderCategoryPicker() {
 function renderForm(category) {
   return `
     <form class="add-form" id="add-form" data-theme="${category.theme}" novalidate>
+      <div class="add-form-draft hidden" id="add-form-draft" role="status" aria-live="polite">
+        <span class="add-form-draft-icon" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/>
+            <path d="M14 2v4a2 2 0 0 0 2 2h4"/>
+            <path d="M10 12h4"/><path d="M10 16h4"/>
+          </svg>
+        </span>
+        <div class="add-form-draft-content">
+          <p class="add-form-draft-title">Brouillon enregistré</p>
+          <p class="add-form-draft-meta" id="add-form-draft-meta">Sauvegardé localement sur cet appareil</p>
+        </div>
+        <button type="button" class="add-form-draft-clear" id="add-form-draft-clear" aria-label="Effacer le brouillon">
+          Effacer
+        </button>
+      </div>
       ${category.fields.map((field) => renderField(field, category.id)).join('')}
       <p class="add-form-error hidden" id="add-form-error" role="alert"></p>
       <button type="submit" class="add-form-submit" id="add-form-submit">
@@ -123,6 +139,7 @@ function renderForm(category) {
 export function initAddItem({ onAdded, onUpdated } = {}) {
   let activeCategoryId = null;
   let editingItemId = null;
+  let editingItem = null;
   let isSubmitting = false;
   let addressCleanup = null;
   let selectCleanup = null;
@@ -179,6 +196,7 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
   }
 
   function populateForm(form, category, item) {
+    form.reset();
     for (const field of category.fields) {
       if (field.type === 'priceRange') {
         populatePriceRangeFields(form, item);
@@ -243,12 +261,110 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
     return getContentEl()?.querySelector('#add-form') || null;
   }
 
+  function formatDraftSavedAt(savedAt) {
+    if (!savedAt) return 'Sauvegardé localement sur cet appareil';
+
+    const diffMs = Date.now() - savedAt;
+    const mins = Math.floor(diffMs / 60000);
+    if (mins < 1) return 'Sauvegardé à l\'instant';
+    if (mins < 60) return `Sauvegardé il y a ${mins} min`;
+
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `Sauvegardé il y a ${hours} h`;
+
+    return 'Sauvegardé localement sur cet appareil';
+  }
+
+  function resetDraftClearButton(btn) {
+    if (!btn) return;
+    clearTimeout(Number(btn.dataset.confirmTimer || 0));
+    btn.dataset.confirming = '';
+    btn.dataset.confirmTimer = '';
+    btn.textContent = 'Effacer';
+    btn.classList.remove('is-confirming');
+    btn.setAttribute('aria-label', 'Effacer le brouillon');
+  }
+
+  function updateDraftNotice(form, categoryId) {
+    const notice = form.querySelector('#add-form-draft');
+    const meta = form.querySelector('#add-form-draft-meta');
+    const clearBtn = form.querySelector('#add-form-draft-clear');
+    if (!notice) return;
+
+    const category = getCategoryById(categoryId);
+    const draft = loadFormDraft(categoryId, editingItemId, category);
+    notice.classList.toggle('hidden', !draft);
+
+    if (draft && meta) {
+      meta.textContent = formatDraftSavedAt(draft.savedAt);
+    }
+
+    resetDraftClearButton(clearBtn);
+  }
+
+  function blurFormFields(form) {
+    if (!form) return;
+    form.querySelectorAll('input, textarea, select').forEach((el) => el.blur());
+    if (document.activeElement?.closest('#add-form')) {
+      document.activeElement.blur();
+    }
+  }
+
+  function resetFormBaseline(form, category) {
+    form.reset();
+    for (const field of category.fields) {
+      if (field.type === 'priceRange') {
+        populatePriceRangeFields(form, {});
+        continue;
+      }
+
+      const el = form.elements[field.name];
+      if (!el) continue;
+
+      if (field.type === 'select') {
+        setSelectFieldValue(form, field, '', '', category.id);
+        continue;
+      }
+
+      if (field.type === 'address') {
+        delete el.dataset.lat;
+        delete el.dataset.lng;
+      }
+    }
+
+    if (editingItem) {
+      populateForm(form, category, editingItem);
+    }
+  }
+
+  function handleDraftClear(event, form, category) {
+    const btn = event.currentTarget;
+
+    if (btn.dataset.confirming !== 'true') {
+      btn.dataset.confirming = 'true';
+      btn.textContent = 'Confirmer ?';
+      btn.classList.add('is-confirming');
+      btn.setAttribute('aria-label', 'Confirmer la suppression du brouillon');
+      clearTimeout(Number(btn.dataset.confirmTimer || 0));
+      btn.dataset.confirmTimer = String(setTimeout(() => {
+        resetDraftClearButton(btn);
+      }, 3500));
+      return;
+    }
+
+    clearFormDraft(category.id, editingItemId);
+    resetFormBaseline(form, category);
+    updateDraftNotice(form, category.id);
+    form.querySelector('#add-form-error')?.classList.add('hidden');
+  }
+
   function saveDraftNow() {
     if (!activeCategoryId || overlay.classList.contains('hidden')) return;
     const form = getActiveForm();
     const category = getCategoryById(activeCategoryId);
     if (!form || !category) return;
     saveFormDraft(activeCategoryId, editingItemId, form, category);
+    updateDraftNotice(form, activeCategoryId);
   }
 
   function setupDraftAutosave(form, category) {
@@ -306,7 +422,7 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
     addressCleanup = initFormAddressFields(form, category);
     selectCleanup = await initFormSelectFields(form, category);
 
-    const draft = loadFormDraft(categoryId, editingItemId);
+    const draft = loadFormDraft(categoryId, editingItemId, category);
     if (draft) {
       applyFormDraft(form, category, draft);
       for (const field of category.fields) {
@@ -323,13 +439,21 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
       }
     }
 
+    saveFormDraft(categoryId, editingItemId, form, category);
     setupDraftAutosave(form, category);
+    updateDraftNotice(form, categoryId);
+    blurFormFields(form);
+
+    const draftClearBtn = form.querySelector('#add-form-draft-clear');
+    draftClearBtn?.addEventListener('click', (event) => handleDraftClear(event, form, category));
+
     return true;
   }
 
   function mountPicker() {
     clearFieldCleanups();
     editingItemId = null;
+    editingItem = null;
     activeCategoryId = null;
     setModalTitle('Nouvelle idée', false);
 
@@ -413,10 +537,7 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
 
     if (!ok) return;
 
-    const firstInput = getContentEl()?.querySelector('input, textarea, select');
-    if (firstInput) {
-      requestAnimationFrame(() => firstInput.focus());
-    }
+    blurFormFields(getActiveForm() || getContentEl()?.querySelector('#add-form'));
   }
 
   async function open(categoryId = null, item = null) {
@@ -425,6 +546,7 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
     const token = ++modalTransitionToken;
     bodyTransitionToken += 1;
     editingItemId = item?.id || null;
+    editingItem = item || null;
 
     bodyEl.innerHTML = '<div class="add-modal-content"></div>';
 
@@ -468,6 +590,7 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
     overlay.classList.add('hidden');
     activeCategoryId = null;
     editingItemId = null;
+    editingItem = null;
     bodyEl.innerHTML = '';
   }
 

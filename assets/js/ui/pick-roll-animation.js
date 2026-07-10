@@ -38,14 +38,10 @@ export function applyPickRollingPhase(phase) {
 
 export function syncPickInnerLayout() {
   const inner = document.getElementById('act-pick-inner');
-  const body = document.getElementById('act-pick-body');
-  if (!inner || !body) return;
+  if (!inner) return;
 
-  const isCompact = !inner.classList.contains('is-loading')
-    && !body.classList.contains('is-rolling')
-    && !body.querySelector('.act-pick-message--centered');
-
-  inner.classList.toggle('is-compact', isCompact);
+  // Garde toujours la hauteur standard de la carte (jamais de mode compact).
+  inner.classList.remove('is-compact');
 }
 
 export function mountPickRolling(phase = 'pick') {

@@ -191,6 +191,10 @@ function getMovieCtaLabel() {
   return 'On regarde quoi ce soir ?';
 }
 
+function getTravelCtaLabel() {
+  return 'On part où en vacances ?';
+}
+
 function getPickPeriodLabel(period = 'today') {
   if (period === 'yesterday') return 'Pioche d\'hier';
   if (period === 'recent') return 'Dernière pioche';
@@ -220,11 +224,14 @@ function renderHomeHub() {
   const activitiesCat = getCategoryById('activities');
   const restaurantsCat = getCategoryById('restaurants');
   const moviesCat = getCategoryById('movies');
+  const travelsCat = getCategoryById('travels');
   const activitiesTheme = activitiesCat?.theme || 'cyan';
   const restaurantsTheme = restaurantsCat?.theme || 'rose';
   const moviesTheme = moviesCat?.theme || 'violet';
+  const travelsTheme = travelsCat?.theme || 'blue';
   const restaurantsHref = restaurantsCat?.href || '#restaurants';
   const moviesHref = moviesCat?.href || '#films';
+  const travelsHref = travelsCat?.href || '#voyages';
 
   hubEl.innerHTML = `
     <a href="#activites" class="home-hub-cta" data-theme="${activitiesTheme}">
@@ -238,6 +245,10 @@ function renderHomeHub() {
     <a href="${moviesHref}" class="home-hub-cta" data-theme="${moviesTheme}">
       <span class="home-hub-cta-icon" aria-hidden="true">${sidebarIcon('film')}</span>
       <span class="home-hub-cta-text">${escapeHtml(getMovieCtaLabel())}</span>
+    </a>
+    <a href="${travelsHref}" class="home-hub-cta" data-theme="${travelsTheme}">
+      <span class="home-hub-cta-icon" aria-hidden="true">${sidebarIcon('travel')}</span>
+      <span class="home-hub-cta-text">${escapeHtml(getTravelCtaLabel())}</span>
     </a>
   `;
 }
@@ -325,7 +336,7 @@ async function loadHomeData() {
       return `
         <section class="cat-panel${cat.items.length ? '' : ' cat-panel--empty'}" data-theme="${cat.theme}" style="animation-delay: ${index * 60}ms">
           <div class="cat-panel-inner">
-            ${cat.items.length ? `<a href="${cat.href}" class="cat-panel-hit" aria-label="Voir ${escapeHtml(cat.label)}"></a>` : ''}
+            <a href="${cat.href}" class="cat-panel-hit" aria-label="Voir ${escapeHtml(cat.label)}"></a>
             <span class="cat-panel-accent" aria-hidden="true"></span>
             <div class="cat-panel-head">
               <div class="cat-panel-title">

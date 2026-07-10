@@ -38,7 +38,7 @@ export function normalizeItemPrice(item) {
 
   const rawMin = item.prixMin;
   const rawMax = item.prixMax;
-  const hasStructured = rawMin != null || rawMax != null;
+  const hasStructured = (rawMin != null && rawMin !== '') || (rawMax != null && rawMax !== '');
 
   if (hasStructured) {
     const prixMin = rawMin != null && rawMin !== '' ? Number(rawMin) : null;

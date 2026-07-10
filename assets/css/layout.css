@@ -402,12 +402,15 @@ body.modal-open {
   display: flex;
   align-items: center;
   gap: 14px;
-  margin-bottom: 32px;
+  margin-bottom: 20px;
 }
 
 .page-header-content {
   min-width: 0;
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .page-header-mobile-icon {
@@ -432,6 +435,7 @@ body.modal-open {
   font-size: 1.35rem;
   font-weight: 700;
   letter-spacing: -0.03em;
+  line-height: 1.2;
 }
 
 [data-theme] .page-header-title,
@@ -445,7 +449,7 @@ body.modal-open {
 .page-header-sub {
   font-size: 0.78rem;
   color: var(--text-secondary);
-  margin-top: 2px;
+  line-height: 1.3;
 }
 
 [data-theme] .page-header-sub {

@@ -60,9 +60,9 @@ function renderStatusBadge(done, { doneLabel, todoLabel }) {
   `;
 }
 
-function renderPickMessage(title, text) {
+function renderPickCenteredMessage(title, text) {
   return `
-    <div class="act-pick-message">
+    <div class="act-pick-message act-pick-message--centered">
       <p class="act-pick-message-title">${escapeHtml(title)}</p>
       <p class="act-pick-message-text">${escapeHtml(text)}</p>
     </div>
@@ -95,6 +95,8 @@ export function createListPageController(config) {
     renderItemBodyExtra = () => '',
     getPickLocation = () => '',
     titleKey = 'nom',
+    subTitleElId = 'list-sub',
+    useTodoHeaderSubtitle = true,
   } = config;
 
   let allItems = [];
@@ -253,13 +255,19 @@ export function createListPageController(config) {
   }
 
   function updateListSub(count, total = allItems.length) {
-    const subEl = document.getElementById('list-sub');
+    const subEl = document.getElementById(subTitleElId);
     if (!subEl) return;
 
     const filtersActive = filtersAreActive();
 
     if (!count) {
-      subEl.textContent = filtersActive ? 'Aucun résultat pour ces filtres' : 'Votre liste complète';
+      if (!filtersActive && !useTodoHeaderSubtitle && labels.headerEmpty) {
+        subEl.textContent = labels.headerEmpty;
+      } else {
+        subEl.textContent = filtersActive
+          ? 'Aucun résultat pour ces filtres'
+          : (labels.listEmptySub || 'Votre liste complète');
+      }
       return;
     }
 
@@ -334,12 +342,17 @@ export function createListPageController(config) {
   }
 
   function renderPickIdle() {
-    return `
-      <div class="act-pick-message act-pick-message--centered">
-        <p class="act-pick-message-title">Toujours pas d'idée ?</p>
-        <p class="act-pick-message-text">${escapeHtml(labels.pickIdleText)}</p>
-      </div>
-    `;
+    return renderPickCenteredMessage('Toujours pas d\'idée ?', labels.pickIdleText);
+  }
+
+  function setPickFooterState({ canRoll, label = 'Au pif !' } = {}) {
+    const foot = document.getElementById('act-pick-foot');
+    const btn = document.getElementById('dice-roll-btn');
+    const btnLabel = document.getElementById('act-pick-btn-label');
+
+    foot?.classList.remove('hidden');
+    if (btnLabel) btnLabel.textContent = label;
+    if (btn) btn.disabled = !canRoll;
   }
 
   function renderPickChances() {
@@ -357,9 +370,6 @@ export function createListPageController(config) {
     const wrap = document.getElementById('act-pick-wrap');
     const inner = document.getElementById('act-pick-inner');
     const body = document.getElementById('act-pick-body');
-    const foot = document.getElementById('act-pick-foot');
-    const btn = document.getElementById('dice-roll-btn');
-    const btnLabel = document.getElementById('act-pick-btn-label');
     const quotaEl = document.getElementById('act-pick-quota');
     if (!wrap || !body) return;
 
@@ -382,8 +392,8 @@ export function createListPageController(config) {
 
     if (!allItems.length) {
       wrap.classList.remove('hidden');
-      body.innerHTML = renderPickMessage(labels.pickEmptyTitle, labels.pickEmptyText);
-      foot?.classList.add('hidden');
+      body.innerHTML = renderPickCenteredMessage(labels.pickEmptyTitle, labels.pickEmptyText);
+      setPickFooterState({ canRoll: false });
       syncPickInnerLayout();
       return;
     }
@@ -391,17 +401,22 @@ export function createListPageController(config) {
     wrap.classList.remove('hidden');
 
     if (!hasPending) {
-      body.innerHTML = renderPickMessage(labels.pickAllDoneTitle, labels.pickAllDoneText);
-      foot?.classList.add('hidden');
+      body.innerHTML = renderPickCenteredMessage(labels.pickAllDoneTitle, labels.pickAllDoneText);
+      setPickFooterState({ canRoll: false });
       syncPickInnerLayout();
       return;
     }
 
     if (!pickable.length && canPickToday(pickScope) && hasPending) {
       body.innerHTML = latest
-        ? `${renderPickResultItem(latest, { period: pickPeriod })}${renderPickMessage('C\'est tout pour aujourd\'hui', 'Revenez demain pour de nouvelles pioches.')}`
-        : renderPickMessage('C\'est tout pour aujourd\'hui', labels.pickQuotaExhaustedText);
-      foot?.classList.add('hidden');
+        ? `
+          <div class="act-pick-result-wrap">
+            ${renderPickResultItem(latest, { period: pickPeriod })}
+            <p class="act-pick-hint">Envie d'autre chose ? C'est tout pour aujourd'hui.</p>
+          </div>
+        `
+        : renderPickCenteredMessage('C\'est tout pour aujourd\'hui', labels.pickQuotaExhaustedText);
+      setPickFooterState({ canRoll: false });
       syncPickInnerLayout();
       return;
     }
@@ -410,24 +425,25 @@ export function createListPageController(config) {
       const canRollAgain = remaining > 0 && pickable.length > 0;
       const hint = canRollAgain
         ? (isNonTodayPick ? 'Envie d\'autre chose ? Lancez le dé.' : 'Envie d\'autre chose ? Relancez le dé.')
-        : '';
+        : 'Envie d\'autre chose ? C\'est tout pour aujourd\'hui.';
       body.innerHTML = `
         <div class="act-pick-result-wrap">
           ${renderPickResultItem(latest, { period: pickPeriod })}
           <p class="act-pick-hint">${hint}</p>
         </div>
       `;
-      foot?.classList.toggle('hidden', !canRollAgain);
-      if (btnLabel) btnLabel.textContent = isNonTodayPick && canRollAgain ? 'Au pif !' : 'Relancer';
-      if (btn) btn.disabled = !canRollAgain;
+      setPickFooterState({
+        canRoll: canRollAgain,
+        label: isNonTodayPick && canRollAgain ? 'Au pif !' : 'Relancer',
+      });
       syncPickInnerLayout();
       return;
     }
 
     body.innerHTML = renderPickIdle();
-    foot?.classList.remove('hidden');
-    if (btnLabel) btnLabel.textContent = 'Au pif !';
-    if (btn) btn.disabled = !pickable.length || remaining === 0;
+    setPickFooterState({
+      canRoll: pickable.length > 0 && remaining > 0,
+    });
     syncPickInnerLayout();
   }
 
@@ -504,6 +520,8 @@ export function createListPageController(config) {
   }
 
   function updateHeader(items) {
+    if (!useTodoHeaderSubtitle) return;
+
     const subEl = document.getElementById('page-header-sub');
     if (!subEl) return;
 

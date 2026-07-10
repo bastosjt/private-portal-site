@@ -1342,7 +1342,7 @@
 }
 
 .cat-panel--empty .cat-panel-inner {
-  cursor: default;
+  cursor: pointer;
 }
 
 .cat-recent-empty-icon {
