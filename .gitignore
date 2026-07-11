@@ -6,3 +6,5 @@ assets/js/firebase/config.js
 
 # OS
 .DS_Store
+
+_site/
