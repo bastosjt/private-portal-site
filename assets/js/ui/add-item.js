@@ -1,5 +1,7 @@
 import { HOME_CATEGORIES, getCategoryById } from '../config.js';
 import { addItem, updateItem } from '../firebase/firestore.js';
+import { patchCachedItem, upsertCachedItem } from '../data/appDataCache.js';
+import { Timestamp } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js';
 import { sidebarIcon } from './sidebar.js';
 import { initFormAddressFields } from './address-autocomplete.js';
 import { waitForTransition, nextFrame } from '../lib/transitions.js';
@@ -402,9 +404,20 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
     const sessionUser = await ensureAuthSession();
     if (editingItemId) {
       await updateItem(category.id, editingItemId, data);
+      patchCachedItem(category.id, editingItemId, data);
       return editingItemId;
     }
-    return addItem(category.id, data, sessionUser.uid);
+
+    const id = await addItem(category.id, data, sessionUser.uid);
+    const now = Timestamp.now();
+    upsertCachedItem(category.id, {
+      id,
+      ...data,
+      userId: sessionUser.uid,
+      createdAt: now,
+      updatedAt: now,
+    });
+    return id;
   }
 
   async function bindForm(panel, categoryId, item = null) {

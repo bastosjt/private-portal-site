@@ -1,16 +1,18 @@
 import { COUPLE_START_DATE, HOME_CATEGORIES, getCategoryById, getUserDisplayName } from '../../config.js';
 import {
-  fetchRecentItems,
-  fetchCollectionCount,
-  fetchWeekItemsCount,
-  fetchAllItems,
-} from '../../firebase/firestore.js';
+  ensurePrefetch,
+  getCollectionCountFromCache,
+  getRecentItemsFromCache,
+  getWeekItemsCountFromCache,
+  findCachedItemById,
+  ITEM_COLLECTIONS,
+} from '../../data/appDataCache.js';
+import { loadDailyPicks, getDisplayedLatestPick } from '../../firebase/dailyPicks.js';
+import { initCustomOptions } from '../../lib/custom-types.js';
 import { sidebarIcon } from '../../ui/sidebar.js';
 import { initAddItem } from '../../ui/add-item.js';
-import { loadDailyPicks, getDisplayedLatestPick } from '../../firebase/dailyPicks.js';
-import { reloadCustomOptions } from '../../lib/custom-types.js';
 
-const COLLECTION_IDS = HOME_CATEGORIES.map((cat) => cat.id);
+const COLLECTION_IDS = ITEM_COLLECTIONS;
 const DAILY_PICK_SCOPES = {
   activities: 'activities',
   restaurants: 'restaurants',
@@ -132,7 +134,7 @@ export function destroyHomePage() {
 
 export async function initHomePage(user, { addItemModal: sharedModal } = {}) {
   destroyHomePage();
-  await reloadCustomOptions();
+  await initCustomOptions();
   homeAbort = new AbortController();
   const { signal } = homeAbort;
 
@@ -254,49 +256,35 @@ function renderHomeHub() {
 }
 
 async function loadHomeData() {
-  await reloadCustomOptions();
+  await initCustomOptions();
+  await ensurePrefetch();
 
   const statsEl = document.getElementById('stats-grid');
   const recentEl = document.getElementById('recent-sections');
 
-  if (statsEl) {
-    statsEl.classList.add('is-loading');
-    statsEl.innerHTML = renderStatsSkeleton();
-  }
-  if (recentEl) {
-    recentEl.classList.add('is-loading');
-    recentEl.innerHTML = renderRecentSkeleton();
-  }
+  await Promise.all(Object.values(DAILY_PICK_SCOPES).map((scope) => loadDailyPicks(scope)));
 
-  const [, counts, recents, weekCount] = await Promise.all([
-    Promise.all(Object.values(DAILY_PICK_SCOPES).map((scope) => loadDailyPicks(scope))),
-    Promise.all(
-      HOME_CATEGORIES.map(async (cat) => ({
-        ...cat,
-        count: await fetchCollectionCount(cat.id),
-      })),
-    ),
-    Promise.all(
-      HOME_CATEGORIES.map(async (cat) => ({
-        ...cat,
-        items: await fetchRecentItems(cat.id, 4),
-      })),
-    ),
-    fetchWeekItemsCount(COLLECTION_IDS),
-  ]);
+  const counts = HOME_CATEGORIES.map((cat) => ({
+    ...cat,
+    count: getCollectionCountFromCache(cat.id),
+  }));
+
+  const recents = HOME_CATEGORIES.map((cat) => ({
+    ...cat,
+    items: getRecentItemsFromCache(cat.id, 4),
+  }));
+
+  const weekCount = getWeekItemsCountFromCache(COLLECTION_IDS);
 
   const pickedByCategory = {};
   const pickMetaByCategory = {};
-  await Promise.all(
-    Object.entries(DAILY_PICK_SCOPES).map(async ([categoryId, scope]) => {
-      const displayed = getDisplayedLatestPick(scope);
-      if (!displayed?.id) return;
+  for (const [categoryId, scope] of Object.entries(DAILY_PICK_SCOPES)) {
+    const displayed = getDisplayedLatestPick(scope);
+    if (!displayed?.id) continue;
 
-      pickMetaByCategory[categoryId] = displayed;
-      const items = await fetchAllItems(categoryId);
-      pickedByCategory[categoryId] = items.find((item) => item.id === displayed.id) ?? null;
-    }),
-  );
+    pickMetaByCategory[categoryId] = displayed;
+    pickedByCategory[categoryId] = findCachedItemById(categoryId, displayed.id);
+  }
 
   const total = counts.reduce((sum, cat) => sum + cat.count, 0);
   initPageHeader(total, weekCount);

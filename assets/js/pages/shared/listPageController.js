@@ -1,7 +1,7 @@
 import { getCategoryById, getUserDisplayName } from '../../config.js';
 import { formatItemPrice, compareItemsByPrice } from '../../lib/price-format.js';
 import { sortOptionsByLabel } from '../../lib/options-labels.js';
-import { fetchAllItems } from '../../firebase/firestore.js';
+import { ensureItems, hasCachedItems, getCachedItems } from '../../data/appDataCache.js';
 import { sidebarIcon } from '../../ui/sidebar.js';
 import { initAddItem } from '../../ui/add-item.js';
 import { initListFilters } from '../../ui/list-filters.js';
@@ -11,7 +11,7 @@ import {
   syncPickInnerLayout,
 } from '../../ui/pick-roll-animation.js';
 import { renderPickLocationLine, renderPickPeriodLabel } from '../../ui/pick-result-display.js';
-import { getCategoryFieldOptions, getFieldOptionLabel, reloadCustomOptions } from '../../lib/custom-types.js';
+import { getCategoryFieldOptions, getFieldOptionLabel, initCustomOptions } from '../../lib/custom-types.js';
 import {
   addTodayPick,
   canPickToday,
@@ -469,6 +469,28 @@ export function createListPageController(config) {
     });
   }
 
+  function renderListItemMarkup(item, index, { animate = false } = {}) {
+    const extraClasses = getItemRowClasses(item);
+    const locationHtml = renderLocation(item, renderCtx);
+    return `
+      <li class="act-list-item${item.done ? ' act-list-item--done' : ''}${extraClasses}"${animate ? ` style="animation-delay: ${index * 40}ms"` : ''}>
+        <div class="act-list-item-inner" ${itemIdAttr}="${item.id}" role="button" tabindex="0" aria-label="Voir ${escapeHtml(item[titleKey])}">
+          <span class="cat-panel-accent" aria-hidden="true"></span>
+          <div class="act-list-item-head">
+            <span class="cat-panel-icon">${renderTypeIcon(item)}</span>
+            <div class="act-list-item-body">
+              <h3>${escapeHtml(item[titleKey])}</h3>
+              ${renderListMeta(item, renderCtx)}
+            </div>
+            ${renderStatusBadge(item.done, { doneLabel: labels.statusDone, todoLabel: labels.statusTodo })}
+          </div>
+          ${renderItemBodyExtra(item, renderCtx)}
+          ${locationHtml}
+        </div>
+      </li>
+    `;
+  }
+
   function renderList(items, { animate = false } = {}) {
     const listEl = document.getElementById(dom.listId);
     if (!listEl) return;
@@ -496,27 +518,94 @@ export function createListPageController(config) {
       return;
     }
 
-    listEl.innerHTML = items.map((item, index) => {
-      const extraClasses = getItemRowClasses(item);
-      const locationHtml = renderLocation(item, renderCtx);
-      return `
-        <li class="act-list-item${item.done ? ' act-list-item--done' : ''}${extraClasses}"${animate ? ` style="animation-delay: ${index * 40}ms"` : ''}>
-          <div class="act-list-item-inner" ${itemIdAttr}="${item.id}" role="button" tabindex="0" aria-label="Voir ${escapeHtml(item[titleKey])}">
-            <span class="cat-panel-accent" aria-hidden="true"></span>
-            <div class="act-list-item-head">
-              <span class="cat-panel-icon">${renderTypeIcon(item)}</span>
-              <div class="act-list-item-body">
-                <h3>${escapeHtml(item[titleKey])}</h3>
-                ${renderListMeta(item, renderCtx)}
-              </div>
-              ${renderStatusBadge(item.done, { doneLabel: labels.statusDone, todoLabel: labels.statusTodo })}
-            </div>
-            ${renderItemBodyExtra(item, renderCtx)}
-            ${locationHtml}
-          </div>
-        </li>
-      `;
-    }).join('');
+    listEl.innerHTML = items.map((item, index) => renderListItemMarkup(item, index, { animate })).join('');
+  }
+
+  function patchListRow(item) {
+    const listEl = document.getElementById(dom.listId);
+    if (!listEl) return false;
+
+    const inner = listEl.querySelector(`[${itemIdAttr}="${item.id}"]`);
+    const row = inner?.closest('.act-list-item');
+    if (!row) return false;
+
+    row.classList.toggle('act-list-item--done', Boolean(item.done));
+
+    const badge = row.querySelector('.act-list-status');
+    if (badge) {
+      badge.outerHTML = renderStatusBadge(item.done, {
+        doneLabel: labels.statusDone,
+        todoLabel: labels.statusTodo,
+      });
+    }
+
+    return true;
+  }
+
+  function syncAllItemsFromCache() {
+    const cached = getCachedItems(collection);
+    if (cached) allItems = cached;
+  }
+
+  function handleItemChange(changedCollection, itemId, meta = {}) {
+    if (changedCollection !== collection) {
+      loadPageData();
+      return;
+    }
+
+    syncAllItemsFromCache();
+
+    if (meta.deleted) {
+      pruneActiveFilters();
+      updateHeader(allItems);
+      updatePickCard();
+
+      const listEl = document.getElementById(dom.listId);
+      const inner = listEl?.querySelector(`[${itemIdAttr}="${itemId}"]`);
+      const row = inner?.closest('.act-list-item');
+
+      if (row && !filtersAreActive()) {
+        row.remove();
+        updateListSub(getFilteredItems().length);
+        if (!getFilteredItems().length) refreshListView();
+      } else {
+        refreshListView();
+      }
+      return;
+    }
+
+    if (meta.patch) {
+      const item = findItemById(itemId);
+      if (!item) {
+        loadPageData();
+        return;
+      }
+
+      updateHeader(allItems);
+
+      if (activeFilters.status !== 'all') {
+        refreshListView();
+        updatePickCard();
+        return;
+      }
+
+      const listEl = document.getElementById(dom.listId);
+      const inner = listEl?.querySelector(`[${itemIdAttr}="${itemId}"]`);
+      const row = inner?.closest('.act-list-item');
+      const stillVisible = applyFilters([item]).length > 0;
+
+      if (stillVisible && row) {
+        patchListRow(item);
+        updateListSub(getFilteredItems().length);
+      } else {
+        refreshListView();
+      }
+
+      updatePickCard();
+      return;
+    }
+
+    loadPageData();
   }
 
   function updateHeader(items) {
@@ -553,7 +642,7 @@ export function createListPageController(config) {
     }, { signal });
 
     document.getElementById('act-filter-btn')?.addEventListener('click', async () => {
-      await reloadCustomOptions();
+      await initCustomOptions();
       filterModal?.open();
     }, { signal });
 
@@ -586,14 +675,15 @@ export function createListPageController(config) {
     }, { signal });
   }
 
-  async function loadPageData() {
-    await reloadCustomOptions();
+  async function loadPageData({ force = false } = {}) {
+    await initCustomOptions();
 
     const listEl = document.getElementById(dom.listId);
     const pickWrap = document.getElementById('act-pick-wrap');
     const pickInner = document.getElementById('act-pick-inner');
+    const useCache = !force && hasCachedItems(collection);
 
-    if (listEl) {
+    if (listEl && !useCache) {
       listEl.classList.add('is-loading');
       listEl.innerHTML = `
         <li class="skel-block skel-block--line skel-shimmer" aria-hidden="true"></li>
@@ -602,13 +692,15 @@ export function createListPageController(config) {
       `;
     }
 
-    if (pickWrap && pickInner) {
+    if (pickWrap && pickInner && !useCache) {
       pickWrap.classList.remove('hidden');
       pickInner.classList.add('is-loading');
+    } else if (pickWrap) {
+      pickWrap.classList.remove('hidden');
     }
 
     const [items] = await Promise.all([
-      fetchAllItems(collection),
+      ensureItems(collection, { force }),
       loadDailyPicks(pickScope),
     ]);
 
@@ -637,7 +729,7 @@ export function createListPageController(config) {
 
   async function init(user, { addItemModal: sharedModal } = {}) {
     destroy();
-    await reloadCustomOptions();
+    await initCustomOptions();
     pageAbort = new AbortController();
     const { signal } = pageAbort;
 
@@ -660,7 +752,7 @@ export function createListPageController(config) {
 
     detailModal = initDetail({
       theme: pageTheme,
-      onChanged: () => loadPageData(),
+      onChanged: (changedCollection, itemId, meta) => handleItemChange(changedCollection, itemId, meta),
       onEdit: async (item) => {
         await detailModal.close();
         addItemModal.openEdit(categoryId, item);
@@ -675,7 +767,7 @@ export function createListPageController(config) {
     filterModal = initListFilters({
       theme: pageTheme,
       title: 'Filtres',
-      beforeOpen: reloadCustomOptions,
+      beforeOpen: initCustomOptions,
       defaults: { status: 'all', sort: 'alpha', ...filterDefaults },
       sections: getFilterSections(filterHelpers),
       getState: getFilterState,

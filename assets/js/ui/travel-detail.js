@@ -1,6 +1,7 @@
 import { getCategoryById } from '../config.js';
 import { updateItem, deleteItem } from '../firebase/firestore.js';
-import { getFieldOptionLabel, reloadCustomOptions } from '../lib/custom-types.js';
+import { syncCachedItemWrite } from '../data/appDataCache.js';
+import { getFieldOptionLabel, initCustomOptions } from '../lib/custom-types.js';
 import { waitForTransition, nextFrame } from '../lib/transitions.js';
 import { lockScroll, unlockScroll } from '../lib/scroll-lock.js';
 
@@ -162,7 +163,8 @@ export function initTravelDetail({ onChanged, onEdit, theme = 'blue' } = {}) {
     try {
       await updateItem(COLLECTION, currentItem.id, { done });
       currentItem = { ...currentItem, done };
-      onChanged?.(COLLECTION, currentItem.id);
+      syncCachedItemWrite(COLLECTION, currentItem.id, { patch: { done } });
+      onChanged?.(COLLECTION, currentItem.id, { patch: true });
       close();
     } catch (err) {
       console.error('toggle done:', err);
@@ -192,6 +194,7 @@ export function initTravelDetail({ onChanged, onEdit, theme = 'blue' } = {}) {
     try {
       const itemId = currentItem.id;
       await deleteItem(COLLECTION, itemId);
+      syncCachedItemWrite(COLLECTION, itemId, { deleted: true });
       close();
       onChanged?.(COLLECTION, itemId, { deleted: true });
     } catch (err) {
@@ -205,7 +208,7 @@ export function initTravelDetail({ onChanged, onEdit, theme = 'blue' } = {}) {
 
   async function open(item) {
     if (!item) return;
-    await reloadCustomOptions();
+    await initCustomOptions();
     currentItem = item;
     confirmDelete = false;
     isBusy = false;

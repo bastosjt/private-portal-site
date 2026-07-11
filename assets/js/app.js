@@ -7,8 +7,11 @@ import { initRouter, navigate } from './navigation/router.js';
 import { renderSidebar, initSidebar, updateSidebarActive } from './ui/sidebar.js';
 import { initAddItem } from './ui/add-item.js';
 import { waitForTransition, nextFrame } from './lib/transitions.js';
+import { initSplash, dismissSplash } from './ui/splash.js';
+import { prefetchAppData, clearAppDataCache, scheduleBackgroundRefreshIfNeeded, onSecondaryPrefetchDone } from './data/appDataCache.js';
+import { debounce } from './lib/debounce.js';
 import { init as initAccueil, destroy as destroyAccueil, refresh as refreshAccueil, HOME_VIEW_HTML } from './pages/accueil/index.js';
-import { initCustomOptions, reloadCustomOptions } from './lib/custom-types.js';
+import { initCustomOptions } from './lib/custom-types.js';
 import { startDailyPickMidnightReset } from './firebase/dailyPicks.js';
 import { init as initActivites, destroy as destroyActivites, refresh as refreshActivites, ACTIVITIES_VIEW_HTML } from './pages/activites/index.js';
 import { init as initRestaurants, destroy as destroyRestaurants, refresh as refreshRestaurants, RESTAURANTS_VIEW_HTML } from './pages/restaurants/index.js';
@@ -33,6 +36,14 @@ let stopRouter = null;
 let sidebarInitialized = false;
 let pageTransitionToken = 0;
 let stopDailyPickReset = null;
+let splashActive = true;
+let splashHandling = false;
+let tabHiddenAt = null;
+let resolveBootMount;
+const bootMountDone = new Promise((resolve) => {
+  resolveBootMount = resolve;
+});
+let bootMountResolved = false;
 
 const PAGE_TRANSITION_MS = 300;
 
@@ -40,6 +51,12 @@ const authView = document.getElementById('auth-view');
 const appView = document.getElementById('app-view');
 const pageRoot = document.getElementById('page-root');
 const sidebarRoot = document.getElementById('sidebar-root');
+
+function markBootMountDone() {
+  if (bootMountResolved) return;
+  bootMountResolved = true;
+  resolveBootMount?.();
+}
 
 function setPageTitle(routeId) {
   const label = PAGE_TITLES[routeId] || APP_NAME;
@@ -55,7 +72,7 @@ function destroyCurrentView() {
   destroyVoyages();
 }
 
-function refreshCurrentView() {
+function refreshCurrentViewNow() {
   if (currentRoute === 'accueil') return refreshAccueil();
   if (currentRoute === 'activites') return refreshActivites();
   if (currentRoute === 'restaurants') return refreshRestaurants();
@@ -64,6 +81,8 @@ function refreshCurrentView() {
   if (currentRoute === 'voyages') return refreshVoyages();
   return undefined;
 }
+
+const refreshCurrentView = debounce(refreshCurrentViewNow, 250);
 
 function ensureSharedAddItem(user) {
   if (addItemModal) return addItemModal;
@@ -77,12 +96,31 @@ function ensureSharedAddItem(user) {
   return addItemModal;
 }
 
+function syncStaleDataIfNeeded({ hiddenDurationMs = 0 } = {}) {
+  const refresh = scheduleBackgroundRefreshIfNeeded({ hiddenDurationMs });
+  if (!refresh) return;
+
+  refresh.then(() => {
+    if (currentUser) refreshCurrentView();
+  });
+}
+
+onSecondaryPrefetchDone(() => {
+  if (currentUser && !splashActive) refreshCurrentView();
+});
+
 async function mountRoute(routeId) {
-  if (!currentUser || !pageRoot) return;
+  if (!currentUser || !pageRoot) {
+    markBootMountDone();
+    return;
+  }
+
+  syncStaleDataIfNeeded();
 
   const token = ++pageTransitionToken;
   const hasContent = pageRoot.innerHTML.trim().length > 0;
 
+  try {
   if (hasContent) {
     pageRoot.classList.add('is-page-leaving');
     await waitForTransition(pageRoot, PAGE_TRANSITION_MS);
@@ -159,9 +197,13 @@ async function mountRoute(routeId) {
 
   pageRoot.innerHTML = getPlaceholderViewHtml(routeId);
   await finishPageEnter();
+  } finally {
+    markBootMountDone();
+  }
 }
 
-function showAuthView() {
+function showAuthView({ reveal = true } = {}) {
+  clearAppDataCache();
   destroyCurrentView();
   addItemModal?.destroy?.();
   addItemModal = null;
@@ -175,16 +217,28 @@ function showAuthView() {
 
   document.body.classList.add('auth-page');
   document.body.classList.remove('app-page');
-  authView?.classList.remove('hidden');
   appView?.classList.add('hidden');
-  document.title = `${APP_NAME}`;
+
+  if (reveal) {
+    authView?.classList.remove('hidden');
+    document.title = `${APP_NAME}`;
+  } else {
+    authView?.classList.add('hidden');
+  }
 }
 
-async function showAppView(user) {
+async function showAppView(user, { reveal = true, awaitData = false } = {}) {
   await initCustomOptions();
+  const prefetch = prefetchAppData();
+  if (awaitData) await prefetch;
   currentUser = user;
   authView?.classList.add('hidden');
   appView?.classList.remove('hidden');
+
+  if (reveal) {
+    document.body.classList.add('app-page');
+    document.body.classList.remove('auth-page');
+  }
 
   stopDailyPickReset?.();
   stopDailyPickReset = startDailyPickMidnightReset(() => {
@@ -212,6 +266,36 @@ async function showAppView(user) {
       mountRoute(routeId);
     });
   }
+}
+
+async function finishSplashForApp() {
+  await Promise.all([bootMountDone, prefetchAppData()]);
+  document.body.classList.add('app-page');
+  document.body.classList.remove('auth-page');
+  await dismissSplash();
+  splashActive = false;
+}
+
+async function finishSplashForAuth() {
+  showAuthView({ reveal: false });
+  await dismissSplash();
+  authView?.classList.remove('hidden');
+  document.title = `${APP_NAME}`;
+  splashActive = false;
+}
+
+async function handleInitialAuthState(user) {
+  if (user && isAllowedUser(user)) {
+    await showAppView(user, { reveal: false });
+    await finishSplashForApp();
+    return;
+  }
+
+  if (user && !isAllowedUser(user)) {
+    await logout();
+  }
+
+  await finishSplashForAuth();
 }
 
 function setupLoginForm() {
@@ -253,7 +337,7 @@ function setupLoginForm() {
         return;
       }
 
-      await showAppView(user);
+      await showAppView(user, { awaitData: true });
     } catch (err) {
       console.error(err.code, err.message);
 
@@ -276,11 +360,19 @@ function setupLoginForm() {
 }
 
 setupLoginForm();
+initSplash();
 
 const appVersionEl = document.getElementById('app-version');
 if (appVersionEl) appVersionEl.textContent = `v${APP_VERSION}`;
 
 onAuthStateChanged(auth, async (user) => {
+  if (splashActive) {
+    if (splashHandling) return;
+    splashHandling = true;
+    await handleInitialAuthState(user);
+    return;
+  }
+
   if (user && isAllowedUser(user)) {
     await showAppView(user);
     return;
@@ -302,4 +394,25 @@ document.addEventListener('click', (event) => {
 
   event.preventDefault();
   navigate(routeId);
+});
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') {
+    tabHiddenAt = Date.now();
+    return;
+  }
+
+  if (!currentUser || splashActive) {
+    tabHiddenAt = null;
+    return;
+  }
+
+  const hiddenDuration = tabHiddenAt ? Date.now() - tabHiddenAt : 0;
+  tabHiddenAt = null;
+  syncStaleDataIfNeeded({ hiddenDurationMs: hiddenDuration });
+});
+
+window.addEventListener('online', () => {
+  if (!currentUser || splashActive) return;
+  syncStaleDataIfNeeded();
 });
