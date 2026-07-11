@@ -90,6 +90,11 @@ export async function reloadCustomOptions() {
   await migrateStorageKeyAliases();
 }
 
+export function resetCustomOptionsState() {
+  cache = {};
+  initPromise = null;
+}
+
 export async function initCustomOptions() {
   if (initPromise) return initPromise;
 

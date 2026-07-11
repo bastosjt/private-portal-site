@@ -1,0 +1,65 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isCoupleUser() {
+      return request.auth != null
+        && request.auth.uid in [
+          'fiiTfAA6tWRWSiIi9mhni91XU2y1',
+          'by7lDskaTvPBOqEg3OOBXw0GWWw1',
+        ];
+    }
+
+    function isDemoUser() {
+      return request.auth != null
+        && request.auth.uid in [
+          '7ZzhDLTZHCarY6J7lRj2uhLKMPw2',
+        ];
+    }
+
+    function coupleCollections() {
+      return [
+        'activities',
+        'restaurants',
+        'movies',
+        'travels',
+        'wishlist',
+        'dailyPicks',
+        'customOptions',
+      ];
+    }
+
+    match /activities/{docId} {
+      allow read, write: if isCoupleUser();
+    }
+
+    match /restaurants/{docId} {
+      allow read, write: if isCoupleUser();
+    }
+
+    match /movies/{docId} {
+      allow read, write: if isCoupleUser();
+    }
+
+    match /travels/{docId} {
+      allow read, write: if isCoupleUser();
+    }
+
+    match /wishlist/{docId} {
+      allow read, write: if isCoupleUser();
+    }
+
+    match /dailyPicks/{docId} {
+      allow read, write: if isCoupleUser();
+    }
+
+    match /customOptions/{docId} {
+      allow read, write: if isCoupleUser();
+    }
+
+    match /workspaces/demo/{collectionName}/{docId} {
+      allow read, write: if isDemoUser()
+        && collectionName in coupleCollections();
+    }
+  }
+}

@@ -9,6 +9,7 @@ import { sidebarIcon } from '../../ui/sidebar.js';
 import { initAddItem } from '../../ui/add-item.js';
 import { loadDailyPicks, getDisplayedLatestPick } from '../../firebase/dailyPicks.js';
 import { reloadCustomOptions } from '../../lib/custom-types.js';
+import { getActiveWorkspace } from '../../auth/workspace.js';
 
 const COLLECTION_IDS = HOME_CATEGORIES.map((cat) => cat.id);
 const DAILY_PICK_SCOPES = {
@@ -69,6 +70,11 @@ function getGreeting() {
 }
 
 function buildHeaderSubtitle(total, weekCount) {
+  const workspace = getActiveWorkspace();
+  if (workspace.isDemo) {
+    if (total === 0) return 'Espace démo — explorez librement';
+    return `${total} idée${total > 1 ? 's' : ''} dans l'espace démo`;
+  }
   if (weekCount === 1) return '1 nouvelle idée cette semaine';
   if (weekCount > 1) return `${weekCount} nouvelles idées cette semaine`;
   if (total === 0) return 'Bienvenue dans Our Space';
@@ -139,10 +145,34 @@ export async function initHomePage(user, { addItemModal: sharedModal } = {}) {
   currentUserName = getUserDisplayName(user);
   addItemModal = sharedModal ?? initAddItem({ user, onAdded: () => loadHomeData() });
   initPageHeader();
-  renderDaysCounter();
-  renderHomeHub();
+  configureHomeLayout();
   document.addEventListener('click', onAddCategoryClick, { signal });
   loadHomeData();
+}
+
+function configureHomeLayout() {
+  const workspace = getActiveWorkspace();
+  const heroEl = document.querySelector('.home-hero');
+  const mainEl = document.querySelector('.home-page');
+
+  if (workspace.showCoupleStory) {
+    heroEl?.classList.remove('hidden');
+    mainEl?.querySelector('.demo-space-banner')?.remove();
+    renderDaysCounter();
+    return;
+  }
+
+  heroEl?.classList.add('hidden');
+  if (mainEl && !mainEl.querySelector('.demo-space-banner')) {
+    mainEl.insertAdjacentHTML('afterbegin', `
+      <aside class="demo-space-banner" role="note">
+        <p class="demo-space-banner-title">Espace démo</p>
+        <p class="demo-space-banner-text">
+          Données séparées de l'espace couple — ajoutez, modifiez et testez sans impact sur le vrai contenu.
+        </p>
+      </aside>
+    `);
+  }
 }
 
 function renderDaysCounter() {
@@ -255,6 +285,7 @@ function renderHomeHub() {
 
 async function loadHomeData() {
   await reloadCustomOptions();
+  renderHomeHub();
 
   const statsEl = document.getElementById('stats-grid');
   const recentEl = document.getElementById('recent-sections');

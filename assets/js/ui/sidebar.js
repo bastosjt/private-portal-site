@@ -1,7 +1,8 @@
-import { NAV_ITEMS, APP_NAME, APP_TAGLINE } from '../config.js';
+import { NAV_ITEMS, APP_NAME } from '../config.js';
 import { getRouteFromHash } from '../navigation/router.js';
 import { lockScroll, unlockScroll } from '../lib/scroll-lock.js';
 import { renderNavIcon } from '../lib/lucide-icon.js';
+import { WORKSPACES } from '../auth/workspace.js';
 
 const CLOSE_ICON = renderNavIcon('close', { strokeWidth: 2, width: 24, height: 24 });
 
@@ -13,7 +14,9 @@ function getActiveId() {
   return getRouteFromHash();
 }
 
-export function renderSidebar(container, { user, activeId = getActiveId() } = {}) {
+export function renderSidebar(container, { user, activeId = getActiveId(), workspace = 'couple' } = {}) {
+  const workspaceConfig = WORKSPACES[workspace] || WORKSPACES.couple;
+  const tagline = workspaceConfig.tagline;
   const navLinks = NAV_ITEMS.map((item) => {
     const isActive = item.id === activeId;
     return `
@@ -32,7 +35,7 @@ export function renderSidebar(container, { user, activeId = getActiveId() } = {}
             <div class="sidebar-brand-icon">${icon('wishlist')}</div>
             <div class="sidebar-brand-text">
               ${APP_NAME}
-              <span>${APP_TAGLINE}</span>
+              <span>${tagline}</span>
             </div>
           </div>
           <button type="button" id="sidebar-close" class="sidebar-close" aria-label="Fermer le menu">

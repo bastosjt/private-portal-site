@@ -1,15 +1,16 @@
 import { auth } from './firebase/config.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js';
 import { login, logout } from './auth/login.js';
-import { isAllowedUser } from './auth/session.js';
+import { isAllowedUser, warnIfDemoUidMismatch } from './auth/session.js?v=2';
+import { resolveWorkspaceId, setActiveWorkspace } from './auth/workspace.js?v=1';
+import { resetDailyPicksCache, startDailyPickMidnightReset } from './firebase/dailyPicks.js';
+import { initCustomOptions, resetCustomOptionsState } from './lib/custom-types.js';
 import { NAV_ITEMS, APP_NAME } from './config.js';
 import { initRouter, navigate } from './navigation/router.js';
 import { renderSidebar, initSidebar, updateSidebarActive } from './ui/sidebar.js';
 import { initAddItem } from './ui/add-item.js';
 import { waitForTransition, nextFrame } from './lib/transitions.js';
 import { init as initAccueil, destroy as destroyAccueil, refresh as refreshAccueil, HOME_VIEW_HTML } from './pages/accueil/index.js';
-import { initCustomOptions, reloadCustomOptions } from './lib/custom-types.js';
-import { startDailyPickMidnightReset } from './firebase/dailyPicks.js';
 import { init as initActivites, destroy as destroyActivites, refresh as refreshActivites, ACTIVITIES_VIEW_HTML } from './pages/activites/index.js';
 import { init as initRestaurants, destroy as destroyRestaurants, refresh as refreshRestaurants, RESTAURANTS_VIEW_HTML } from './pages/restaurants/index.js';
 import { init as initFilms, destroy as destroyFilms, refresh as refreshFilms, FILMS_VIEW_HTML } from './pages/films/index.js';
@@ -63,6 +64,14 @@ function refreshCurrentView() {
   if (currentRoute === 'wishlist') return refreshWishlist();
   if (currentRoute === 'voyages') return refreshVoyages();
   return undefined;
+}
+
+function activateWorkspace(user) {
+  const workspaceId = resolveWorkspaceId(user);
+  setActiveWorkspace(workspaceId);
+  resetDailyPicksCache();
+  resetCustomOptionsState();
+  addItemModal = null;
 }
 
 function ensureSharedAddItem(user) {
@@ -170,6 +179,10 @@ function showAuthView() {
   currentUser = null;
   currentRoute = null;
   sidebarInitialized = false;
+  addItemModal = null;
+  setActiveWorkspace(null);
+  resetDailyPicksCache();
+  resetCustomOptionsState();
 
   document.body.classList.add('auth-page');
   document.body.classList.remove('app-page');
@@ -179,6 +192,7 @@ function showAuthView() {
 }
 
 async function showAppView(user) {
+  activateWorkspace(user);
   await initCustomOptions();
   currentUser = user;
   authView?.classList.add('hidden');
@@ -189,7 +203,7 @@ async function showAppView(user) {
     refreshCurrentView();
   });
 
-  renderSidebar(sidebarRoot, { user, activeId: currentRoute || 'accueil' });
+  renderSidebar(sidebarRoot, { user, activeId: currentRoute || 'accueil', workspace: resolveWorkspaceId(user) });
 
   if (!sidebarInitialized) {
     initSidebar({
@@ -246,11 +260,13 @@ function setupLoginForm() {
 
       if (!isAllowedUser(user)) {
         await logout();
+        console.warn('[Our Space] Connexion refusée — UID:', user.uid, '| email:', user.email);
         errorEl.textContent = 'Accès non autorisé.';
         errorEl.classList.remove('hidden');
         return;
       }
 
+      warnIfDemoUidMismatch(user);
       await showAppView(user);
     } catch (err) {
       console.error(err.code, err.message);

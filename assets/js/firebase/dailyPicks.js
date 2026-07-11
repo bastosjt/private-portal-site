@@ -6,8 +6,9 @@ import {
   deleteDoc,
   Timestamp,
 } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js';
+import { getDocSegments } from '../auth/workspace.js';
 
-const COLLECTION = 'dailyPicks';
+const PICKS_COLLECTION = 'dailyPicks';
 const FALLBACK_LOOKBACK_DAYS = 14;
 
 export const MAX_DAILY_PICKS = 2;
@@ -222,7 +223,12 @@ export function startDailyPickMidnightReset(listener) {
 }
 
 function pickDocRef(dateKey = getTodayKey()) {
-  return doc(db, COLLECTION, dateKey);
+  return doc(db, ...getDocSegments(PICKS_COLLECTION, dateKey));
+}
+
+export function resetDailyPicksCache() {
+  cachedDateKey = null;
+  for (const scope of Object.keys(cachedPickIdsByScope)) clearScopeCache(scope);
 }
 
 export function getTodayPickIds(scope = 'activities') {
