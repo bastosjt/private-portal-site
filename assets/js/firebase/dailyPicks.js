@@ -43,6 +43,7 @@ const cachedFallbackPickByScope = {
 const resetListeners = new Set();
 let cachedDateKey = null;
 let midnightTimer = null;
+const picksLoadedScopes = new Set();
 
 function resolveScope(scope = 'activities') {
   return SCOPE_FIELDS[scope] ? scope : 'activities';
@@ -134,6 +135,7 @@ function clearScopeCache(scope) {
   cachedPickIdsByScope[scope] = [];
   cachedYesterdayPickIdsByScope[scope] = [];
   cachedFallbackPickByScope[scope] = null;
+  picksLoadedScopes.delete(scope);
 }
 
 function refreshInMemoryFallbackForScope(scope) {
@@ -295,11 +297,21 @@ export async function loadYesterdayPicks(scope = 'activities') {
   return cachedYesterdayPickIdsByScope[resolvedScope];
 }
 
-export async function loadDailyPicks(scope = 'activities') {
+export async function loadDailyPicks(scope = 'activities', { force = false } = {}) {
+  const resolvedScope = resolveScope(scope);
+  if (!force && picksLoadedScopes.has(resolvedScope)) {
+    return getTodayPickIds(resolvedScope);
+  }
+
   const lookback = ensureMaxLookbackDays(FALLBACK_LOOKBACK_DAYS);
   await Promise.all([loadTodayPicks(scope), loadYesterdayPicks(scope), loadFallbackPick(scope, lookback)]);
-  refreshInMemoryFallbackForScope(scope);
-  return getTodayPickIds(scope);
+  refreshInMemoryFallbackForScope(resolvedScope);
+  picksLoadedScopes.add(resolvedScope);
+  return getTodayPickIds(resolvedScope);
+}
+
+export function resetDailyPicksLoadState() {
+  picksLoadedScopes.clear();
 }
 
 export async function addTodayPick(itemId, scope = 'activities') {

@@ -1,7 +1,8 @@
 import { getCategoryById } from '../config.js';
 import { updateItem, deleteItem } from '../firebase/firestore.js';
+import { syncCachedItemWrite } from '../data/appDataCache.js';
 import { formatItemPrice, hasItemPrice } from '../lib/price-format.js';
-import { getFieldOptionLabel, reloadCustomOptions } from '../lib/custom-types.js';
+import { getFieldOptionLabel, initCustomOptions } from '../lib/custom-types.js';
 import { renderActivityScheduleNote } from '../pages/activites/scheduleDisplay.js';
 import { waitForTransition, nextFrame } from '../lib/transitions.js';
 import { lockScroll, unlockScroll } from '../lib/scroll-lock.js';
@@ -178,7 +179,8 @@ export function initActivityDetail({ onChanged, onEdit, theme = 'cyan' } = {}) {
     try {
       await updateItem('activities', currentItem.id, { done });
       currentItem = { ...currentItem, done };
-      onChanged?.('activities', currentItem.id);
+      syncCachedItemWrite('activities', currentItem.id, { patch: { done } });
+      onChanged?.('activities', currentItem.id, { patch: true });
       close();
     } catch (err) {
       console.error('toggle done:', err);
@@ -209,6 +211,7 @@ export function initActivityDetail({ onChanged, onEdit, theme = 'cyan' } = {}) {
     try {
       const itemId = currentItem.id;
       await deleteItem('activities', itemId);
+      syncCachedItemWrite('activities', itemId, { deleted: true });
       close();
       onChanged?.('activities', itemId, { deleted: true });
     } catch (err) {
@@ -222,7 +225,7 @@ export function initActivityDetail({ onChanged, onEdit, theme = 'cyan' } = {}) {
 
   async function open(item) {
     if (!item) return;
-    await reloadCustomOptions();
+    await initCustomOptions();
     currentItem = item;
     confirmDelete = false;
     isBusy = false;

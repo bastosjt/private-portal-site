@@ -1,6 +1,7 @@
 import { getCategoryById } from '../config.js';
 import { updateItem, deleteItem } from '../firebase/firestore.js';
-import { getFieldOptionLabel, reloadCustomOptions } from '../lib/custom-types.js';
+import { syncCachedItemWrite } from '../data/appDataCache.js';
+import { getFieldOptionLabel, initCustomOptions } from '../lib/custom-types.js';
 import { waitForTransition, nextFrame } from '../lib/transitions.js';
 import { lockScroll, unlockScroll } from '../lib/scroll-lock.js';
 
@@ -144,7 +145,8 @@ export function initMovieDetail({ onChanged, onEdit, theme = 'violet' } = {}) {
     try {
       await updateItem(COLLECTION, currentItem.id, { done, statut });
       currentItem = { ...currentItem, done, statut };
-      onChanged?.(COLLECTION, currentItem.id);
+      syncCachedItemWrite(COLLECTION, currentItem.id, { patch: { done, statut } });
+      onChanged?.(COLLECTION, currentItem.id, { patch: true });
       close();
     } catch (err) {
       console.error('toggle done:', err);
@@ -174,6 +176,7 @@ export function initMovieDetail({ onChanged, onEdit, theme = 'violet' } = {}) {
     try {
       const itemId = currentItem.id;
       await deleteItem(COLLECTION, itemId);
+      syncCachedItemWrite(COLLECTION, itemId, { deleted: true });
       close();
       onChanged?.(COLLECTION, itemId, { deleted: true });
     } catch (err) {
@@ -187,7 +190,7 @@ export function initMovieDetail({ onChanged, onEdit, theme = 'violet' } = {}) {
 
   async function open(item) {
     if (!item) return;
-    await reloadCustomOptions();
+    await initCustomOptions();
     currentItem = item;
     confirmDelete = false;
     isBusy = false;

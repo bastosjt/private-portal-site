@@ -19,6 +19,10 @@
   <meta name="theme-color" content="#1f2229">
   <meta name="application-name" content="Our Space">
   <title>Our Space</title>
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://firestore.googleapis.com">
+  <link rel="preconnect" href="https://identitytoolkit.googleapis.com">
+  <link rel="preconnect" href="https://securetoken.googleapis.com">
   <link rel="icon" href="assets/icons/favicon.png" type="image/png" sizes="283x283">
   <link rel="icon" href="assets/icons/favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png" sizes="180x180">
@@ -28,14 +32,30 @@
   <meta name="mobile-web-app-capable" content="yes">
   <link rel="stylesheet" href="assets/css/variables.css?v=11">
   <link rel="stylesheet" href="assets/css/base.css?v=12">
+  <link rel="stylesheet" href="assets/css/splash.css?v=1">
   <link rel="stylesheet" href="assets/css/auth.css?v=6">
   <link rel="stylesheet" href="assets/css/layout.css?v=11">
   <link rel="stylesheet" href="assets/css/home.css?v=40">
   <link rel="stylesheet" href="assets/css/activities.css?v=63">
   <link rel="stylesheet" href="assets/css/add-item.css?v=14">
 </head>
-<body class="auth-page">
-  <div id="auth-view">
+<body class="splash-page">
+  <div id="splash-view" class="splash-view" role="status" aria-live="polite" aria-label="Chargement">
+    <div class="splash-content">
+      <div class="splash-icon-wrap">
+        <span class="splash-loader-ring" aria-hidden="true"></span>
+        <div class="splash-heart-ripples" aria-hidden="true">
+          <span class="splash-heart-ripple"></span>
+          <span class="splash-heart-ripple"></span>
+          <span class="splash-heart-ripple"></span>
+        </div>
+        <div class="splash-icon" id="splash-heart-icon"></div>
+      </div>
+      <p class="splash-title">Our Space</p>
+    </div>
+  </div>
+
+  <div id="auth-view" class="hidden">
     <div class="auth-container">
       <div class="auth-icon" aria-hidden="true">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
@@ -100,6 +120,6 @@
     <div id="page-root" class="app-main"></div>
   </div>
 
-  <script type="module" src="assets/js/app.js?v=39"></script>
+  <script type="module" src="assets/js/app.js?v=44"></script>
 </body>
 </html>
