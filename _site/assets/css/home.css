@@ -3,6 +3,33 @@
   margin-bottom: 24px;
 }
 
+.demo-space-banner {
+  margin-bottom: 24px;
+  padding: 16px 18px;
+  border-radius: var(--radius-lg);
+  border: 1px solid color-mix(in srgb, var(--cat-color, #6366f1) 24%, transparent);
+  background: color-mix(in srgb, var(--surface) 88%, var(--cat-bg, #eef2ff));
+  box-shadow: var(--neu-up-sm);
+}
+
+.demo-space-banner-title {
+  margin: 0 0 6px;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.demo-space-banner-text {
+  margin: 0;
+  font-size: 0.84rem;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+.is-demo-workspace .page-header-mobile-icon svg {
+  opacity: 0.92;
+}
+
 /* ── Hub activités (CTA + pioche du jour) ── */
 .home-hub {
   display: flex;

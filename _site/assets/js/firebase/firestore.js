@@ -13,18 +13,27 @@ import {
   deleteDoc,
   doc,
 } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js';
+import { getCollectionSegments, getDocSegments } from '../auth/workspace.js?v=2';
 
 const CUSTOM_OPTIONS_COLLECTION = 'customOptions';
+
+function itemsCollection(collectionName) {
+  return collection(db, ...getCollectionSegments(collectionName));
+}
+
+function itemDoc(collectionName, id) {
+  return doc(db, ...getDocSegments(collectionName, id));
+}
 
 export async function fetchRecentItems(collectionName, max = 3) {
   try {
     const q = query(
-      collection(db, collectionName),
+      itemsCollection(collectionName),
       orderBy('createdAt', 'desc'),
       limit(max),
     );
     const snapshot = await getDocs(q);
-    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    return snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() }));
   } catch (err) {
     console.warn(`fetchRecentItems(${collectionName}):`, err.message);
     return [];
@@ -33,7 +42,7 @@ export async function fetchRecentItems(collectionName, max = 3) {
 
 export async function fetchCollectionCount(collectionName) {
   try {
-    const snapshot = await getDocs(collection(db, collectionName));
+    const snapshot = await getDocs(itemsCollection(collectionName));
     return snapshot.size;
   } catch (err) {
     console.warn(`fetchCollectionCount(${collectionName}):`, err.message);
@@ -51,7 +60,7 @@ export async function fetchWeekItemsCount(collectionNames) {
     collectionNames.map(async (name) => {
       try {
         const q = query(
-          collection(db, name),
+          itemsCollection(name),
           where('createdAt', '>=', since),
         );
         const snapshot = await getDocs(q);
@@ -69,11 +78,11 @@ export async function fetchWeekItemsCount(collectionNames) {
 export async function fetchAllItems(collectionName) {
   try {
     const q = query(
-      collection(db, collectionName),
+      itemsCollection(collectionName),
       orderBy('createdAt', 'desc'),
     );
     const snapshot = await getDocs(q);
-    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    return snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() }));
   } catch (err) {
     console.warn(`fetchAllItems(${collectionName}):`, err.message);
     return [];
@@ -89,12 +98,12 @@ export async function addItem(collectionName, data, userId) {
     updatedAt: now,
   };
 
-  const docRef = await addDoc(collection(db, collectionName), payload);
+  const docRef = await addDoc(itemsCollection(collectionName), payload);
   return docRef.id;
 }
 
 export async function updateItem(collectionName, id, data) {
-  const ref = doc(db, collectionName, id);
+  const ref = itemDoc(collectionName, id);
   await updateDoc(ref, {
     ...data,
     updatedAt: Timestamp.now(),
@@ -102,12 +111,12 @@ export async function updateItem(collectionName, id, data) {
 }
 
 export async function deleteItem(collectionName, id) {
-  await deleteDoc(doc(db, collectionName, id));
+  await deleteDoc(itemDoc(collectionName, id));
 }
 
 export async function fetchAllCustomOptions() {
   try {
-    const snapshot = await getDocs(collection(db, CUSTOM_OPTIONS_COLLECTION));
+    const snapshot = await getDocs(itemsCollection(CUSTOM_OPTIONS_COLLECTION));
     const result = {};
 
     snapshot.docs.forEach((entry) => {
@@ -125,7 +134,7 @@ export async function fetchAllCustomOptions() {
 }
 
 export async function persistCustomOptions(storageKey, options) {
-  const ref = doc(db, CUSTOM_OPTIONS_COLLECTION, storageKey);
+  const ref = itemDoc(CUSTOM_OPTIONS_COLLECTION, storageKey);
   await setDoc(ref, {
     options,
     updatedAt: Timestamp.now(),

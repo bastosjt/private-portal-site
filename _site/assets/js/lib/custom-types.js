@@ -32,6 +32,16 @@ function normalizeOptions(options) {
   }));
 }
 
+async function safePersistCustomOptions(storageKey, options) {
+  try {
+    await persistCustomOptions(storageKey, options);
+    return true;
+  } catch (err) {
+    console.warn(`persistCustomOptions(${storageKey}):`, err.message);
+    return false;
+  }
+}
+
 async function seedMissingDefaultOptions(initializedKeys) {
   const updates = [];
 
@@ -42,7 +52,7 @@ async function seedMissingDefaultOptions(initializedKeys) {
 
     cache[storageKey] = normalizeOptions(defaults.filter((opt) => opt?.value));
     initializedKeys.add(storageKey);
-    updates.push(persistCustomOptions(storageKey, cache[storageKey]));
+    updates.push(safePersistCustomOptions(storageKey, cache[storageKey]));
   }
 
   await Promise.all(updates);
@@ -58,7 +68,7 @@ async function migrateStorageKeyAliases() {
     if (!cache[legacyKey]?.length) continue;
 
     cache[targetKey] = cache[legacyKey];
-    await persistCustomOptions(targetKey, cache[targetKey]);
+    await safePersistCustomOptions(targetKey, cache[targetKey]);
   }
 }
 
@@ -78,7 +88,7 @@ async function migrateLegacyLocalStorage() {
     if (!toAdd.length) continue;
 
     cache[storageKey] = [...existing, ...normalizeOptions(toAdd)];
-    migrations.push(persistCustomOptions(storageKey, cache[storageKey]));
+    migrations.push(safePersistCustomOptions(storageKey, cache[storageKey]));
   }
 
   await Promise.all(migrations);
@@ -88,6 +98,11 @@ async function migrateLegacyLocalStorage() {
 export async function reloadCustomOptions() {
   cache = await fetchAllCustomOptions();
   await migrateStorageKeyAliases();
+}
+
+export function resetCustomOptionsState() {
+  cache = {};
+  initPromise = null;
 }
 
 export async function initCustomOptions() {

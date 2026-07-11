@@ -46,54 +46,14 @@ jobs:
           EOF
 
       - name: Prepare site
-        env:
-          CACHE_VERSION: ${{ github.run_number }}
         run: |
           mkdir -p _site
           cp index.html site.webmanifest _site/
           cp -r assets pages _site/
           cp pages/*.html _site/
           touch _site/.nojekyll
-
-          # Force le navigateur à recharger les modules JS à chaque deploy.
-          # Sans ça, la prod peut garder un ancien firestore.js (sans espace démo).
-          sed -i "s/app\.js?v=[^\"']*/app.js?v=${CACHE_VERSION}/" _site/index.html
-
-          find _site/assets/js -name '*.js' -exec sed -i \
-            -e "s|'\\./auth/session\\.js?v=[^']*'|'./auth/session.js?v=${CACHE_VERSION}'|g" \
-            -e "s|'\\./auth/workspace\\.js?v=[^']*'|'./auth/workspace.js?v=${CACHE_VERSION}'|g" \
-            -e "s|'\\./auth/workspace\\.js'|'./auth/workspace.js?v=${CACHE_VERSION}'|g" \
-            -e "s|'\\.\\./auth/workspace\\.js?v=[^']*'|'../auth/workspace.js?v=${CACHE_VERSION}'|g" \
-            -e "s|'\\.\\./auth/workspace\\.js'|'../auth/workspace.js?v=${CACHE_VERSION}'|g" \
-            -e "s|'\\.\\./\\.\\./auth/workspace\\.js?v=[^']*'|'../../auth/workspace.js?v=${CACHE_VERSION}'|g" \
-            -e "s|'\\.\\./\\.\\./auth/workspace\\.js'|'../../auth/workspace.js?v=${CACHE_VERSION}'|g" \
-            -e "s|'\\./session\\.js?v=[^']*'|'./session.js?v=${CACHE_VERSION}'|g" \
-            -e "s|'\\./session\\.js'|'./session.js?v=${CACHE_VERSION}'|g" \
-            -e "s|'\\.\\./firebase/firestore\\.js?v=[^']*'|'../firebase/firestore.js?v=${CACHE_VERSION}'|g" \
-            -e "s|'\\.\\./firebase/firestore\\.js'|'../firebase/firestore.js?v=${CACHE_VERSION}'|g" \
-            -e "s|'\\.\\./\\.\\./firebase/firestore\\.js?v=[^']*'|'../../firebase/firestore.js?v=${CACHE_VERSION}'|g" \
-            -e "s|'\\.\\./\\.\\./firebase/firestore\\.js'|'../../firebase/firestore.js?v=${CACHE_VERSION}'|g" \
-            -e "s|'\\./firebase/dailyPicks\\.js?v=[^']*'|'./firebase/dailyPicks.js?v=${CACHE_VERSION}'|g" \
-            -e "s|'\\./firebase/dailyPicks\\.js'|'./firebase/dailyPicks.js?v=${CACHE_VERSION}'|g" \
-            -e "s|'\\.\\./firebase/dailyPicks\\.js?v=[^']*'|'../firebase/dailyPicks.js?v=${CACHE_VERSION}'|g" \
-            -e "s|'\\.\\./firebase/dailyPicks\\.js'|'../firebase/dailyPicks.js?v=${CACHE_VERSION}'|g" \
-            -e "s|'\\.\\./\\.\\./firebase/dailyPicks\\.js?v=[^']*'|'../../firebase/dailyPicks.js?v=${CACHE_VERSION}'|g" \
-            -e "s|'\\.\\./\\.\\./firebase/dailyPicks\\.js'|'../../firebase/dailyPicks.js?v=${CACHE_VERSION}'|g" \
-            -e "s|'\\.\\./lib/custom-types\\.js?v=[^']*'|'../lib/custom-types.js?v=${CACHE_VERSION}'|g" \
-            -e "s|'\\.\\./lib/custom-types\\.js'|'../lib/custom-types.js?v=${CACHE_VERSION}'|g" \
-            -e "s|'\\.\\./\\.\\./lib/custom-types\\.js?v=[^']*'|'../../lib/custom-types.js?v=${CACHE_VERSION}'|g" \
-            -e "s|'\\.\\./\\.\\./lib/custom-types\\.js'|'../../lib/custom-types.js?v=${CACHE_VERSION}'|g" \
-            {} +
-
-          echo "Cache version: ${CACHE_VERSION}"
           echo "Fichiers déployés :"
           find _site -type f | sort
-
-      - name: Verify demo workspace files
-        run: |
-          test -f _site/assets/js/auth/workspace.js
-          grep -q "workspaces/demo" _site/assets/js/firebase/firestore.js
-          grep -q "demo-space-banner" _site/assets/js/pages/accueil/pageController.js
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
