@@ -1,4 +1,4 @@
-import { NAV_ITEMS, APP_NAME, APP_TAGLINE } from '../config.js';
+import { NAV_ITEMS, APP_NAME, APP_TAGLINE, APP_VERSION } from '../config.js';
 import { getRouteFromHash } from '../navigation/router.js';
 import { lockScroll, unlockScroll } from '../lib/scroll-lock.js';
 import { renderNavIcon } from '../lib/lucide-icon.js';
@@ -42,15 +42,18 @@ export function renderSidebar(container, { user, activeId = getActiveId() } = {}
 
         <nav class="sidebar-nav">${navLinks}</nav>
 
-        <div class="sidebar-footer">
-          <div class="sidebar-user">
-            <span class="sidebar-user-avatar" data-user-initials aria-hidden="true"></span>
-            <div class="sidebar-user-info">
-              <span class="sidebar-user-label">Connecté</span>
-              <span class="sidebar-user-email" data-user-email></span>
+        <div class="sidebar-bottom">
+          <p class="sidebar-version" aria-hidden="true">v${APP_VERSION}</p>
+          <div class="sidebar-footer">
+            <div class="sidebar-user">
+              <span class="sidebar-user-avatar" data-user-initials aria-hidden="true"></span>
+              <div class="sidebar-user-info">
+                <span class="sidebar-user-label">Connecté</span>
+                <span class="sidebar-user-email" data-user-email></span>
+              </div>
             </div>
+            <button type="button" id="logout-btn" class="sidebar-logout">Déconnexion</button>
           </div>
-          <button type="button" id="logout-btn" class="sidebar-logout">Déconnexion</button>
         </div>
       </div>
     </aside>

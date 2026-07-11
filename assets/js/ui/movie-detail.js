@@ -103,6 +103,9 @@ export function initMovieDetail({ onChanged, onEdit, theme = 'violet' } = {}) {
     if (item.type) {
       chips.push(`<span class="act-chip">${escapeHtml(getFieldLabel(category, 'type', item.type))}</span>`);
     }
+    if (item.genre) {
+      chips.push(`<span class="act-chip">${escapeHtml(getFieldLabel(category, 'genre', item.genre))}</span>`);
+    }
 
     bodyEl.innerHTML = `
       <div class="act-detail-content${item.done ? ' act-detail-content--done' : ''}">

@@ -32,4 +32,14 @@ export const DEFAULT_FIELD_OPTIONS = {
     { value: 'film', label: 'Film' },
     { value: 'serie', label: 'Série' },
   ],
+  'movies.genre': [
+    { value: 'science_fiction', label: 'Science-fiction' },
+    { value: 'action', label: 'Action' },
+    { value: 'horreur', label: 'Horreur' },
+    { value: 'comedie', label: 'Comédie' },
+    { value: 'drame', label: 'Drame' },
+    { value: 'romantique', label: 'Romantique' },
+    { value: 'aventure', label: 'Aventure' },
+    { value: 'fantastique', label: 'Fantastique' },
+  ],
 };

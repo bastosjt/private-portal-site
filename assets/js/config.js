@@ -4,6 +4,7 @@ export const COUPLE_START_DATE = '2026-06-27';
 /** Nom affiché dans l'onglet, le menu et l'icône d'installation */
 export const APP_NAME = 'Our Space';
 export const APP_TAGLINE = 'À nous deux';
+export const APP_VERSION = '1.0.0';
 
 /** Prénoms affichés — clé = uid Firebase */
 export const USER_DISPLAY_NAMES = {
@@ -122,6 +123,7 @@ export const HOME_CATEGORIES = [
     fields: [
       { name: 'titre', label: 'Titre', type: 'text', required: true, placeholder: 'Ex. Interstellar' },
       { name: 'type', label: 'Type', type: 'select', allowCustom: true },
+      { name: 'genre', label: 'Genre', type: 'select', allowCustom: true },
     ],
   },
   {

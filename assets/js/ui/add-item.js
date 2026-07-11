@@ -150,6 +150,8 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
 
   const MODAL_MS = 360;
   const STEP_MS = 260;
+  const abort = new AbortController();
+  const { signal } = abort;
 
   const fab = document.createElement('button');
   fab.type = 'button';
@@ -725,17 +727,17 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
     }
   }
 
-  fab.addEventListener('click', () => open());
+  fab.addEventListener('click', () => open(), { signal });
 
-  closeBtn.addEventListener('click', close);
+  closeBtn.addEventListener('click', close, { signal });
   backBtn.addEventListener('click', () => {
     if (isBodyTransitioning) return;
     showPicker({ animate: true });
-  });
+  }, { signal });
 
   overlay.addEventListener('click', (event) => {
     if (event.target === overlay) close();
-  });
+  }, { signal });
 
   bodyEl.addEventListener('click', (event) => {
     if (isBodyTransitioning) return;
@@ -743,17 +745,36 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
     if (pickerBtn?.closest('#add-picker')) {
       showForm(pickerBtn.dataset.category, null, { animate: true, direction: 'forward' });
     }
-  });
+  }, { signal });
 
   bodyEl.addEventListener('submit', (event) => {
     if (event.target.id === 'add-form') handleSubmit(event);
-  });
+  }, { signal });
 
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' && !overlay.classList.contains('hidden')) {
       close();
     }
-  });
+  }, { signal });
 
-  return { open, close, openEdit };
+  function destroy() {
+    abort.abort();
+    modalTransitionToken += 1;
+    bodyTransitionToken += 1;
+    isBodyTransitioning = false;
+    isSubmitting = false;
+    clearFieldCleanups();
+    overlay.classList.remove('is-active');
+    overlay.classList.add('hidden');
+    document.body.classList.remove('modal-open');
+    unlockScroll();
+    bodyEl.innerHTML = '';
+    activeCategoryId = null;
+    editingItemId = null;
+    editingItem = null;
+    fab.remove();
+    overlay.remove();
+  }
+
+  return { open, close, openEdit, destroy };
 }

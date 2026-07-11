@@ -2,7 +2,7 @@ import { auth } from './firebase/config.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js';
 import { login, logout } from './auth/login.js';
 import { isAllowedUser } from './auth/session.js';
-import { NAV_ITEMS, APP_NAME } from './config.js';
+import { NAV_ITEMS, APP_NAME, APP_VERSION } from './config.js';
 import { initRouter, navigate } from './navigation/router.js';
 import { renderSidebar, initSidebar, updateSidebarActive } from './ui/sidebar.js';
 import { initAddItem } from './ui/add-item.js';
@@ -163,6 +163,8 @@ async function mountRoute(routeId) {
 
 function showAuthView() {
   destroyCurrentView();
+  addItemModal?.destroy?.();
+  addItemModal = null;
   stopDailyPickReset?.();
   stopDailyPickReset = null;
   stopRouter?.();
@@ -274,6 +276,9 @@ function setupLoginForm() {
 }
 
 setupLoginForm();
+
+const appVersionEl = document.getElementById('app-version');
+if (appVersionEl) appVersionEl.textContent = `v${APP_VERSION}`;
 
 onAuthStateChanged(auth, async (user) => {
   if (user && isAllowedUser(user)) {

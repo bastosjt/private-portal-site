@@ -12,14 +12,15 @@ const STATUS_FILTER_OPTIONS = [
 // Les films/séries n'ont ni prix ni adresse : le tri se limite à alpha/récent.
 const SORT_OPTIONS = DEFAULT_SORT_OPTIONS.filter((opt) => opt.id === 'alpha' || opt.id === 'recent');
 
-function renderMovieListMeta(item, { escapeHtml, getFieldLabel }) {
-  const type = item.type ? escapeHtml(getFieldLabel('type', item.type)) : 'Film';
+function getMovieMetaLine(item, { getFieldLabel }) {
+  const parts = [];
+  if (item.type) parts.push(getFieldLabel('type', item.type));
+  if (item.genre) parts.push(getFieldLabel('genre', item.genre));
+  return parts.join(' · ') || 'Film';
+}
 
-  return `
-    <div class="act-list-meta act-list-meta--restaurant">
-      <span class="act-list-meta-type">${type}</span>
-    </div>
-  `;
+function renderMovieListMeta(item, ctx) {
+  return `<p class="act-list-meta">${ctx.escapeHtml(getMovieMetaLine(item, ctx))}</p>`;
 }
 
 const { init, destroy, refresh } = createListPageController({
@@ -33,10 +34,10 @@ const { init, destroy, refresh } = createListPageController({
     listPanelId: 'films-list-panel',
   },
   itemIdAttr: 'data-movie-id',
-  filterFieldKeys: ['type'],
+  filterFieldKeys: ['type', 'genre'],
   sortOptions: SORT_OPTIONS,
   statusFilterOptions: STATUS_FILTER_OPTIONS,
-  filterDefaults: { type: [], status: 'all' },
+  filterDefaults: { type: [], genre: [], status: 'all' },
   getFilterSections: ({ getAvailableFilterOptions }) => [
     {
       id: 'status',
@@ -56,6 +57,12 @@ const { init, destroy, refresh } = createListPageController({
       label: 'Type',
       mode: 'multi',
       getOptions: () => getAvailableFilterOptions('type'),
+    },
+    {
+      id: 'genre',
+      label: 'Genre',
+      mode: 'multi',
+      getOptions: () => getAvailableFilterOptions('genre'),
     },
   ],
   labels: {

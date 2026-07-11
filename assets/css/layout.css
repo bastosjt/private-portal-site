@@ -264,9 +264,23 @@
 }
 
 .sidebar-footer {
-  margin-top: auto;
   padding-top: 20px;
   border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.sidebar-bottom {
+  margin-top: auto;
+  flex-shrink: 0;
+}
+
+.sidebar-version {
+  padding: 0 12px 10px;
+  font-size: 0.62rem;
+  letter-spacing: 0.05em;
+  color: var(--text-placeholder);
+  opacity: 0.55;
+  text-align: center;
+  user-select: none;
 }
 
 .sidebar-user {
@@ -560,6 +574,7 @@ body.modal-open {
     -webkit-overflow-scrolling: touch;
   }
 
+  .sidebar-bottom,
   .sidebar-footer {
     flex-shrink: 0;
   }
