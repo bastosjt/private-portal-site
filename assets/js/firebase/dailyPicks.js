@@ -6,7 +6,7 @@ import {
   deleteDoc,
   Timestamp,
 } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js';
-import { getDocSegments } from '../auth/workspace.js';
+import { getDocSegments } from '../auth/workspace.js?v=2';
 
 const PICKS_COLLECTION = 'dailyPicks';
 const FALLBACK_LOOKBACK_DAYS = 14;

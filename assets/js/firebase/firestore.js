@@ -13,7 +13,7 @@ import {
   deleteDoc,
   doc,
 } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js';
-import { getCollectionSegments, getDocSegments } from '../auth/workspace.js';
+import { getCollectionSegments, getDocSegments } from '../auth/workspace.js?v=2';
 
 const CUSTOM_OPTIONS_COLLECTION = 'customOptions';
 

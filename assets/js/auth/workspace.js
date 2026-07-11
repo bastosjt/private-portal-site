@@ -1,4 +1,4 @@
-import { resolveWorkspaceIdForUser } from './session.js';
+import { resolveWorkspaceIdForUser } from './session.js?v=2';
 
 /** @typedef {'couple' | 'demo'} WorkspaceId */
 

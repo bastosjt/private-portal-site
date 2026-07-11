@@ -193,7 +193,11 @@ function showAuthView() {
 
 async function showAppView(user) {
   activateWorkspace(user);
-  await initCustomOptions();
+  try {
+    await initCustomOptions();
+  } catch (err) {
+    console.warn('initCustomOptions:', err.message);
+  }
   currentUser = user;
   authView?.classList.add('hidden');
   appView?.classList.remove('hidden');
