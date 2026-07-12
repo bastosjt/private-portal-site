@@ -1,7 +1,7 @@
-import { NAV_ITEMS } from '../config.js';
+import { NAV_ITEMS, SETTINGS_ITEM } from '../config.js';
 
 const DEFAULT_ROUTE = 'accueil';
-const VALID_ROUTES = new Set(NAV_ITEMS.map((item) => item.id));
+const VALID_ROUTES = new Set([...NAV_ITEMS.map((item) => item.id), SETTINGS_ITEM.id]);
 
 export function getRouteFromHash() {
   const raw = window.location.hash.replace(/^#\/?/, '').split('?')[0];

@@ -12,10 +12,10 @@
   border-radius: 50%;
   background: var(--surface);
   color: var(--accent);
-  border: 1px solid rgba(0, 212, 255, 0.14);
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
   box-shadow:
     var(--neu-up-sm),
-    0 0 16px rgba(0, 212, 255, 0.12);
+    0 0 16px var(--accent-glow);
   transition:
     transform var(--duration-sidebar) var(--ease-premium),
     box-shadow var(--duration-sidebar) var(--ease-premium),
@@ -31,11 +31,11 @@
 }
 
 .fab:hover {
-  color: #5eeaff;
-  border-color: rgba(0, 212, 255, 0.28);
+  color: var(--accent-soft);
+  border-color: color-mix(in srgb, var(--accent) 35%, transparent);
   box-shadow:
     var(--neu-up),
-    0 0 22px rgba(0, 212, 255, 0.22);
+    0 0 22px var(--accent-glow);
   transform: translateY(-2px);
 }
 
@@ -52,6 +52,11 @@ body.modal-open .fab {
 
 body.sidebar-open .fab {
   z-index: 0;
+}
+
+body.route-no-fab .fab {
+  display: none;
+  pointer-events: none;
 }
 
 /* ── Modal ── */
