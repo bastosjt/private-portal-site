@@ -413,7 +413,7 @@
 .scene-ring--2 {
   inset: 24px;
   animation: ring-spin 14s linear infinite reverse;
-  border-color: rgba(0, 212, 255, 0.06);
+  border-color: color-mix(in srgb, var(--cat-color-alt, #a78bfa) 12%, transparent);
 }
 .scene-ring--3 {
   inset: 48px;

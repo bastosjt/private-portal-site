@@ -1,4 +1,5 @@
 import { getCategoryById, getUserDisplayName } from '../../config.js';
+import { getListPreferences, saveListPreferences } from '../../lib/user-profile.js';
 import { formatItemPrice, compareItemsByPrice } from '../../lib/price-format.js';
 import { sortOptionsByLabel } from '../../lib/options-labels.js';
 import { ensureItems, hasCachedItems, getCachedItems } from '../../data/appDataCache.js';
@@ -108,6 +109,7 @@ export function createListPageController(config) {
   let filterModal = null;
   let isRolling = false;
   let pageAbort = null;
+  let currentUserUid = null;
   let listViewMode = 'list';
 
   function getFieldLabel(fieldName, value) {
@@ -295,12 +297,38 @@ export function createListPageController(config) {
 
     activeFilters = nextFilters;
     refreshListView();
+    persistListSettings();
   }
 
   function resetListSettings() {
     currentSort = 'alpha';
     activeFilters = { ...filterDefaults };
     refreshListView();
+    persistListSettings();
+  }
+
+  function persistListSettings() {
+    if (!currentUserUid) return;
+    saveListPreferences(currentUserUid, categoryId, getFilterState());
+  }
+
+  function loadSavedListSettings(uid) {
+    const saved = getListPreferences(uid, categoryId);
+    if (!saved) return;
+
+    if (saved.sort && sortOptions.some((opt) => opt.id === saved.sort)) {
+      currentSort = saved.sort;
+    }
+
+    const nextFilters = { status: 'all' };
+    for (const key of filterFieldKeys) {
+      nextFilters[key] = Array.isArray(saved[key]) ? saved[key] : [];
+    }
+    nextFilters.status = statusFilterOptions.some((opt) => opt.value === saved.status)
+      ? saved.status
+      : 'all';
+
+    activeFilters = nextFilters;
   }
 
   function refreshListView() {
@@ -720,6 +748,7 @@ export function createListPageController(config) {
     activeFilters = { ...filterDefaults };
     pageAbort?.abort();
     pageAbort = null;
+    currentUserUid = null;
     filterModal?.destroy();
     filterModal = null;
     detailModal?.destroy?.();
@@ -732,6 +761,7 @@ export function createListPageController(config) {
     await initCustomOptions();
     pageAbort = new AbortController();
     const { signal } = pageAbort;
+    currentUserUid = user?.uid ?? null;
 
     getUserDisplayName(user);
 
@@ -775,6 +805,7 @@ export function createListPageController(config) {
     });
 
     bindEvents(signal);
+    loadSavedListSettings(user?.uid);
     filterModal.updateTriggerBadge();
     loadPageData();
   }

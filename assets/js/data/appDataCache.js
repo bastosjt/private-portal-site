@@ -273,3 +273,18 @@ export function clearAppDataCache() {
   lastRefreshStartedAt = 0;
   resetDailyPicksLoadState();
 }
+
+/** Recharge toutes les collections et pioches depuis Firestore. */
+export function refreshAppData() {
+  lastRefreshStartedAt = Date.now();
+  backgroundRefreshPromise = runBackgroundRefresh()
+    .catch((err) => {
+      console.warn('refreshAppData:', err.message);
+      throw err;
+    })
+    .finally(() => {
+      backgroundRefreshPromise = null;
+    });
+
+  return backgroundRefreshPromise;
+}

@@ -2,13 +2,15 @@ import { auth } from './firebase/config.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js';
 import { login, logout } from './auth/login.js';
 import { isAllowedUser } from './auth/session.js';
-import { NAV_ITEMS, APP_NAME, APP_VERSION } from './config.js';
+import { NAV_ITEMS, APP_NAME, APP_VERSION, SETTINGS_ITEM, renderVersionBadgeHtml } from './config.js';
 import { initRouter, navigate } from './navigation/router.js';
 import { renderSidebar, initSidebar, updateSidebarActive } from './ui/sidebar.js';
 import { initAddItem } from './ui/add-item.js';
 import { waitForTransition, nextFrame } from './lib/transitions.js';
 import { initSplash, dismissSplash } from './ui/splash.js';
 import { prefetchAppData, clearAppDataCache, scheduleBackgroundRefreshIfNeeded, onSecondaryPrefetchDone } from './data/appDataCache.js';
+import { initUserProfiles, clearUserProfilesCache } from './lib/user-profile.js';
+import { initSpaceSettings, clearSpaceSettingsCache } from './lib/space-settings.js';
 import { debounce } from './lib/debounce.js';
 import { init as initAccueil, destroy as destroyAccueil, refresh as refreshAccueil, HOME_VIEW_HTML } from './pages/accueil/index.js';
 import { initCustomOptions } from './lib/custom-types.js';
@@ -18,6 +20,7 @@ import { init as initRestaurants, destroy as destroyRestaurants, refresh as refr
 import { init as initFilms, destroy as destroyFilms, refresh as refreshFilms, FILMS_VIEW_HTML } from './pages/films/index.js';
 import { init as initWishlist, destroy as destroyWishlist, refresh as refreshWishlist, WISHLIST_VIEW_HTML } from './pages/wishlist/index.js';
 import { init as initVoyages, destroy as destroyVoyages, refresh as refreshVoyages, VOYAGES_VIEW_HTML } from './pages/voyages/index.js';
+import { init as initParametres, destroy as destroyParametres, refresh as refreshParametres, SETTINGS_VIEW_HTML } from './pages/parametres/index.js';
 import { getPlaceholderViewHtml } from './navigation/placeholder.js';
 
 const PAGE_TITLES = {
@@ -27,6 +30,7 @@ const PAGE_TITLES = {
   films: 'Films & Séries',
   voyages: 'Voyages',
   wishlist: 'Wishlist',
+  parametres: 'Paramètres',
 };
 
 let currentUser = null;
@@ -70,6 +74,7 @@ function destroyCurrentView() {
   destroyFilms();
   destroyWishlist();
   destroyVoyages();
+  destroyParametres();
 }
 
 function refreshCurrentViewNow() {
@@ -79,6 +84,7 @@ function refreshCurrentViewNow() {
   if (currentRoute === 'films') return refreshFilms();
   if (currentRoute === 'wishlist') return refreshWishlist();
   if (currentRoute === 'voyages') return refreshVoyages();
+  if (currentRoute === 'parametres') return refreshParametres();
   return undefined;
 }
 
@@ -131,6 +137,7 @@ async function mountRoute(routeId) {
   currentRoute = routeId;
   setPageTitle(routeId);
   updateSidebarActive(routeId);
+  document.body.classList.toggle('route-no-fab', routeId === 'parametres');
 
   document.body.classList.toggle('app-page', true);
   document.body.classList.remove('auth-page');
@@ -195,6 +202,22 @@ async function mountRoute(routeId) {
     return;
   }
 
+  if (routeId === 'parametres') {
+    pageRoot.innerHTML = SETTINGS_VIEW_HTML;
+    await finishPageEnter();
+    if (token !== pageTransitionToken) return;
+    initParametres(currentUser, {
+      onLogout: async () => {
+        await logout();
+        showAuthView();
+        window.location.hash = '';
+      },
+      onDataSynced: () => refreshCurrentView(),
+      onProfileUpdated: () => refreshCurrentView(),
+    });
+    return;
+  }
+
   pageRoot.innerHTML = getPlaceholderViewHtml(routeId);
   await finishPageEnter();
   } finally {
@@ -204,6 +227,8 @@ async function mountRoute(routeId) {
 
 function showAuthView({ reveal = true } = {}) {
   clearAppDataCache();
+  clearUserProfilesCache();
+  clearSpaceSettingsCache();
   destroyCurrentView();
   addItemModal?.destroy?.();
   addItemModal = null;
@@ -216,7 +241,7 @@ function showAuthView({ reveal = true } = {}) {
   sidebarInitialized = false;
 
   document.body.classList.add('auth-page');
-  document.body.classList.remove('app-page');
+  document.body.classList.remove('app-page', 'route-no-fab');
   appView?.classList.add('hidden');
 
   if (reveal) {
@@ -229,6 +254,8 @@ function showAuthView({ reveal = true } = {}) {
 
 async function showAppView(user, { reveal = true, awaitData = false } = {}) {
   await initCustomOptions();
+  await initUserProfiles(user.uid);
+  await initSpaceSettings();
   const prefetch = prefetchAppData();
   if (awaitData) await prefetch;
   currentUser = user;
@@ -245,16 +272,11 @@ async function showAppView(user, { reveal = true, awaitData = false } = {}) {
     refreshCurrentView();
   });
 
-  renderSidebar(sidebarRoot, { user, activeId: currentRoute || 'accueil' });
+  renderSidebar(sidebarRoot, { activeId: currentRoute || 'accueil' });
 
   if (!sidebarInitialized) {
     initSidebar({
       onNavigate: (routeId) => navigate(routeId),
-      onLogout: async () => {
-        await logout();
-        showAuthView();
-        window.location.hash = '';
-      },
     });
     sidebarInitialized = true;
   } else {
@@ -363,7 +385,10 @@ setupLoginForm();
 initSplash();
 
 const appVersionEl = document.getElementById('app-version');
-if (appVersionEl) appVersionEl.textContent = `v${APP_VERSION}`;
+if (appVersionEl) {
+  appVersionEl.innerHTML = renderVersionBadgeHtml(APP_VERSION);
+  appVersionEl.setAttribute('aria-label', `Version ${APP_VERSION}`);
+}
 
 onAuthStateChanged(auth, async (user) => {
   if (splashActive) {
@@ -390,7 +415,8 @@ document.addEventListener('click', (event) => {
   if (!link || !currentUser) return;
 
   const routeId = link.getAttribute('href').replace(/^#\/?/, '');
-  if (!NAV_ITEMS.some((item) => item.id === routeId)) return;
+  const validRoutes = new Set([...NAV_ITEMS.map((item) => item.id), SETTINGS_ITEM.id]);
+  if (!validRoutes.has(routeId)) return;
 
   event.preventDefault();
   navigate(routeId);
