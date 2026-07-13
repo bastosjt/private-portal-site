@@ -160,6 +160,62 @@ export function getRecentItemsFromCache(collectionName, max = 3) {
   return items.slice(0, max);
 }
 
+export function getUnifiedRecentItemsFromCache(max = 6) {
+  const entries = HOME_CATEGORIES.flatMap((cat) => {
+    const items = itemsCache.get(cat.id) ?? [];
+    return items.map((item) => ({
+      category: cat,
+      item,
+      createdAt: getItemCreatedAtMs(item),
+    }));
+  });
+
+  return entries
+    .sort((a, b) => b.createdAt - a.createdAt)
+    .slice(0, max);
+}
+
+function hasGeolocation(item, locationField) {
+  if (item?.[locationField]?.trim()) return true;
+  return item?.latitude != null && item?.longitude != null;
+}
+
+export function getGeolocatedPlacesFromCache(max = 4) {
+  const places = [];
+
+  for (const item of itemsCache.get('activities') ?? []) {
+    if (!hasGeolocation(item, 'localisation')) continue;
+    places.push({
+      categoryId: 'activities',
+      item,
+      title: item.nom || 'Sans titre',
+      location: item.localisation?.trim() || '',
+      createdAt: getItemCreatedAtMs(item),
+    });
+  }
+
+  for (const item of itemsCache.get('restaurants') ?? []) {
+    if (!hasGeolocation(item, 'adresse')) continue;
+    places.push({
+      categoryId: 'restaurants',
+      item,
+      title: item.nom || 'Sans titre',
+      location: item.adresse?.trim() || '',
+      createdAt: getItemCreatedAtMs(item),
+    });
+  }
+
+  return places
+    .sort((a, b) => b.createdAt - a.createdAt)
+    .slice(0, max);
+}
+
+export function countGeolocatedPlacesFromCache() {
+  const activities = (itemsCache.get('activities') ?? []).filter((item) => hasGeolocation(item, 'localisation')).length;
+  const restaurants = (itemsCache.get('restaurants') ?? []).filter((item) => hasGeolocation(item, 'adresse')).length;
+  return activities + restaurants;
+}
+
 export function getWeekItemsCountFromCache(collectionNames) {
   const weekAgo = new Date();
   weekAgo.setDate(weekAgo.getDate() - 7);
@@ -193,10 +249,15 @@ export function patchCachedItem(collectionName, itemId, partial) {
   const index = items.findIndex((item) => item.id === itemId);
   if (index < 0) return false;
 
+  const sanitized = { ...partial };
+  delete sanitized.createdBy;
+  delete sanitized.userId;
+  delete sanitized.createdAt;
+
   items[index] = {
     ...items[index],
-    ...partial,
-    updatedAt: partial.updatedAt ?? Timestamp.now(),
+    ...sanitized,
+    updatedAt: sanitized.updatedAt ?? Timestamp.now(),
   };
   return true;
 }

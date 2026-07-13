@@ -414,6 +414,7 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
       id,
       ...data,
       userId: sessionUser.uid,
+      createdBy: sessionUser.uid,
       createdAt: now,
       updatedAt: now,
     });

@@ -27,23 +27,38 @@ export const HOME_VIEW_HTML = `
           <div class="days-card-body">
             <div class="days-card-content">
               <p class="days-story-eyebrow" id="days-heading">
-                <span class="days-story-eyebrow-dot" aria-hidden="true"></span>
-                Notre histoire
+                <span class="days-story-eyebrow-icon" aria-hidden="true">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
+                  </svg>
+                </span>
+                <span class="days-story-eyebrow-text">Notre histoire</span>
               </p>
 
               <div class="days-story-main">
-                <span class="days-count" id="days-count" aria-label="Nombre de jours">0</span>
-                <p class="days-label" id="days-label">jours ensemble</p>
+                <div class="days-stat-display">
+                  <span class="days-count" id="days-count" aria-label="Nombre de jours">0</span>
+                  <span class="days-stat-divider" aria-hidden="true"></span>
+                  <p class="days-stat-label" id="days-label">
+                    <span class="days-stat-label-unit">jours</span>
+                    <span class="days-stat-label-word">ensemble</span>
+                  </p>
+                </div>
               </div>
+            </div>
 
-              <div class="days-story-since">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <div class="days-story-since">
+              <span class="days-story-since-icon" aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
                   <rect width="18" height="18" x="3" y="4" rx="2" ry="2"/>
                   <line x1="16" x2="16" y1="2" y2="6"/>
                   <line x1="8" x2="8" y1="2" y2="6"/>
                   <line x1="3" x2="21" y1="10" y2="10"/>
                 </svg>
-                <span id="days-since">-</span>
+              </span>
+              <div class="days-story-since-copy">
+                <span class="days-story-since-label">Depuis le</span>
+                <span class="days-story-since-date" id="days-since">-</span>
               </div>
             </div>
 
@@ -71,26 +86,50 @@ export const HOME_VIEW_HTML = `
       </article>
     </section>
 
-    <section class="home-hub" id="home-hub" aria-label="Aujourd'hui"></section>
-
-    <section class="stats-section" aria-labelledby="stats-heading">
+    <section class="home-today-section" aria-labelledby="home-today-heading">
       <div class="section-head">
         <div>
-          <h2 id="stats-heading">Résumé global</h2>
-          <p><strong id="stats-total">0</strong> idées enregistrées au total</p>
+          <h2 id="home-today-heading">Pioches du jour</h2>
+          <p id="home-today-sub">-</p>
         </div>
       </div>
-      <div class="stats-grid is-loading" id="stats-grid"></div>
+      <article class="home-today-card" data-theme="${BASE_THEME}">
+        <span class="home-today-accent" aria-hidden="true"></span>
+        <div class="home-today-inner is-loading" id="home-today-inner" aria-live="polite"></div>
+      </article>
     </section>
 
-    <section class="recent-sections-wrap" aria-labelledby="recent-heading">
+    <section class="home-nearby-section" aria-labelledby="home-nearby-heading">
       <div class="section-head">
         <div>
-          <h2 id="recent-heading">Suggestions récentes</h2>
-          <p>Dernières idées par catégorie</p>
+          <h2 id="home-nearby-heading">Autour de nous</h2>
+          <p id="home-nearby-sub">Lieux enregistrés</p>
         </div>
       </div>
-      <div class="recent-sections is-loading" id="recent-sections"></div>
+      <article class="home-nearby-card" data-theme="${BASE_THEME}">
+        <span class="home-nearby-accent" aria-hidden="true"></span>
+        <div class="home-nearby-inner is-loading" id="home-nearby-inner"></div>
+      </article>
+    </section>
+
+    <section class="home-shortcuts-section" aria-labelledby="home-shortcuts-heading">
+      <div class="section-head">
+        <div>
+          <h2 id="home-shortcuts-heading">Et si on…</h2>
+          <p id="home-shortcuts-sub">Trouver une idée</p>
+        </div>
+      </div>
+      <div class="home-shortcuts" id="home-shortcuts"></div>
+    </section>
+
+    <section class="home-explorer-section" aria-labelledby="home-explorer-heading">
+      <div class="section-head">
+        <div>
+          <h2 id="home-explorer-heading">Explorer</h2>
+          <p>Parcourir par catégorie</p>
+        </div>
+      </div>
+      <nav class="home-explorer" id="home-explorer" aria-label="Catégories"></nav>
     </section>
   </main>
 `;
