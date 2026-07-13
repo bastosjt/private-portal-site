@@ -6,6 +6,7 @@ import { getFieldOptionLabel, initCustomOptions } from '../lib/custom-types.js';
 import { renderActivityScheduleNote } from '../pages/activites/scheduleDisplay.js';
 import { waitForTransition, nextFrame } from '../lib/transitions.js';
 import { lockScroll, unlockScroll } from '../lib/scroll-lock.js';
+import { paintItemAuthors, renderItemAuthorMarkup } from './item-author.js';
 
 const MODAL_MS = 420;
 
@@ -150,6 +151,8 @@ export function initActivityDetail({ onChanged, onEdit, theme = 'cyan' } = {}) {
 
         ${renderDoneToggle(Boolean(item.done), isBusy)}
 
+        ${renderItemAuthorMarkup(item)}
+
         <div class="act-detail-actions">
           <button type="button" class="act-detail-btn act-detail-btn--edit" id="act-detail-edit" ${isBusy ? 'disabled' : ''}>
             Modifier
@@ -164,6 +167,7 @@ export function initActivityDetail({ onChanged, onEdit, theme = 'cyan' } = {}) {
     bodyEl.querySelector('#act-detail-done')?.addEventListener('click', handleToggleDone);
     bodyEl.querySelector('#act-detail-edit')?.addEventListener('click', handleEdit);
     bodyEl.querySelector('#act-detail-delete')?.addEventListener('click', handleDelete);
+    paintItemAuthors(bodyEl);
   }
 
   async function handleToggleDone() {

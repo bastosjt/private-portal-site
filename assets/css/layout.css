@@ -525,6 +525,10 @@ body.modal-open {
     display: flex;
   }
 
+  .page-header {
+    margin-bottom: 30px;
+  }
+
   .btn-menu:hover {
     box-shadow: var(--neu-up);
   }

@@ -13,7 +13,8 @@ import {
   refreshAppData,
   clearAppDataCache,
 } from '../../data/appDataCache.js';
-import { getProfileAnimalEntry, getProfileAnimalColorStyle, getProfileAnimalMeta, applyAnimalAvatarStyles } from '../../lib/profile-animal.js';
+import { applyAnimalAvatarStyles, getProfileAnimalEntry, getProfileAnimalColorStyle, getProfileAnimalMeta } from '../../lib/profile-animal.js';
+import { paintAvatarElement, renderAvatarContent } from '../../lib/profile-avatar.js';
 import {
   getDisplayNameForUid,
   getKnownMemberUids,
@@ -42,21 +43,12 @@ let spaceTaglinePicker = null;
 
 const MEMBER_THEMES = ['slate', 'love'];
 
-function getInitialsFromEmail(email) {
-  const name = email.split('@')[0] || '?';
-  const parts = name.split(/[._-]/).filter(Boolean);
-  if (parts.length >= 2) {
-    return (parts[0][0] + parts[1][0]).toUpperCase();
-  }
-  return name.slice(0, 2).toUpperCase();
-}
-
-function getInitialsFromName(name) {
-  const parts = name.split(/\s+/).filter(Boolean);
-  if (parts.length >= 2) {
-    return (parts[0][0] + parts[1][0]).toUpperCase();
-  }
-  return name.slice(0, 2).toUpperCase();
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
 
 function getDaysTogether(startDateStr) {
@@ -89,35 +81,6 @@ function formatSyncAge(ageMs) {
 
 function getTotalCachedItems() {
   return ITEM_COLLECTIONS.reduce((sum, collection) => sum + getCollectionCountFromCache(collection), 0);
-}
-
-function renderAvatarContent(uid, { email = '', name = '' } = {}) {
-  const entry = getProfileAnimalEntry(uid);
-  if (entry) {
-    return {
-      html: renderNavIcon(entry.animal, { strokeWidth: 2, width: 22, height: 22 }),
-      hasAnimal: true,
-      uid,
-    };
-  }
-
-  const initials = name ? getInitialsFromName(name) : getInitialsFromEmail(email);
-  return { html: escapeHtml(initials), hasAnimal: false, uid: null };
-}
-
-function paintAvatarElement(el, avatar) {
-  if (!el) return;
-  el.innerHTML = avatar.html;
-  if (avatar.hasAnimal && avatar.uid) {
-    applyAnimalAvatarStyles(el, avatar.uid);
-  } else {
-    el.classList.remove('has-animal');
-    el.style.background = '';
-    el.style.border = '';
-    el.style.color = '';
-    el.style.boxShadow = '';
-  }
-  el.classList.toggle('has-animal', avatar.hasAnimal);
 }
 
 function renderProfile(user) {
@@ -276,14 +239,6 @@ function renderAll(user) {
   renderMembers(user);
   renderDataStatus();
   renderAppInfo();
-}
-
-function escapeHtml(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
 }
 
 function startSyncStatusTimer() {

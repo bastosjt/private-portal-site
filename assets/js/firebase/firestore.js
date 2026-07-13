@@ -14,6 +14,16 @@ import {
 
 const CUSTOM_OPTIONS_COLLECTION = 'customOptions';
 
+const IMMUTABLE_ITEM_FIELDS = ['createdBy', 'userId', 'createdAt'];
+
+function stripImmutableItemFields(data) {
+  const sanitized = { ...data };
+  for (const key of IMMUTABLE_ITEM_FIELDS) {
+    delete sanitized[key];
+  }
+  return sanitized;
+}
+
 export async function fetchAllItems(collectionName) {
   try {
     const q = query(
@@ -33,6 +43,7 @@ export async function addItem(collectionName, data, userId) {
   const payload = {
     ...data,
     userId,
+    createdBy: userId,
     createdAt: now,
     updatedAt: now,
   };
@@ -44,7 +55,7 @@ export async function addItem(collectionName, data, userId) {
 export async function updateItem(collectionName, id, data) {
   const ref = doc(db, collectionName, id);
   await updateDoc(ref, {
-    ...data,
+    ...stripImmutableItemFields(data),
     updatedAt: Timestamp.now(),
   });
 }

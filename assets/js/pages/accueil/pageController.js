@@ -1,48 +1,59 @@
 import { COUPLE_START_DATE, HOME_CATEGORIES, getCategoryById, getUserDisplayName } from '../../config.js';
 import {
   ensurePrefetch,
-  getCollectionCountFromCache,
-  getRecentItemsFromCache,
-  getWeekItemsCountFromCache,
   findCachedItemById,
+  getGeolocatedPlacesFromCache,
+  countGeolocatedPlacesFromCache,
+  getCachedItems,
+  getWeekItemsCountFromCache,
+  getCollectionCountFromCache,
   ITEM_COLLECTIONS,
 } from '../../data/appDataCache.js';
-import { loadDailyPicks, getDisplayedLatestPick } from '../../firebase/dailyPicks.js';
+import {
+  loadDailyPicks,
+  getDisplayedLatestPick,
+} from '../../firebase/dailyPicks.js';
 import { initCustomOptions } from '../../lib/custom-types.js';
+import { sanitizeHttpsUrl } from '../../lib/safe-url.js';
+import { initActivityDetail } from '../../ui/activity-detail.js';
+import { initRestaurantDetail } from '../../ui/restaurant-detail.js';
+import { initMovieDetail } from '../../ui/movie-detail.js';
+import { initWishlistDetail } from '../../ui/wishlist-detail.js';
+import { initTravelDetail } from '../../ui/travel-detail.js';
 import { sidebarIcon } from '../../ui/sidebar.js';
 import { initAddItem } from '../../ui/add-item.js';
 
 const COLLECTION_IDS = ITEM_COLLECTIONS;
-const DAILY_PICK_SCOPES = {
-  activities: 'activities',
-  restaurants: 'restaurants',
-  movies: 'movies',
+const PICK_SCOPES = ['activities', 'restaurants', 'movies'];
+const PICK_CATEGORIES = [
+  { scope: 'activities', categoryId: 'activities' },
+  { scope: 'restaurants', categoryId: 'restaurants' },
+  { scope: 'movies', categoryId: 'movies' },
+];
+
+const DETAIL_INIT = {
+  activities: (opts) => initActivityDetail({ ...opts, theme: getCategoryById('activities')?.theme || 'cyan' }),
+  restaurants: (opts) => initRestaurantDetail({ ...opts, theme: getCategoryById('restaurants')?.theme || 'rose' }),
+  movies: (opts) => initMovieDetail({ ...opts, theme: getCategoryById('movies')?.theme || 'violet' }),
+  travels: (opts) => initTravelDetail({ ...opts, theme: getCategoryById('travels')?.theme || 'blue' }),
+  wishlist: (opts) => initWishlistDetail({ ...opts, theme: getCategoryById('wishlist')?.theme || 'pink' }),
 };
+
 let currentUserName = '';
 let addItemModal = null;
 let homeAbort = null;
+let detailModals = {};
 
-function onAddCategoryClick(event) {
-  const trigger = event.target.closest('[data-add-category]');
-  if (!trigger || !addItemModal) return;
-  event.preventDefault();
-  addItemModal.open(trigger.dataset.addCategory);
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
 
 function getItemTitle(item, titleKey) {
   return item[titleKey] || item.nom || item.titre || item.destination || 'Sans titre';
-}
-
-function renderRecentItem(item, titleKey) {
-  const title = getItemTitle(item, titleKey);
-  return `
-    <li>
-      <span class="cat-recent-item">
-        <span class="cat-recent-dot" aria-hidden="true"></span>
-        <span class="cat-recent-title">${escapeHtml(title)}</span>
-      </span>
-    </li>
-  `;
 }
 
 function getDaysTogether(startDateStr) {
@@ -92,44 +103,349 @@ function initPageHeader(total = null, weekCount = null) {
   }
 }
 
-function escapeHtml(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+const SHORTCUT_CATEGORIES = [
+  { categoryId: 'activities', getLabel: () => 'On fait quoi aujourd\'hui ?' },
+  { categoryId: 'restaurants', getLabel: getMealCtaLabel },
+  { categoryId: 'movies', getLabel: getMovieCtaLabel },
+];
+
+function getMealCtaLabel() {
+  const hour = new Date().getHours();
+  if (hour >= 22) return 'On mange quoi demain ?';
+  if (hour >= 14) return 'On mange quoi ce soir ?';
+  if (hour >= 6) return 'On mange quoi ce midi ?';
+  return 'On mange quoi à midi ?';
 }
 
-function renderStatsSkeleton() {
-  return Array.from({ length: HOME_CATEGORIES.length }, () => `
-    <div class="skel-stat" aria-hidden="true">
-      <div class="skel-block skel-block--icon skel-shimmer"></div>
-      <div class="skel-block skel-block--value skel-shimmer"></div>
-      <div class="skel-block skel-block--label skel-shimmer"></div>
-    </div>
+function getMovieCtaLabel() {
+  const hour = new Date().getHours();
+  if (hour >= 22) return 'On regarde quoi demain ?';
+  return 'On regarde quoi ce soir ?';
+}
+
+function getPickListEntries() {
+  const entries = [];
+
+  for (const { scope, categoryId } of PICK_CATEGORIES) {
+    const cat = getCategoryById(categoryId);
+    if (!cat) continue;
+
+    const displayed = getDisplayedLatestPick(scope);
+    if (!displayed?.id) continue;
+
+    const item = findCachedItemById(categoryId, displayed.id);
+    if (item) {
+      entries.push({ categoryId, category: cat, item });
+    }
+  }
+
+  return entries;
+}
+
+function buildPicksSubtitle(count) {
+  if (count === 0) return 'Aucune pioche enregistrée';
+  if (count === 1) return '1 pioche';
+  return `${count} pioches`;
+}
+
+function countTodoItems(categoryId) {
+  return (getCachedItems(categoryId) ?? []).filter((item) => !item.done).length;
+}
+
+function buildShortcutsSubtitle() {
+  const total = SHORTCUT_CATEGORIES.reduce((sum, { categoryId }) => sum + countTodoItems(categoryId), 0);
+  if (total === 0) return 'Ajoutez vos premières idées';
+  if (total === 1) return '1 idée à explorer';
+  return `${total} idées à explorer`;
+}
+
+function getMapsUrl(item, categoryId) {
+  if (categoryId === 'restaurants') {
+    const safeLienMaps = sanitizeHttpsUrl(item.lienMaps);
+    if (safeLienMaps) return safeLienMaps;
+    if (item.latitude != null && item.longitude != null) {
+      return `https://www.google.com/maps/search/?api=1&query=${item.latitude},${item.longitude}`;
+    }
+    if (item.adresse) {
+      return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.adresse)}`;
+    }
+    return null;
+  }
+
+  if (item.latitude != null && item.longitude != null) {
+    return `https://www.google.com/maps/search/?api=1&query=${item.latitude},${item.longitude}`;
+  }
+
+  const location = item.localisation || item.adresse;
+  if (location) {
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`;
+  }
+
+  return null;
+}
+
+function renderTodaySkeleton() {
+  return Array.from({ length: 2 }, () => `
+    <li class="home-pick-item home-pick-item--skeleton" aria-hidden="true">
+      <div class="skel-block skel-block--pick-icon skel-shimmer"></div>
+      <div class="home-pick-copy">
+        <div class="skel-block skel-block--pick-cat skel-shimmer"></div>
+        <div class="skel-block skel-block--pick-title skel-shimmer"></div>
+      </div>
+      <div class="skel-block skel-block--pick-detail skel-shimmer"></div>
+    </li>
   `).join('');
 }
 
-function renderRecentSkeleton() {
-  return Array.from({ length: HOME_CATEGORIES.length }, () => `
-    <div class="skel-panel" aria-hidden="true">
-      <div class="skel-panel-head">
-        <div class="skel-block skel-block--panel-icon skel-shimmer"></div>
-        <div class="skel-panel-head-text">
-          <div class="skel-block skel-block--panel-title skel-shimmer"></div>
-          <div class="skel-block skel-block--panel-meta skel-shimmer"></div>
+function renderNearbySkeleton() {
+  return `
+    <div class="home-nearby-map skel-block skel-shimmer" aria-hidden="true"></div>
+    <div class="home-nearby-places" aria-hidden="true">
+      ${Array.from({ length: 3 }, () => `
+        <div class="home-nearby-place home-nearby-place--skeleton">
+          <div class="skel-block skel-block--nearby-icon skel-shimmer"></div>
+          <div class="home-nearby-place-copy">
+            <div class="skel-block skel-block--nearby-title skel-shimmer"></div>
+            <div class="skel-block skel-block--nearby-loc skel-shimmer"></div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function renderPickItem({ categoryId, category, item }, index) {
+  const title = getItemTitle(item, category.titleKey);
+  const shortLabel = category.label.replace(' & Séries', '');
+
+  return `
+    <li
+      class="home-pick-item"
+      data-theme="${category.theme}"
+      style="animation-delay: ${index * 40}ms"
+    >
+      <span class="home-pick-icon" aria-hidden="true">${sidebarIcon(category.icon)}</span>
+      <div class="home-pick-copy">
+        <span class="home-pick-cat">${escapeHtml(shortLabel)}</span>
+        <span class="home-pick-title">${escapeHtml(title)}</span>
+      </div>
+      <button
+        type="button"
+        class="home-pick-detail"
+        data-category-id="${categoryId}"
+        data-item-id="${escapeHtml(item.id)}"
+        aria-label="Voir le détail de ${escapeHtml(title)}"
+      >
+        Détail
+      </button>
+    </li>
+  `;
+}
+
+function renderTodaySection() {
+  const inner = document.getElementById('home-today-inner');
+  const subEl = document.getElementById('home-today-sub');
+  if (!inner) return;
+
+  if (inner.classList.contains('is-loading')) {
+    inner.innerHTML = `<ul class="home-picks-list">${renderTodaySkeleton()}</ul>`;
+    return;
+  }
+
+  const entries = getPickListEntries();
+
+  if (subEl) {
+    subEl.textContent = buildPicksSubtitle(entries.length);
+  }
+
+  if (!entries.length) {
+    inner.innerHTML = `
+      <div class="home-picks-empty">
+        <p>Aucune pioche pour l'instant</p>
+        <span class="home-picks-empty-hint">Tirez le dé depuis Activités, Restaurants ou Films</span>
+        <div class="home-picks-empty-links">
+          <a href="#activites" class="home-picks-empty-link" data-theme="cyan">Activités</a>
+          <a href="#restaurants" class="home-picks-empty-link" data-theme="rose">Restaurants</a>
+          <a href="#films" class="home-picks-empty-link" data-theme="violet">Films</a>
         </div>
       </div>
-      <div class="skel-block skel-block--line skel-shimmer"></div>
-      <div class="skel-block skel-block--line skel-shimmer"></div>
-      <div class="skel-block skel-block--line skel-block--line-short skel-shimmer"></div>
+    `;
+    return;
+  }
+
+  inner.innerHTML = `
+    <ul class="home-picks-list" role="list">
+      ${entries.map((entry, index) => renderPickItem(entry, index)).join('')}
+    </ul>
+  `;
+}
+
+function renderNearbySection() {
+  const inner = document.getElementById('home-nearby-inner');
+  const subEl = document.getElementById('home-nearby-sub');
+  if (!inner) return;
+
+  if (inner.classList.contains('is-loading')) {
+    inner.innerHTML = renderNearbySkeleton();
+    return;
+  }
+
+  const totalPlaces = countGeolocatedPlacesFromCache();
+  const places = getGeolocatedPlacesFromCache(4);
+
+  if (subEl) {
+    if (totalPlaces === 0) subEl.textContent = 'Aucun lieu enregistré';
+    else if (totalPlaces === 1) subEl.textContent = '1 lieu enregistré';
+    else subEl.textContent = `${totalPlaces} lieux enregistrés`;
+  }
+
+  const mapPlaceholder = `
+    <div class="home-nearby-map">
+      <div class="act-map-placeholder home-nearby-map-placeholder">
+        <span class="act-map-placeholder-icon" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z"/>
+            <path d="M15 5.764v15"/><path d="M9 3.236v15"/>
+          </svg>
+        </span>
+        <p class="act-map-placeholder-title">Carte bientôt disponible</p>
+        <p class="act-map-placeholder-text">Vos lieux s'afficheront ici sur une carte interactive.</p>
+      </div>
     </div>
-  `).join('');
+  `;
+
+  if (!places.length) {
+    inner.innerHTML = mapPlaceholder;
+    return;
+  }
+
+  const placesHtml = places.map(({ categoryId, item, title, location }) => {
+    const cat = getCategoryById(categoryId);
+    const theme = cat?.theme || 'base';
+    const mapsUrl = getMapsUrl(item, categoryId);
+    const tag = cat?.label?.replace(' & Séries', '') || 'Lieu';
+
+    return `
+      <a
+        href="${mapsUrl || cat?.href || '#'}"
+        class="home-nearby-place"
+        data-theme="${theme}"
+        ${mapsUrl ? 'target="_blank" rel="noopener noreferrer"' : ''}
+        aria-label="Ouvrir ${escapeHtml(title)} sur la carte"
+      >
+        <span class="home-nearby-place-icon" aria-hidden="true">${sidebarIcon(cat?.icon || 'activity')}</span>
+        <span class="home-nearby-place-copy">
+          <span class="home-nearby-place-tag">${escapeHtml(tag)}</span>
+          <span class="home-nearby-place-title">${escapeHtml(title)}</span>
+          ${location ? `<span class="home-nearby-place-loc">${escapeHtml(location)}</span>` : ''}
+        </span>
+        ${mapsUrl ? `
+          <span class="home-nearby-place-arrow" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+            </svg>
+          </span>
+        ` : ''}
+      </a>
+    `;
+  }).join('');
+
+  inner.innerHTML = `
+    ${mapPlaceholder}
+    <div class="home-nearby-places" role="list">
+      ${placesHtml}
+    </div>
+  `;
+}
+
+function renderShortcutsSection() {
+  const shortcutsEl = document.getElementById('home-shortcuts');
+  const subEl = document.getElementById('home-shortcuts-sub');
+  if (!shortcutsEl) return;
+
+  if (subEl) {
+    subEl.textContent = buildShortcutsSubtitle();
+  }
+
+  shortcutsEl.innerHTML = SHORTCUT_CATEGORIES.map(({ categoryId, getLabel }) => {
+    const cat = getCategoryById(categoryId);
+    if (!cat) return '';
+
+    const todoCount = countTodoItems(categoryId);
+    const countLabel = todoCount === 1
+      ? '1 idée'
+      : todoCount > 1
+        ? `${todoCount} idées`
+        : 'Aucune idée';
+
+    return `
+      <a href="${cat.href}" class="home-shortcut" data-theme="${cat.theme}">
+        <span class="home-shortcut-icon" aria-hidden="true">${sidebarIcon(cat.icon)}</span>
+        <span class="home-shortcut-copy">
+          <span class="home-shortcut-label">${escapeHtml(getLabel())}</span>
+          <span class="home-shortcut-meta">${escapeHtml(countLabel)}</span>
+        </span>
+        <span class="home-shortcut-arrow" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m9 18 6-6-6-6"/>
+          </svg>
+        </span>
+      </a>
+    `;
+  }).join('');
+}
+
+function renderExplorerSection() {
+  const explorerEl = document.getElementById('home-explorer');
+  if (!explorerEl) return;
+
+  explorerEl.innerHTML = HOME_CATEGORIES.map((cat) => {
+    const count = getCollectionCountFromCache(cat.id);
+    return `
+      <a href="${cat.href}" class="cat-card cat-card--stat" data-theme="${cat.theme}">
+        <div class="cat-card-inner">
+          <span class="cat-card-glow" aria-hidden="true"></span>
+          <span class="cat-card-icon" aria-hidden="true">${sidebarIcon(cat.icon)}</span>
+          <span class="cat-card-value">${count}</span>
+          <span class="cat-card-label">${escapeHtml(cat.label)}</span>
+        </div>
+      </a>
+    `;
+  }).join('');
+}
+
+function initDetailModals() {
+  const onChanged = () => loadHomeData();
+
+  for (const [categoryId, initFn] of Object.entries(DETAIL_INIT)) {
+    detailModals[categoryId]?.destroy?.();
+    detailModals[categoryId] = initFn({ onChanged });
+  }
+}
+
+function destroyDetailModals() {
+  Object.values(detailModals).forEach((modal) => modal?.destroy?.());
+  detailModals = {};
+}
+
+function openItemDetail(categoryId, itemId) {
+  const item = findCachedItemById(categoryId, itemId);
+  const modal = detailModals[categoryId];
+  if (!item || !modal) return;
+  modal.open(item);
+}
+
+function onHomeClick(event) {
+  const detailBtn = event.target.closest('.home-pick-detail[data-item-id]');
+  if (!detailBtn) return;
+  event.preventDefault();
+  openItemDetail(detailBtn.dataset.categoryId, detailBtn.dataset.itemId);
 }
 
 export function destroyHomePage() {
   homeAbort?.abort();
   homeAbort = null;
+  destroyDetailModals();
 }
 
 export async function initHomePage(user, { addItemModal: sharedModal } = {}) {
@@ -140,10 +456,19 @@ export async function initHomePage(user, { addItemModal: sharedModal } = {}) {
 
   currentUserName = getUserDisplayName(user);
   addItemModal = sharedModal ?? initAddItem({ user, onAdded: () => loadHomeData() });
+  initDetailModals();
   initPageHeader();
   renderDaysCounter();
-  renderHomeHub();
-  document.addEventListener('click', onAddCategoryClick, { signal });
+
+  const todayInner = document.getElementById('home-today-inner');
+  const nearbyInner = document.getElementById('home-nearby-inner');
+
+  if (todayInner && !todayInner.innerHTML) {
+    todayInner.innerHTML = `<ul class="home-picks-list">${renderTodaySkeleton()}</ul>`;
+  }
+  if (nearbyInner && !nearbyInner.innerHTML) nearbyInner.innerHTML = renderNearbySkeleton();
+
+  document.addEventListener('click', onHomeClick, { signal });
   loadHomeData();
 }
 
@@ -160,7 +485,8 @@ function renderDaysCounter() {
     sinceEl.textContent = formatStartDate(COUPLE_START_DATE);
   }
   if (labelEl) {
-    labelEl.textContent = days <= 1 ? 'jour ensemble' : 'jours ensemble';
+    const unitEl = labelEl.querySelector('.days-stat-label-unit');
+    if (unitEl) unitEl.textContent = days <= 1 ? 'jour' : 'jours';
   }
 }
 
@@ -179,173 +505,26 @@ function animateCount(el, target) {
   requestAnimationFrame(step);
 }
 
-function getMealCtaLabel() {
-  const hour = new Date().getHours();
-  if (hour >= 22) return 'On mange quoi demain ?';
-  if (hour >= 14) return 'On mange quoi ce soir ?';
-  if (hour >= 6) return 'On mange quoi ce midi ?';
-  return 'On mange quoi à midi ?';
-}
-
-function getMovieCtaLabel() {
-  const hour = new Date().getHours();
-  if (hour >= 22) return 'On regarde quoi demain ?';
-  return 'On regarde quoi ce soir ?';
-}
-
-function getTravelCtaLabel() {
-  return 'On part où en vacances ?';
-}
-
-function getPickPeriodLabel(period = 'today') {
-  if (period === 'yesterday') return 'Pioche d\'hier';
-  if (period === 'recent') return 'Dernière pioche';
-  return 'Pioche du jour';
-}
-
-function renderDailyPick(cat, pickedItem, { period = 'today' } = {}) {
-  if (!pickedItem) return '';
-
-  const title = getItemTitle(pickedItem, cat.titleKey);
-  const periodLabel = getPickPeriodLabel(period);
-  return `
-    <a href="${cat.href}" class="pick-snippet${period !== 'today' ? ' pick-snippet--yesterday' : ''}" data-theme="${cat.theme}">
-      <span class="pick-snippet-icon" aria-hidden="true">${sidebarIcon(cat.icon)}</span>
-      <span class="pick-snippet-copy">
-        <span class="pick-snippet-label">${periodLabel}</span>
-        <span class="pick-snippet-name">${escapeHtml(title)}</span>
-      </span>
-    </a>
-  `;
-}
-
-function renderHomeHub() {
-  const hubEl = document.getElementById('home-hub');
-  if (!hubEl) return;
-
-  const activitiesCat = getCategoryById('activities');
-  const restaurantsCat = getCategoryById('restaurants');
-  const moviesCat = getCategoryById('movies');
-  const travelsCat = getCategoryById('travels');
-  const activitiesTheme = activitiesCat?.theme || 'cyan';
-  const restaurantsTheme = restaurantsCat?.theme || 'rose';
-  const moviesTheme = moviesCat?.theme || 'violet';
-  const travelsTheme = travelsCat?.theme || 'blue';
-  const restaurantsHref = restaurantsCat?.href || '#restaurants';
-  const moviesHref = moviesCat?.href || '#films';
-  const travelsHref = travelsCat?.href || '#voyages';
-
-  hubEl.innerHTML = `
-    <a href="#activites" class="home-hub-cta" data-theme="${activitiesTheme}">
-      <span class="home-hub-cta-icon" aria-hidden="true">${sidebarIcon('activity')}</span>
-      <span class="home-hub-cta-text">On fait quoi aujourd'hui ?</span>
-    </a>
-    <a href="${restaurantsHref}" class="home-hub-cta" data-theme="${restaurantsTheme}">
-      <span class="home-hub-cta-icon" aria-hidden="true">${sidebarIcon('restaurant')}</span>
-      <span class="home-hub-cta-text">${escapeHtml(getMealCtaLabel())}</span>
-    </a>
-    <a href="${moviesHref}" class="home-hub-cta" data-theme="${moviesTheme}">
-      <span class="home-hub-cta-icon" aria-hidden="true">${sidebarIcon('film')}</span>
-      <span class="home-hub-cta-text">${escapeHtml(getMovieCtaLabel())}</span>
-    </a>
-    <a href="${travelsHref}" class="home-hub-cta" data-theme="${travelsTheme}">
-      <span class="home-hub-cta-icon" aria-hidden="true">${sidebarIcon('travel')}</span>
-      <span class="home-hub-cta-text">${escapeHtml(getTravelCtaLabel())}</span>
-    </a>
-  `;
-}
-
 async function loadHomeData() {
   await initCustomOptions();
   await ensurePrefetch();
 
-  const statsEl = document.getElementById('stats-grid');
-  const recentEl = document.getElementById('recent-sections');
+  await Promise.all(PICK_SCOPES.map((scope) => loadDailyPicks(scope)));
 
-  await Promise.all(Object.values(DAILY_PICK_SCOPES).map((scope) => loadDailyPicks(scope)));
-
-  const counts = HOME_CATEGORIES.map((cat) => ({
-    ...cat,
-    count: getCollectionCountFromCache(cat.id),
-  }));
-
-  const recents = HOME_CATEGORIES.map((cat) => ({
-    ...cat,
-    items: getRecentItemsFromCache(cat.id, 4),
-  }));
-
+  const total = COLLECTION_IDS.reduce((sum, id) => sum + getCollectionCountFromCache(id), 0);
   const weekCount = getWeekItemsCountFromCache(COLLECTION_IDS);
-
-  const pickedByCategory = {};
-  const pickMetaByCategory = {};
-  for (const [categoryId, scope] of Object.entries(DAILY_PICK_SCOPES)) {
-    const displayed = getDisplayedLatestPick(scope);
-    if (!displayed?.id) continue;
-
-    pickMetaByCategory[categoryId] = displayed;
-    pickedByCategory[categoryId] = findCachedItemById(categoryId, displayed.id);
-  }
-
-  const total = counts.reduce((sum, cat) => sum + cat.count, 0);
   initPageHeader(total, weekCount);
 
-  const totalEl = document.getElementById('stats-total');
-  if (totalEl) totalEl.textContent = total;
+  const todayInner = document.getElementById('home-today-inner');
+  const nearbyInner = document.getElementById('home-nearby-inner');
 
-  if (statsEl) {
-    statsEl.innerHTML = counts.map((cat) => `
-      <a href="${cat.href}" class="cat-card cat-card--stat" data-theme="${cat.theme}">
-        <div class="cat-card-inner">
-          <span class="cat-card-glow" aria-hidden="true"></span>
-          <span class="cat-card-icon">${sidebarIcon(cat.icon)}</span>
-          <span class="cat-card-value">${cat.count}</span>
-          <span class="cat-card-label">${cat.label}</span>
-        </div>
-      </a>
-    `).join('');
-    statsEl.classList.remove('is-loading');
-  }
+  todayInner?.classList.remove('is-loading');
+  nearbyInner?.classList.remove('is-loading');
 
-  if (recentEl) {
-    const countMap = Object.fromEntries(counts.map((c) => [c.id, c.count]));
-
-    recentEl.innerHTML = recents.map((cat, index) => {
-      const count = countMap[cat.id] ?? 0;
-      const itemsHtml = cat.items.length
-        ? `<ul class="cat-recent-list">${cat.items.map((item) => renderRecentItem(item, cat.titleKey)).join('')}</ul>`
-        : `<div class="cat-recent-empty">
-            <span class="cat-recent-empty-icon">${sidebarIcon(cat.icon)}</span>
-            <p>Rien pour l'instant</p>
-            <button type="button" class="cat-empty-cta" data-add-category="${cat.id}">
-              ${escapeHtml(cat.addLabel)}
-            </button>
-          </div>`;
-
-      return `
-        <section class="cat-panel${cat.items.length ? '' : ' cat-panel--empty'}" data-theme="${cat.theme}" style="animation-delay: ${index * 60}ms">
-          <div class="cat-panel-inner">
-            <a href="${cat.href}" class="cat-panel-hit" aria-label="Voir ${escapeHtml(cat.label)}"></a>
-            <span class="cat-panel-accent" aria-hidden="true"></span>
-            <div class="cat-panel-head">
-              <div class="cat-panel-title">
-                <span class="cat-panel-icon">${sidebarIcon(cat.icon)}</span>
-                <div>
-                  <h3>${cat.label}</h3>
-                  <p>${count} idée${count !== 1 ? 's' : ''}</p>
-                </div>
-              </div>
-              <span class="cat-panel-link">Voir tout</span>
-            </div>
-            ${itemsHtml}
-            ${renderDailyPick(cat, pickedByCategory[cat.id], {
-              period: pickMetaByCategory[cat.id]?.period,
-            })}
-          </div>
-        </section>
-      `;
-    }).join('');
-    recentEl.classList.remove('is-loading');
-  }
+  renderTodaySection();
+  renderNearbySection();
+  renderShortcutsSection();
+  renderExplorerSection();
 }
 
 export function refreshHomePage() {

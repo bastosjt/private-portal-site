@@ -105,6 +105,31 @@ export function getPartnerBadgeLabel(viewerUid) {
   return getPartnerNickname(viewerUid) || DEFAULT_PARTNER_NICKNAME_LABEL;
 }
 
+export function getItemAuthorDisplayLabel(authorUid, viewerUid) {
+  if (!authorUid) return '';
+  if (viewerUid && authorUid === viewerUid) return 'Vous';
+  if (viewerUid && authorUid === getPartnerUid(viewerUid)) {
+    return getPartnerBadgeLabel(viewerUid);
+  }
+  return getDisplayNameForUid(authorUid) || 'Inconnu';
+}
+
+export function getItemAuthorHeadline(authorUid) {
+  if (!authorUid) return '';
+  const name = getDisplayNameForUid(authorUid) || 'Inconnu';
+  const parts = name.split(/\s+/).filter(Boolean);
+  return parts[0] || name;
+}
+
+export function getItemAuthorAriaLabel(authorUid, viewerUid) {
+  const headline = getItemAuthorHeadline(authorUid);
+  const relational = getItemAuthorDisplayLabel(authorUid, viewerUid);
+  if (!headline && !relational) return '';
+  if (relational === 'Vous') return `Ajouté par ${headline}, vous`;
+  if (relational && relational !== headline) return `Ajouté par ${headline}, ${relational}`;
+  return `Ajouté par ${headline}`;
+}
+
 export function getDisplayNameForUid(uid, { email = '' } = {}) {
   if (!uid) return '';
   const profile = getCachedProfile(uid);
