@@ -4,26 +4,25 @@ export const COUPLE_START_DATE = '2026-06-27';
 /** Nom affiché dans l'onglet, le menu et l'icône d'installation */
 export const APP_NAME = 'Our Space';
 export const APP_TAGLINE = 'À nous deux';
-export const APP_VERSION = '1.0.0';
+export const APP_VERSION = '1.6.3';
 
-/** Prénoms affichés — clé = uid Firebase */
-export const USER_DISPLAY_NAMES = {
-  fiiTfAA6tWRWSiIi9mhni91XU2y1: 'Bastien',
-  by7lDskaTvPBOqEg3OOBXw0GWWw1: 'Louis',
-};
-
-export function getUserDisplayName(user) {
-  if (!user) return '';
-  if (USER_DISPLAY_NAMES[user.uid]) return USER_DISPLAY_NAMES[user.uid];
-
-  const local = user.email?.split('@')[0] || '';
-  const part = local.split(/[._-]/)[0] || local;
-  if (!part) return '';
-  return part.charAt(0).toUpperCase() + part.slice(1);
+export function renderVersionBadgeHtml(version = APP_VERSION) {
+  return `<span class="version-badge"><span class="version-badge-text">${version}</span></span>`;
 }
 
-/** Thème accueil — couleurs dans assets/css/themes.css [data-theme="base"] */
+export {
+  USER_DISPLAY_NAMES,
+  getUserDisplayName,
+} from './lib/user-profile.js';
+
+/** Thème accueil & paramètres — gris lilas, neutre et distinct du cyan/bleu */
 export const BASE_THEME = 'base';
+
+/** Thème carte interactive — vert */
+export const MAP_THEME = 'emerald';
+export const MAP_ACCENT = '#22C55E';
+
+export const SETTINGS_THEME = BASE_THEME;
 
 export const NAV_ITEMS = [
   {
@@ -31,6 +30,13 @@ export const NAV_ITEMS = [
     label: 'Accueil',
     href: '#accueil',
     icon: 'home',
+  },
+  {
+    id: 'carte',
+    label: 'Carte interactive',
+    href: '#carte',
+    icon: 'map',
+    theme: 'emerald',
   },
   {
     id: 'activites',
@@ -68,6 +74,13 @@ export const NAV_ITEMS = [
     theme: 'pink',
   },
 ];
+
+export const SETTINGS_ITEM = {
+  id: 'parametres',
+  label: 'Paramètres',
+  href: '#parametres',
+  icon: 'settings',
+};
 
 export const HOME_CATEGORIES = [
   {
@@ -137,6 +150,7 @@ export const HOME_CATEGORIES = [
     modalTitle: 'Nouveau voyage',
     fields: [
       { name: 'destination', label: 'Destination', type: 'text', required: true, placeholder: 'Ex. Lisbonne' },
+      { name: 'localisation', label: 'Lieu sur la carte', type: 'address', placeholder: 'Ex. Lisbonne, Portugal…', fills: { pays: 'country' } },
       { name: 'type', label: 'Type', type: 'select', allowCustom: true },
       { name: 'pays', label: 'Pays', type: 'text', placeholder: 'Ex. Portugal' },
       { name: 'budget', label: 'Budget estimé', type: 'text', placeholder: 'Ex. 800' },

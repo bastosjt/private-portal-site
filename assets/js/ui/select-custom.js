@@ -3,8 +3,8 @@ import {
   addCustomOption,
   getCategoryFieldOptions,
   getStorageKey,
+  initCustomOptions,
   makeUniqueValue,
-  reloadCustomOptions,
   slugifyLabel,
 } from '../lib/custom-types.js';
 import { formatOptionLabel, sortOptionsByLabel } from '../lib/options-labels.js';
@@ -184,7 +184,7 @@ function initCustomSelect(select, field, categoryId) {
 }
 
 export async function initFormSelectFields(form, category) {
-  await reloadCustomOptions();
+  await initCustomOptions();
 
   const cleanups = [];
 

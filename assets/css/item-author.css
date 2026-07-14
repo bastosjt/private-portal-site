@@ -1,0 +1,123 @@
+/* ── Auteur d'un élément (détail uniquement) ── */
+
+.item-author--detail {
+  margin-top: -2px;
+}
+
+.item-author-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  background: var(--bg);
+  border: 1px solid color-mix(in srgb, var(--cat-border) 45%, transparent);
+  box-shadow: var(--neu-in);
+}
+
+.item-author-label {
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--cat-color);
+  line-height: 1.2;
+}
+
+.item-author-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  width: 100%;
+}
+
+.item-author-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--text-secondary);
+  background: var(--surface);
+  box-shadow: var(--neu-up-sm);
+  flex-shrink: 0;
+  align-self: center;
+}
+
+.item-author-avatar:not(.has-animal) {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--cat-soft) 55%, var(--surface)) 0%, var(--surface) 100%);
+  color: var(--cat-color);
+}
+
+.item-author-avatar.has-animal {
+  border-radius: 50%;
+}
+
+.item-author-avatar.has-animal svg {
+  width: 20px;
+  height: 20px;
+}
+
+.item-author-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.item-author-headline {
+  font-size: 0.94rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.item-author-name {
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--text-secondary);
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 540px) {
+  .item-author-card {
+    padding: 12px 14px;
+    gap: 8px;
+  }
+
+  .item-author-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 11px;
+  }
+
+  .item-author-avatar.has-animal svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .item-author-headline {
+    font-size: 0.88rem;
+  }
+
+  .item-author-name {
+    font-size: 0.76rem;
+  }
+}

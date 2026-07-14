@@ -2,28 +2,38 @@ import { auth } from './firebase/config.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js';
 import { login, logout } from './auth/login.js';
 import { isAllowedUser } from './auth/session.js';
-import { NAV_ITEMS, APP_NAME, APP_VERSION } from './config.js';
+import { NAV_ITEMS, APP_NAME, APP_VERSION, SETTINGS_ITEM, renderVersionBadgeHtml } from './config.js';
 import { initRouter, navigate } from './navigation/router.js';
 import { renderSidebar, initSidebar, updateSidebarActive } from './ui/sidebar.js';
 import { initAddItem } from './ui/add-item.js';
 import { waitForTransition, nextFrame } from './lib/transitions.js';
+import { initSplash, dismissSplash } from './ui/splash.js';
+import { prefetchAppData, clearAppDataCache, scheduleBackgroundRefreshIfNeeded, onSecondaryPrefetchDone } from './data/appDataCache.js';
+import { initUserProfiles, clearUserProfilesCache } from './lib/user-profile.js';
+import { initSpaceSettings, clearSpaceSettingsCache } from './lib/space-settings.js';
+import { initUserLocationAtLaunch, clearUserLocationState } from './lib/user-location.js';
+import { debounce } from './lib/debounce.js';
 import { init as initAccueil, destroy as destroyAccueil, refresh as refreshAccueil, HOME_VIEW_HTML } from './pages/accueil/index.js';
-import { initCustomOptions, reloadCustomOptions } from './lib/custom-types.js';
+import { initCustomOptions } from './lib/custom-types.js';
 import { startDailyPickMidnightReset } from './firebase/dailyPicks.js';
 import { init as initActivites, destroy as destroyActivites, refresh as refreshActivites, ACTIVITIES_VIEW_HTML } from './pages/activites/index.js';
 import { init as initRestaurants, destroy as destroyRestaurants, refresh as refreshRestaurants, RESTAURANTS_VIEW_HTML } from './pages/restaurants/index.js';
 import { init as initFilms, destroy as destroyFilms, refresh as refreshFilms, FILMS_VIEW_HTML } from './pages/films/index.js';
 import { init as initWishlist, destroy as destroyWishlist, refresh as refreshWishlist, WISHLIST_VIEW_HTML } from './pages/wishlist/index.js';
 import { init as initVoyages, destroy as destroyVoyages, refresh as refreshVoyages, VOYAGES_VIEW_HTML } from './pages/voyages/index.js';
+import { init as initCarte, destroy as destroyCarte, refresh as refreshCarte, MAP_VIEW_HTML } from './pages/carte/index.js';
+import { init as initParametres, destroy as destroyParametres, refresh as refreshParametres, SETTINGS_VIEW_HTML } from './pages/parametres/index.js';
 import { getPlaceholderViewHtml } from './navigation/placeholder.js';
 
 const PAGE_TITLES = {
   accueil: 'Accueil',
+  carte: 'Carte interactive',
   activites: 'Activités',
   restaurants: 'Restaurants',
   films: 'Films & Séries',
   voyages: 'Voyages',
   wishlist: 'Wishlist',
+  parametres: 'Paramètres',
 };
 
 let currentUser = null;
@@ -33,6 +43,14 @@ let stopRouter = null;
 let sidebarInitialized = false;
 let pageTransitionToken = 0;
 let stopDailyPickReset = null;
+let splashActive = true;
+let splashHandling = false;
+let tabHiddenAt = null;
+let resolveBootMount;
+const bootMountDone = new Promise((resolve) => {
+  resolveBootMount = resolve;
+});
+let bootMountResolved = false;
 
 const PAGE_TRANSITION_MS = 300;
 
@@ -41,6 +59,12 @@ const appView = document.getElementById('app-view');
 const pageRoot = document.getElementById('page-root');
 const sidebarRoot = document.getElementById('sidebar-root');
 
+function markBootMountDone() {
+  if (bootMountResolved) return;
+  bootMountResolved = true;
+  resolveBootMount?.();
+}
+
 function setPageTitle(routeId) {
   const label = PAGE_TITLES[routeId] || APP_NAME;
   document.title = `${label} — ${APP_NAME}`;
@@ -48,22 +72,28 @@ function setPageTitle(routeId) {
 
 function destroyCurrentView() {
   destroyAccueil();
+  destroyCarte();
   destroyActivites();
   destroyRestaurants();
   destroyFilms();
   destroyWishlist();
   destroyVoyages();
+  destroyParametres();
 }
 
-function refreshCurrentView() {
+function refreshCurrentViewNow() {
   if (currentRoute === 'accueil') return refreshAccueil();
+  if (currentRoute === 'carte') return refreshCarte();
   if (currentRoute === 'activites') return refreshActivites();
   if (currentRoute === 'restaurants') return refreshRestaurants();
   if (currentRoute === 'films') return refreshFilms();
   if (currentRoute === 'wishlist') return refreshWishlist();
   if (currentRoute === 'voyages') return refreshVoyages();
+  if (currentRoute === 'parametres') return refreshParametres();
   return undefined;
 }
+
+const refreshCurrentView = debounce(refreshCurrentViewNow, 250);
 
 function ensureSharedAddItem(user) {
   if (addItemModal) return addItemModal;
@@ -77,12 +107,31 @@ function ensureSharedAddItem(user) {
   return addItemModal;
 }
 
+function syncStaleDataIfNeeded({ hiddenDurationMs = 0 } = {}) {
+  const refresh = scheduleBackgroundRefreshIfNeeded({ hiddenDurationMs });
+  if (!refresh) return;
+
+  refresh.then(() => {
+    if (currentUser) refreshCurrentView();
+  });
+}
+
+onSecondaryPrefetchDone(() => {
+  if (currentUser && !splashActive) refreshCurrentView();
+});
+
 async function mountRoute(routeId) {
-  if (!currentUser || !pageRoot) return;
+  if (!currentUser || !pageRoot) {
+    markBootMountDone();
+    return;
+  }
+
+  syncStaleDataIfNeeded();
 
   const token = ++pageTransitionToken;
   const hasContent = pageRoot.innerHTML.trim().length > 0;
 
+  try {
   if (hasContent) {
     pageRoot.classList.add('is-page-leaving');
     await waitForTransition(pageRoot, PAGE_TRANSITION_MS);
@@ -93,6 +142,7 @@ async function mountRoute(routeId) {
   currentRoute = routeId;
   setPageTitle(routeId);
   updateSidebarActive(routeId);
+  document.body.classList.toggle('route-no-fab', routeId === 'parametres' || routeId === 'carte');
 
   document.body.classList.toggle('app-page', true);
   document.body.classList.remove('auth-page');
@@ -114,6 +164,14 @@ async function mountRoute(routeId) {
     await finishPageEnter();
     if (token !== pageTransitionToken) return;
     await initAccueil(currentUser, { addItemModal: sharedModal });
+    return;
+  }
+
+  if (routeId === 'carte') {
+    pageRoot.innerHTML = MAP_VIEW_HTML;
+    await finishPageEnter();
+    if (token !== pageTransitionToken) return;
+    await initCarte(currentUser, { addItemModal: sharedModal });
     return;
   }
 
@@ -157,11 +215,34 @@ async function mountRoute(routeId) {
     return;
   }
 
+  if (routeId === 'parametres') {
+    pageRoot.innerHTML = SETTINGS_VIEW_HTML;
+    await finishPageEnter();
+    if (token !== pageTransitionToken) return;
+    initParametres(currentUser, {
+      onLogout: async () => {
+        await logout();
+        showAuthView();
+        window.location.hash = '';
+      },
+      onDataSynced: () => refreshCurrentView(),
+      onProfileUpdated: () => refreshCurrentView(),
+    });
+    return;
+  }
+
   pageRoot.innerHTML = getPlaceholderViewHtml(routeId);
   await finishPageEnter();
+  } finally {
+    markBootMountDone();
+  }
 }
 
-function showAuthView() {
+function showAuthView({ reveal = true } = {}) {
+  clearAppDataCache();
+  clearUserProfilesCache();
+  clearSpaceSettingsCache();
+  clearUserLocationState();
   destroyCurrentView();
   addItemModal?.destroy?.();
   addItemModal = null;
@@ -174,33 +255,43 @@ function showAuthView() {
   sidebarInitialized = false;
 
   document.body.classList.add('auth-page');
-  document.body.classList.remove('app-page');
-  authView?.classList.remove('hidden');
+  document.body.classList.remove('app-page', 'route-no-fab');
   appView?.classList.add('hidden');
-  document.title = `${APP_NAME}`;
+
+  if (reveal) {
+    authView?.classList.remove('hidden');
+    document.title = `${APP_NAME}`;
+  } else {
+    authView?.classList.add('hidden');
+  }
 }
 
-async function showAppView(user) {
+async function showAppView(user, { reveal = true, awaitData = false } = {}) {
   await initCustomOptions();
+  await initUserProfiles(user.uid);
+  await initSpaceSettings();
+  const prefetch = prefetchAppData();
+  if (awaitData) await prefetch;
+  if (!splashActive) void initUserLocationAtLaunch();
   currentUser = user;
   authView?.classList.add('hidden');
   appView?.classList.remove('hidden');
+
+  if (reveal) {
+    document.body.classList.add('app-page');
+    document.body.classList.remove('auth-page');
+  }
 
   stopDailyPickReset?.();
   stopDailyPickReset = startDailyPickMidnightReset(() => {
     refreshCurrentView();
   });
 
-  renderSidebar(sidebarRoot, { user, activeId: currentRoute || 'accueil' });
+  renderSidebar(sidebarRoot, { activeId: currentRoute || 'accueil' });
 
   if (!sidebarInitialized) {
     initSidebar({
       onNavigate: (routeId) => navigate(routeId),
-      onLogout: async () => {
-        await logout();
-        showAuthView();
-        window.location.hash = '';
-      },
     });
     sidebarInitialized = true;
   } else {
@@ -212,6 +303,37 @@ async function showAppView(user) {
       mountRoute(routeId);
     });
   }
+}
+
+async function finishSplashForApp() {
+  await Promise.all([bootMountDone, prefetchAppData()]);
+  document.body.classList.add('app-page');
+  document.body.classList.remove('auth-page');
+  await dismissSplash();
+  splashActive = false;
+  await initUserLocationAtLaunch();
+}
+
+async function finishSplashForAuth() {
+  showAuthView({ reveal: false });
+  await dismissSplash();
+  authView?.classList.remove('hidden');
+  document.title = `${APP_NAME}`;
+  splashActive = false;
+}
+
+async function handleInitialAuthState(user) {
+  if (user && isAllowedUser(user)) {
+    await showAppView(user, { reveal: false });
+    await finishSplashForApp();
+    return;
+  }
+
+  if (user && !isAllowedUser(user)) {
+    await logout();
+  }
+
+  await finishSplashForAuth();
 }
 
 function setupLoginForm() {
@@ -253,7 +375,7 @@ function setupLoginForm() {
         return;
       }
 
-      await showAppView(user);
+      await showAppView(user, { awaitData: true });
     } catch (err) {
       console.error(err.code, err.message);
 
@@ -276,11 +398,22 @@ function setupLoginForm() {
 }
 
 setupLoginForm();
+initSplash();
 
 const appVersionEl = document.getElementById('app-version');
-if (appVersionEl) appVersionEl.textContent = `v${APP_VERSION}`;
+if (appVersionEl) {
+  appVersionEl.innerHTML = renderVersionBadgeHtml(APP_VERSION);
+  appVersionEl.setAttribute('aria-label', `Version ${APP_VERSION}`);
+}
 
 onAuthStateChanged(auth, async (user) => {
+  if (splashActive) {
+    if (splashHandling) return;
+    splashHandling = true;
+    await handleInitialAuthState(user);
+    return;
+  }
+
   if (user && isAllowedUser(user)) {
     await showAppView(user);
     return;
@@ -298,8 +431,30 @@ document.addEventListener('click', (event) => {
   if (!link || !currentUser) return;
 
   const routeId = link.getAttribute('href').replace(/^#\/?/, '');
-  if (!NAV_ITEMS.some((item) => item.id === routeId)) return;
+  const validRoutes = new Set([...NAV_ITEMS.map((item) => item.id), SETTINGS_ITEM.id]);
+  if (!validRoutes.has(routeId)) return;
 
   event.preventDefault();
   navigate(routeId);
+});
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') {
+    tabHiddenAt = Date.now();
+    return;
+  }
+
+  if (!currentUser || splashActive) {
+    tabHiddenAt = null;
+    return;
+  }
+
+  const hiddenDuration = tabHiddenAt ? Date.now() - tabHiddenAt : 0;
+  tabHiddenAt = null;
+  syncStaleDataIfNeeded({ hiddenDurationMs: hiddenDuration });
+});
+
+window.addEventListener('online', () => {
+  if (!currentUser || splashActive) return;
+  syncStaleDataIfNeeded();
 });

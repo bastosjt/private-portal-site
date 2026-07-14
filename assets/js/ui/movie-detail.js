@@ -1,8 +1,10 @@
 import { getCategoryById } from '../config.js';
 import { updateItem, deleteItem } from '../firebase/firestore.js';
-import { getFieldOptionLabel, reloadCustomOptions } from '../lib/custom-types.js';
+import { syncCachedItemWrite } from '../data/appDataCache.js';
+import { getFieldOptionLabel, initCustomOptions } from '../lib/custom-types.js';
 import { waitForTransition, nextFrame } from '../lib/transitions.js';
 import { lockScroll, unlockScroll } from '../lib/scroll-lock.js';
+import { paintItemAuthors, renderItemAuthorMarkup } from './item-author.js';
 
 const MODAL_MS = 420;
 const COLLECTION = 'movies';
@@ -114,6 +116,8 @@ export function initMovieDetail({ onChanged, onEdit, theme = 'violet' } = {}) {
 
         ${renderDoneToggle(Boolean(item.done), isBusy)}
 
+        ${renderItemAuthorMarkup(item)}
+
         <div class="act-detail-actions">
           <button type="button" class="act-detail-btn act-detail-btn--edit" id="act-detail-edit" ${isBusy ? 'disabled' : ''}>
             Modifier
@@ -128,6 +132,7 @@ export function initMovieDetail({ onChanged, onEdit, theme = 'violet' } = {}) {
     bodyEl.querySelector('#act-detail-done')?.addEventListener('click', handleToggleDone);
     bodyEl.querySelector('#act-detail-edit')?.addEventListener('click', handleEdit);
     bodyEl.querySelector('#act-detail-delete')?.addEventListener('click', handleDelete);
+    paintItemAuthors(bodyEl);
   }
 
   async function handleToggleDone() {
@@ -144,7 +149,8 @@ export function initMovieDetail({ onChanged, onEdit, theme = 'violet' } = {}) {
     try {
       await updateItem(COLLECTION, currentItem.id, { done, statut });
       currentItem = { ...currentItem, done, statut };
-      onChanged?.(COLLECTION, currentItem.id);
+      syncCachedItemWrite(COLLECTION, currentItem.id, { patch: { done, statut } });
+      onChanged?.(COLLECTION, currentItem.id, { patch: true });
       close();
     } catch (err) {
       console.error('toggle done:', err);
@@ -174,6 +180,7 @@ export function initMovieDetail({ onChanged, onEdit, theme = 'violet' } = {}) {
     try {
       const itemId = currentItem.id;
       await deleteItem(COLLECTION, itemId);
+      syncCachedItemWrite(COLLECTION, itemId, { deleted: true });
       close();
       onChanged?.(COLLECTION, itemId, { deleted: true });
     } catch (err) {
@@ -187,7 +194,7 @@ export function initMovieDetail({ onChanged, onEdit, theme = 'violet' } = {}) {
 
   async function open(item) {
     if (!item) return;
-    await reloadCustomOptions();
+    await initCustomOptions();
     currentItem = item;
     confirmDelete = false;
     isBusy = false;

@@ -2,6 +2,8 @@
 export const DEFAULT_FIELD_OPTIONS = {
   'activities.categorie': [
     { value: 'musee', label: 'Musée' },
+    { value: 'site_touristique', label: 'Site touristique' },
+    { value: 'chateau', label: 'Château' },
     { value: 'expo', label: 'Exposition' },
     { value: 'balade', label: 'Balade' },
     { value: 'escape_game', label: 'Escape game' },

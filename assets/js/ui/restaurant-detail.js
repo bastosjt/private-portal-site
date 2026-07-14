@@ -1,9 +1,11 @@
 import { getCategoryById } from '../config.js';
 import { updateItem, deleteItem } from '../firebase/firestore.js';
+import { syncCachedItemWrite } from '../data/appDataCache.js';
 import { formatItemPrice, hasItemPrice } from '../lib/price-format.js';
-import { getFieldOptionLabel, reloadCustomOptions } from '../lib/custom-types.js';
+import { getFieldOptionLabel, initCustomOptions } from '../lib/custom-types.js';
 import { waitForTransition, nextFrame } from '../lib/transitions.js';
 import { lockScroll, unlockScroll } from '../lib/scroll-lock.js';
+import { paintItemAuthors, renderItemAuthorMarkup } from './item-author.js';
 import { sanitizeHttpsUrl } from '../lib/safe-url.js';
 
 const MODAL_MS = 420;
@@ -82,7 +84,7 @@ function getMapsUrl(item) {
   return null;
 }
 
-export function initRestaurantDetail({ onChanged, onEdit, theme = 'rose' } = {}) {
+export function initRestaurantDetail({ onChanged, onEdit, onClose, theme = 'rose' } = {}) {
   const category = getCategoryById('restaurants');
   let currentItem = null;
   let isBusy = false;
@@ -151,6 +153,8 @@ export function initRestaurantDetail({ onChanged, onEdit, theme = 'rose' } = {})
 
         ${renderDoneToggle(Boolean(item.done), isBusy)}
 
+        ${renderItemAuthorMarkup(item)}
+
         <div class="act-detail-actions">
           <button type="button" class="act-detail-btn act-detail-btn--edit" id="act-detail-edit" ${isBusy ? 'disabled' : ''}>
             Modifier
@@ -165,6 +169,7 @@ export function initRestaurantDetail({ onChanged, onEdit, theme = 'rose' } = {})
     bodyEl.querySelector('#act-detail-done')?.addEventListener('click', handleToggleDone);
     bodyEl.querySelector('#act-detail-edit')?.addEventListener('click', handleEdit);
     bodyEl.querySelector('#act-detail-delete')?.addEventListener('click', handleDelete);
+    paintItemAuthors(bodyEl);
   }
 
   async function handleToggleDone() {
@@ -180,7 +185,8 @@ export function initRestaurantDetail({ onChanged, onEdit, theme = 'rose' } = {})
     try {
       await updateItem(COLLECTION, currentItem.id, { done });
       currentItem = { ...currentItem, done };
-      onChanged?.(COLLECTION, currentItem.id);
+      syncCachedItemWrite(COLLECTION, currentItem.id, { patch: { done } });
+      onChanged?.(COLLECTION, currentItem.id, { patch: true });
       close();
     } catch (err) {
       console.error('toggle done:', err);
@@ -211,6 +217,7 @@ export function initRestaurantDetail({ onChanged, onEdit, theme = 'rose' } = {})
     try {
       const itemId = currentItem.id;
       await deleteItem(COLLECTION, itemId);
+      syncCachedItemWrite(COLLECTION, itemId, { deleted: true });
       close();
       onChanged?.(COLLECTION, itemId, { deleted: true });
     } catch (err) {
@@ -224,7 +231,7 @@ export function initRestaurantDetail({ onChanged, onEdit, theme = 'rose' } = {})
 
   async function open(item) {
     if (!item) return;
-    await reloadCustomOptions();
+    await initCustomOptions();
     currentItem = item;
     confirmDelete = false;
     isBusy = false;
@@ -237,6 +244,8 @@ export function initRestaurantDetail({ onChanged, onEdit, theme = 'rose' } = {})
 
   async function close() {
     if (overlay.classList.contains('hidden')) return;
+
+    onClose?.();
 
     overlay.classList.remove('is-active');
     document.body.classList.remove('modal-open');
