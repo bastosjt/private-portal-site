@@ -6,11 +6,12 @@
   --text-secondary: #a8b0bd;
   --text-placeholder: #727b8a;
 
-  --accent: #00d4ff;
-  --accent-mid: #00b8db;
-  --accent-deep: #0099b8;
-  --accent-soft: #a78bfa;
-  --accent-glow: rgba(0, 212, 255, 0.12);
+  /* Our Space — rose cœur chaud (splash & icône), distinct des catégories */
+  --accent: #f6a0b5;
+  --accent-mid: #fbc4d0;
+  --accent-deep: #e87896;
+  --accent-soft: #ffd6e3;
+  --accent-glow: rgba(246, 160, 181, 0.38);
 
   --sidebar-width: 272px;
   --sidebar-island-gap: 14px;

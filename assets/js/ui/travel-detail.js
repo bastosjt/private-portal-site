@@ -1,8 +1,10 @@
 import { getCategoryById } from '../config.js';
 import { updateItem, deleteItem } from '../firebase/firestore.js';
-import { getFieldOptionLabel, reloadCustomOptions } from '../lib/custom-types.js';
+import { syncCachedItemWrite } from '../data/appDataCache.js';
+import { getFieldOptionLabel, initCustomOptions } from '../lib/custom-types.js';
 import { waitForTransition, nextFrame } from '../lib/transitions.js';
 import { lockScroll, unlockScroll } from '../lib/scroll-lock.js';
+import { paintItemAuthors, renderItemAuthorMarkup } from './item-author.js';
 
 const MODAL_MS = 420;
 const COLLECTION = 'travels';
@@ -74,7 +76,17 @@ function updateDoneToggleUI(root, done, busy = false) {
   if (hint) hint.textContent = done ? 'C\'est dans la poche' : 'Appuyez pour cocher';
 }
 
-export function initTravelDetail({ onChanged, onEdit, theme = 'blue' } = {}) {
+function getMapsUrl(item) {
+  if (item.latitude != null && item.longitude != null) {
+    return `https://www.google.com/maps/search/?api=1&query=${item.latitude},${item.longitude}`;
+  }
+  if (item.localisation) {
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.localisation)}`;
+  }
+  return null;
+}
+
+export function initTravelDetail({ onChanged, onEdit, onClose, theme = 'blue' } = {}) {
   const category = getCategoryById('travels');
   let currentItem = null;
   let isBusy = false;
@@ -105,6 +117,7 @@ export function initTravelDetail({ onChanged, onEdit, theme = 'blue' } = {}) {
   const { signal } = abort;
 
   function renderContent(item) {
+    const mapsUrl = getMapsUrl(item);
     const chips = [];
     if (item.type) {
       chips.push(`<span class="act-chip">${escapeHtml(getFieldLabel(category, 'type', item.type))}</span>`);
@@ -118,7 +131,25 @@ export function initTravelDetail({ onChanged, onEdit, theme = 'blue' } = {}) {
       <div class="act-detail-content${item.done ? ' act-detail-content--done' : ''}">
         <h3 class="act-detail-name">${escapeHtml(item.destination)}</h3>
         ${chips.length ? `<div class="act-chips">${chips.join('')}</div>` : ''}
-        ${item.pays?.trim() ? `
+        ${item.localisation ? `
+          ${mapsUrl ? `
+            <a href="${mapsUrl}" class="act-location" target="_blank" rel="noopener noreferrer">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/>
+                <circle cx="12" cy="10" r="3"/>
+              </svg>
+              <span>${escapeHtml(item.localisation)}</span>
+            </a>
+          ` : `
+            <p class="act-location act-location--text">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/>
+                <circle cx="12" cy="10" r="3"/>
+              </svg>
+              <span>${escapeHtml(item.localisation)}</span>
+            </p>
+          `}
+        ` : item.pays?.trim() ? `
           <p class="act-location act-location--text">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <circle cx="12" cy="12" r="10"/>
@@ -132,6 +163,8 @@ export function initTravelDetail({ onChanged, onEdit, theme = 'blue' } = {}) {
         ${item.notes?.trim() ? `<p class="act-detail-description">${escapeHtml(item.notes.trim())}</p>` : ''}
 
         ${renderDoneToggle(Boolean(item.done), isBusy)}
+
+        ${renderItemAuthorMarkup(item)}
 
         <div class="act-detail-actions">
           <button type="button" class="act-detail-btn act-detail-btn--edit" id="act-detail-edit" ${isBusy ? 'disabled' : ''}>
@@ -147,6 +180,7 @@ export function initTravelDetail({ onChanged, onEdit, theme = 'blue' } = {}) {
     bodyEl.querySelector('#act-detail-done')?.addEventListener('click', handleToggleDone);
     bodyEl.querySelector('#act-detail-edit')?.addEventListener('click', handleEdit);
     bodyEl.querySelector('#act-detail-delete')?.addEventListener('click', handleDelete);
+    paintItemAuthors(bodyEl);
   }
 
   async function handleToggleDone() {
@@ -162,7 +196,8 @@ export function initTravelDetail({ onChanged, onEdit, theme = 'blue' } = {}) {
     try {
       await updateItem(COLLECTION, currentItem.id, { done });
       currentItem = { ...currentItem, done };
-      onChanged?.(COLLECTION, currentItem.id);
+      syncCachedItemWrite(COLLECTION, currentItem.id, { patch: { done } });
+      onChanged?.(COLLECTION, currentItem.id, { patch: true });
       close();
     } catch (err) {
       console.error('toggle done:', err);
@@ -192,6 +227,7 @@ export function initTravelDetail({ onChanged, onEdit, theme = 'blue' } = {}) {
     try {
       const itemId = currentItem.id;
       await deleteItem(COLLECTION, itemId);
+      syncCachedItemWrite(COLLECTION, itemId, { deleted: true });
       close();
       onChanged?.(COLLECTION, itemId, { deleted: true });
     } catch (err) {
@@ -205,7 +241,7 @@ export function initTravelDetail({ onChanged, onEdit, theme = 'blue' } = {}) {
 
   async function open(item) {
     if (!item) return;
-    await reloadCustomOptions();
+    await initCustomOptions();
     currentItem = item;
     confirmDelete = false;
     isBusy = false;
@@ -218,6 +254,8 @@ export function initTravelDetail({ onChanged, onEdit, theme = 'blue' } = {}) {
 
   async function close() {
     if (overlay.classList.contains('hidden')) return;
+
+    onClose?.();
 
     overlay.classList.remove('is-active');
     document.body.classList.remove('modal-open');

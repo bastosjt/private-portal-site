@@ -19,8 +19,12 @@ const TRAVEL_TYPE_ICONS = {
   road_trip: 'car',
 };
 
-export function renderTravelTypeIcon(typeValue, options = {}) {
+export function getTravelTypeLucideIcon(typeValue) {
   const iconName = TRAVEL_TYPE_ICONS[typeValue] || 'plane';
-  const Icon = ICON_REGISTRY[iconName] || Plane;
+  return ICON_REGISTRY[iconName] || Plane;
+}
+
+export function renderTravelTypeIcon(typeValue, options = {}) {
+  const Icon = getTravelTypeLucideIcon(typeValue);
   return renderLucideIcon(Icon, { strokeWidth: 2, ...options });
 }

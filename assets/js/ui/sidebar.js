@@ -1,4 +1,5 @@
-import { NAV_ITEMS, APP_NAME, APP_TAGLINE, APP_VERSION } from '../config.js';
+import { NAV_ITEMS, APP_NAME, SETTINGS_ITEM } from '../config.js';
+import { getSpaceTagline } from '../lib/space-settings.js';
 import { getRouteFromHash } from '../navigation/router.js';
 import { lockScroll, unlockScroll } from '../lib/scroll-lock.js';
 import { renderNavIcon } from '../lib/lucide-icon.js';
@@ -13,16 +14,19 @@ function getActiveId() {
   return getRouteFromHash();
 }
 
-export function renderSidebar(container, { user, activeId = getActiveId() } = {}) {
-  const navLinks = NAV_ITEMS.map((item) => {
-    const isActive = item.id === activeId;
-    return `
-      <a href="${item.href}" class="sidebar-link${isActive ? ' is-active' : ''}" data-route="${item.id}"${item.theme ? ` data-theme="${item.theme}"` : ''}${isActive ? ' aria-current="page"' : ''}>
-        <span class="sidebar-link-icon">${icon(item.icon)}</span>
-        <span class="sidebar-link-label">${item.label}</span>
-      </a>
-    `;
-  }).join('');
+function renderNavLink(item, activeId) {
+  const isActive = item.id === activeId;
+  return `
+    <a href="${item.href}" class="sidebar-link${isActive ? ' is-active' : ''}" data-route="${item.id}"${item.theme ? ` data-theme="${item.theme}"` : ''}${isActive ? ' aria-current="page"' : ''}>
+      <span class="sidebar-link-icon">${icon(item.icon)}</span>
+      <span class="sidebar-link-label">${item.label}</span>
+    </a>
+  `;
+}
+
+export function renderSidebar(container, { activeId = getActiveId() } = {}) {
+  const navLinks = NAV_ITEMS.map((item) => renderNavLink(item, activeId)).join('');
+  const settingsActive = SETTINGS_ITEM.id === activeId;
 
   container.innerHTML = `
     <aside class="sidebar" id="sidebar" aria-label="Navigation principale">
@@ -32,7 +36,7 @@ export function renderSidebar(container, { user, activeId = getActiveId() } = {}
             <div class="sidebar-brand-icon">${icon('wishlist')}</div>
             <div class="sidebar-brand-text">
               ${APP_NAME}
-              <span>${APP_TAGLINE}</span>
+              <span>${getSpaceTagline()}</span>
             </div>
           </div>
           <button type="button" id="sidebar-close" class="sidebar-close" aria-label="Fermer le menu">
@@ -43,16 +47,11 @@ export function renderSidebar(container, { user, activeId = getActiveId() } = {}
         <nav class="sidebar-nav">${navLinks}</nav>
 
         <div class="sidebar-bottom">
-          <p class="sidebar-version" aria-hidden="true">v${APP_VERSION}</p>
           <div class="sidebar-footer">
-            <div class="sidebar-user">
-              <span class="sidebar-user-avatar" data-user-initials aria-hidden="true"></span>
-              <div class="sidebar-user-info">
-                <span class="sidebar-user-label">Connecté</span>
-                <span class="sidebar-user-email" data-user-email></span>
-              </div>
-            </div>
-            <button type="button" id="logout-btn" class="sidebar-logout">Déconnexion</button>
+            <a href="${SETTINGS_ITEM.href}" class="sidebar-link${settingsActive ? ' is-active' : ''}" data-route="${SETTINGS_ITEM.id}"${settingsActive ? ' aria-current="page"' : ''}>
+              <span class="sidebar-link-icon">${icon(SETTINGS_ITEM.icon)}</span>
+              <span class="sidebar-link-label">${SETTINGS_ITEM.label}</span>
+            </a>
           </div>
         </div>
       </div>
@@ -60,29 +59,11 @@ export function renderSidebar(container, { user, activeId = getActiveId() } = {}
 
     <div class="sidebar-overlay" id="sidebar-overlay" hidden></div>
   `;
-
-  if (user) {
-    updateSidebarUser(container, user);
-  }
 }
 
-export function updateSidebarUser(container, user) {
-  const initials = getInitials(user.email);
-  container.querySelectorAll('[data-user-initials]').forEach((el) => {
-    el.textContent = initials;
-  });
-  container.querySelectorAll('[data-user-email]').forEach((el) => {
-    el.textContent = user.email;
-  });
-}
-
-function getInitials(email) {
-  const name = email.split('@')[0] || '?';
-  const parts = name.split(/[._-]/).filter(Boolean);
-  if (parts.length >= 2) {
-    return (parts[0][0] + parts[1][0]).toUpperCase();
-  }
-  return name.slice(0, 2).toUpperCase();
+export function updateSidebarTagline(tagline = getSpaceTagline()) {
+  const el = document.querySelector('.sidebar-brand-text span');
+  if (el) el.textContent = tagline;
 }
 
 export function updateSidebarActive(activeId = getActiveId()) {
@@ -97,7 +78,7 @@ export function updateSidebarActive(activeId = getActiveId()) {
   });
 }
 
-export function initSidebar({ onLogout, onNavigate } = {}) {
+export function initSidebar({ onNavigate } = {}) {
   const sidebar = document.getElementById('sidebar');
   const overlay = document.getElementById('sidebar-overlay');
   const toggle = document.getElementById('menu-toggle');
@@ -169,8 +150,6 @@ export function initSidebar({ onLogout, onNavigate } = {}) {
       if (window.matchMedia('(max-width: 900px)').matches) close();
     });
   });
-
-  document.getElementById('logout-btn')?.addEventListener('click', onLogout);
 
   window.addEventListener('resize', () => {
     if (window.matchMedia('(min-width: 901px)').matches) close();

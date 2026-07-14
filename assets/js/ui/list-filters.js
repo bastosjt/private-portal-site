@@ -25,6 +25,7 @@ export function initListFilters({
   getState,
   onApply,
   beforeOpen,
+  triggerButtonId = 'act-filter-btn',
 } = {}) {
   let draftState = {};
   let expandedSections = new Set();
@@ -232,7 +233,7 @@ export function initListFilters({
   }
 
   function updateTriggerBadge() {
-    const btn = document.getElementById('act-filter-btn');
+    const btn = document.getElementById(triggerButtonId);
     const badge = btn?.querySelector('.act-filter-badge');
     if (!btn || !badge) return;
 

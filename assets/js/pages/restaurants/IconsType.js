@@ -28,8 +28,12 @@ const RESTAURANT_TYPE_ICONS = {
   restauration_rapide: 'paper-bag',
 };
 
-export function renderRestaurantTypeIcon(typeValue, options = {}) {
+export function getRestaurantTypeLucideIcon(typeValue) {
   const iconName = RESTAURANT_TYPE_ICONS[typeValue] || 'utensils-crossed';
-  const Icon = ICON_REGISTRY[iconName] || UtensilsCrossed;
+  return ICON_REGISTRY[iconName] || UtensilsCrossed;
+}
+
+export function renderRestaurantTypeIcon(typeValue, options = {}) {
+  const Icon = getRestaurantTypeLucideIcon(typeValue);
   return renderLucideIcon(Icon, { strokeWidth: 2, ...options });
 }

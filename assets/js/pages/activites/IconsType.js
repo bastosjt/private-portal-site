@@ -6,6 +6,7 @@
  */
 import {
   BicepsFlexed,
+  Castle,
   Footprints,
   Landmark,
   Music,
@@ -19,6 +20,7 @@ import { renderLucideIcon } from '../../lib/lucide-icon.js';
 
 const ICON_REGISTRY = {
   landmark: Landmark,
+  castle: Castle,
   tickets: Tickets,
   footprints: Footprints,
   puzzle: Puzzle,
@@ -31,6 +33,8 @@ const ICON_REGISTRY = {
 
 const ACTIVITY_TYPE_ICONS = {
   musee: 'landmark',
+  site_touristique: 'landmark',
+  chateau: 'castle',
   expo: 'tickets',
   balade: 'footprints',
   escape_game: 'puzzle',
@@ -40,8 +44,12 @@ const ACTIVITY_TYPE_ICONS = {
   sport: 'biceps-flexed',
 };
 
-export function renderActivityTypeIcon(categoryValue, options = {}) {
+export function getActivityTypeLucideIcon(categoryValue) {
   const iconName = ACTIVITY_TYPE_ICONS[categoryValue] || 'activity';
-  const Icon = ICON_REGISTRY[iconName] || RollerCoaster;
+  return ICON_REGISTRY[iconName] || RollerCoaster;
+}
+
+export function renderActivityTypeIcon(categoryValue, options = {}) {
+  const Icon = getActivityTypeLucideIcon(categoryValue);
   return renderLucideIcon(Icon, { strokeWidth: 2, ...options });
 }
