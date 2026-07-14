@@ -1,4 +1,4 @@
-import { COUPLE_START_DATE, HOME_CATEGORIES, getCategoryById, getUserDisplayName } from '../../config.js';
+import { COUPLE_START_DATE, HOME_CATEGORIES, MAP_THEME, getCategoryById, getUserDisplayName } from '../../config.js';
 import {
   ensurePrefetch,
   findCachedItemById,
@@ -14,6 +14,8 @@ import {
   getDisplayedLatestPick,
 } from '../../firebase/dailyPicks.js';
 import { initCustomOptions } from '../../lib/custom-types.js';
+import { renderNavIcon } from '../../lib/lucide-icon.js';
+import { mapPlaceHref } from '../../navigation/router.js';
 import { sanitizeHttpsUrl } from '../../lib/safe-url.js';
 import { initActivityDetail } from '../../ui/activity-detail.js';
 import { initRestaurantDetail } from '../../ui/restaurant-detail.js';
@@ -280,6 +282,25 @@ function renderTodaySection() {
   `;
 }
 
+function renderNearbyMapPreview(totalPlaces) {
+  const countLabel = totalPlaces === 1 ? '1 lieu sur la carte' : `${totalPlaces} lieux sur la carte`;
+
+  return `
+    <a href="#carte" class="home-nearby-map-link" aria-label="Ouvrir la carte interactive">
+      <div class="home-nearby-map-preview">
+        <span class="home-nearby-map-preview-grid" aria-hidden="true"></span>
+        <span class="home-nearby-map-preview-pin" aria-hidden="true">
+          ${renderNavIcon('map', { strokeWidth: 1.75, width: 28, height: 28 })}
+        </span>
+        <span class="home-nearby-map-preview-copy">
+          <span class="home-nearby-map-preview-title">Carte interactive</span>
+          <span class="home-nearby-map-preview-text">${countLabel}</span>
+        </span>
+      </div>
+    </a>
+  `;
+}
+
 function renderNearbySection() {
   const inner = document.getElementById('home-nearby-inner');
   const subEl = document.getElementById('home-nearby-sub');
@@ -299,39 +320,36 @@ function renderNearbySection() {
     else subEl.textContent = `${totalPlaces} lieux enregistrés`;
   }
 
-  const mapPlaceholder = `
-    <div class="home-nearby-map">
-      <div class="act-map-placeholder home-nearby-map-placeholder">
-        <span class="act-map-placeholder-icon" aria-hidden="true">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z"/>
-            <path d="M15 5.764v15"/><path d="M9 3.236v15"/>
-          </svg>
-        </span>
-        <p class="act-map-placeholder-title">Carte bientôt disponible</p>
-        <p class="act-map-placeholder-text">Vos lieux s'afficheront ici sur une carte interactive.</p>
+  const mapPreview = totalPlaces > 0
+    ? renderNearbyMapPreview(totalPlaces)
+    : `
+      <div class="home-nearby-map">
+        <div class="act-map-placeholder home-nearby-map-placeholder">
+          <span class="act-map-placeholder-icon" aria-hidden="true">
+            ${renderNavIcon('map', { strokeWidth: 1.75, width: 24, height: 24 })}
+          </span>
+          <p class="act-map-placeholder-title">Aucun lieu géolocalisé</p>
+          <p class="act-map-placeholder-text">Ajoutez un lieu à vos activités, restaurants ou voyages pour les voir sur la carte.</p>
+        </div>
       </div>
-    </div>
-  `;
+    `;
 
   if (!places.length) {
-    inner.innerHTML = mapPlaceholder;
+    inner.innerHTML = mapPreview;
     return;
   }
 
   const placesHtml = places.map(({ categoryId, item, title, location }) => {
     const cat = getCategoryById(categoryId);
     const theme = cat?.theme || 'base';
-    const mapsUrl = getMapsUrl(item, categoryId);
     const tag = cat?.label?.replace(' & Séries', '') || 'Lieu';
 
     return `
       <a
-        href="${mapsUrl || cat?.href || '#'}"
+        href="${mapPlaceHref(categoryId, item.id)}"
         class="home-nearby-place"
         data-theme="${theme}"
-        ${mapsUrl ? 'target="_blank" rel="noopener noreferrer"' : ''}
-        aria-label="Ouvrir ${escapeHtml(title)} sur la carte"
+        aria-label="Voir ${escapeHtml(title)} sur la carte"
       >
         <span class="home-nearby-place-icon" aria-hidden="true">${sidebarIcon(cat?.icon || 'activity')}</span>
         <span class="home-nearby-place-copy">
@@ -339,19 +357,19 @@ function renderNearbySection() {
           <span class="home-nearby-place-title">${escapeHtml(title)}</span>
           ${location ? `<span class="home-nearby-place-loc">${escapeHtml(location)}</span>` : ''}
         </span>
-        ${mapsUrl ? `
-          <span class="home-nearby-place-arrow" aria-hidden="true">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-            </svg>
-          </span>
-        ` : ''}
+        <span class="home-nearby-place-arrow" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m9 18 6-6-6-6"/>
+          </svg>
+        </span>
       </a>
     `;
   }).join('');
 
   inner.innerHTML = `
-    ${mapPlaceholder}
+    <div class="home-nearby-map">
+      ${mapPreview}
+    </div>
     <div class="home-nearby-places" role="list">
       ${placesHtml}
     </div>
@@ -395,11 +413,26 @@ function renderShortcutsSection() {
   }).join('');
 }
 
+function renderExplorerMapCard() {
+  const totalPlaces = countGeolocatedPlacesFromCache();
+
+  return `
+    <a href="#carte" class="cat-card cat-card--stat" data-theme="${MAP_THEME}" aria-label="Ouvrir la carte interactive">
+      <div class="cat-card-inner">
+        <span class="cat-card-glow" aria-hidden="true"></span>
+        <span class="cat-card-icon" aria-hidden="true">${sidebarIcon('map')}</span>
+        <span class="cat-card-value">${totalPlaces}</span>
+        <span class="cat-card-label">Carte interactive</span>
+      </div>
+    </a>
+  `;
+}
+
 function renderExplorerSection() {
   const explorerEl = document.getElementById('home-explorer');
   if (!explorerEl) return;
 
-  explorerEl.innerHTML = HOME_CATEGORIES.map((cat) => {
+  explorerEl.innerHTML = renderExplorerMapCard() + HOME_CATEGORIES.map((cat) => {
     const count = getCollectionCountFromCache(cat.id);
     return `
       <a href="${cat.href}" class="cat-card cat-card--stat" data-theme="${cat.theme}">

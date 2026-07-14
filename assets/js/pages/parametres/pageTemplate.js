@@ -132,6 +132,25 @@ export const SETTINGS_VIEW_HTML = `
           </div>
         </div>
       </article>
+
+      <article class="settings-panel settings-panel--spaced">
+        <div class="settings-panel-inner settings-panel-inner--rows">
+          <span class="cat-panel-accent" aria-hidden="true"></span>
+          <div class="settings-row settings-row--switch">
+            <span class="settings-row-leading" aria-hidden="true">${renderNavIcon('map', { strokeWidth: 2, width: 18, height: 18 })}</span>
+            <div class="settings-row-text">
+              <span class="settings-row-label">Localisation</span>
+              <span class="settings-row-value" id="settings-location-sub">Afficher votre position sur la carte</span>
+            </div>
+            <label class="settings-switch">
+              <input type="checkbox" id="settings-location-switch" class="settings-switch-input" aria-label="Activer la localisation" />
+              <span class="settings-switch-track" aria-hidden="true">
+                <span class="settings-switch-thumb"></span>
+              </span>
+            </label>
+          </div>
+        </div>
+      </article>
     </section>
 
     <section class="settings-section" aria-labelledby="settings-app-heading">

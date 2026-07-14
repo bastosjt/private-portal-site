@@ -11,6 +11,7 @@ import { initSplash, dismissSplash } from './ui/splash.js';
 import { prefetchAppData, clearAppDataCache, scheduleBackgroundRefreshIfNeeded, onSecondaryPrefetchDone } from './data/appDataCache.js';
 import { initUserProfiles, clearUserProfilesCache } from './lib/user-profile.js';
 import { initSpaceSettings, clearSpaceSettingsCache } from './lib/space-settings.js';
+import { initUserLocationAtLaunch, clearUserLocationState } from './lib/user-location.js';
 import { debounce } from './lib/debounce.js';
 import { init as initAccueil, destroy as destroyAccueil, refresh as refreshAccueil, HOME_VIEW_HTML } from './pages/accueil/index.js';
 import { initCustomOptions } from './lib/custom-types.js';
@@ -20,11 +21,13 @@ import { init as initRestaurants, destroy as destroyRestaurants, refresh as refr
 import { init as initFilms, destroy as destroyFilms, refresh as refreshFilms, FILMS_VIEW_HTML } from './pages/films/index.js';
 import { init as initWishlist, destroy as destroyWishlist, refresh as refreshWishlist, WISHLIST_VIEW_HTML } from './pages/wishlist/index.js';
 import { init as initVoyages, destroy as destroyVoyages, refresh as refreshVoyages, VOYAGES_VIEW_HTML } from './pages/voyages/index.js';
+import { init as initCarte, destroy as destroyCarte, refresh as refreshCarte, MAP_VIEW_HTML } from './pages/carte/index.js';
 import { init as initParametres, destroy as destroyParametres, refresh as refreshParametres, SETTINGS_VIEW_HTML } from './pages/parametres/index.js';
 import { getPlaceholderViewHtml } from './navigation/placeholder.js';
 
 const PAGE_TITLES = {
   accueil: 'Accueil',
+  carte: 'Carte interactive',
   activites: 'Activités',
   restaurants: 'Restaurants',
   films: 'Films & Séries',
@@ -69,6 +72,7 @@ function setPageTitle(routeId) {
 
 function destroyCurrentView() {
   destroyAccueil();
+  destroyCarte();
   destroyActivites();
   destroyRestaurants();
   destroyFilms();
@@ -79,6 +83,7 @@ function destroyCurrentView() {
 
 function refreshCurrentViewNow() {
   if (currentRoute === 'accueil') return refreshAccueil();
+  if (currentRoute === 'carte') return refreshCarte();
   if (currentRoute === 'activites') return refreshActivites();
   if (currentRoute === 'restaurants') return refreshRestaurants();
   if (currentRoute === 'films') return refreshFilms();
@@ -137,7 +142,7 @@ async function mountRoute(routeId) {
   currentRoute = routeId;
   setPageTitle(routeId);
   updateSidebarActive(routeId);
-  document.body.classList.toggle('route-no-fab', routeId === 'parametres');
+  document.body.classList.toggle('route-no-fab', routeId === 'parametres' || routeId === 'carte');
 
   document.body.classList.toggle('app-page', true);
   document.body.classList.remove('auth-page');
@@ -159,6 +164,14 @@ async function mountRoute(routeId) {
     await finishPageEnter();
     if (token !== pageTransitionToken) return;
     await initAccueil(currentUser, { addItemModal: sharedModal });
+    return;
+  }
+
+  if (routeId === 'carte') {
+    pageRoot.innerHTML = MAP_VIEW_HTML;
+    await finishPageEnter();
+    if (token !== pageTransitionToken) return;
+    await initCarte(currentUser, { addItemModal: sharedModal });
     return;
   }
 
@@ -229,6 +242,7 @@ function showAuthView({ reveal = true } = {}) {
   clearAppDataCache();
   clearUserProfilesCache();
   clearSpaceSettingsCache();
+  clearUserLocationState();
   destroyCurrentView();
   addItemModal?.destroy?.();
   addItemModal = null;
@@ -258,6 +272,7 @@ async function showAppView(user, { reveal = true, awaitData = false } = {}) {
   await initSpaceSettings();
   const prefetch = prefetchAppData();
   if (awaitData) await prefetch;
+  if (!splashActive) void initUserLocationAtLaunch();
   currentUser = user;
   authView?.classList.add('hidden');
   appView?.classList.remove('hidden');
@@ -296,6 +311,7 @@ async function finishSplashForApp() {
   document.body.classList.remove('auth-page');
   await dismissSplash();
   splashActive = false;
+  await initUserLocationAtLaunch();
 }
 
 async function finishSplashForAuth() {

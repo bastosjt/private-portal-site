@@ -1,0 +1,306 @@
+/* ── Page Carte interactive ── */
+.app-main:has(.map-page) {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  min-height: 100dvh;
+  overflow: hidden;
+  padding-bottom: clamp(20px, 2.5vw, 48px);
+}
+
+.map-page {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  --map-surface: var(--surface);
+  --map-line: #949bab;
+  --map-label: var(--text-primary);
+}
+
+.map-page .act-cat-panel--map.map-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 0;
+  overflow: hidden;
+  background: linear-gradient(160deg, var(--cat-bg) 0%, var(--surface) 55%);
+  border: 1px solid var(--cat-border);
+  box-shadow: var(--neu-up-sm);
+}
+
+.map-page .act-cat-panel--map .cat-panel-accent {
+  z-index: 2;
+}
+
+.map-panel-body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  z-index: 1;
+  border-radius: calc(var(--radius-md) - 1px);
+  overflow: hidden;
+  touch-action: none;
+  overscroll-behavior: none;
+}
+
+.map-canvas {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  background: var(--map-surface);
+  touch-action: none;
+}
+
+.map-canvas.maplibregl-map {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
+  background: var(--map-surface);
+}
+
+.map-page .maplibregl-canvas-container {
+  touch-action: none;
+}
+
+.map-page .maplibregl-canvas {
+  outline: none;
+}
+
+.map-vignette {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 403;
+}
+
+.map-controls {
+  position: absolute;
+  left: 50%;
+  right: auto;
+  bottom: 12px;
+  top: auto;
+  z-index: 500;
+  transform: translateX(-50%);
+  touch-action: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.map-locate-feedback {
+  margin: 0;
+  max-width: min(320px, calc(100vw - 32px));
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 0.72rem;
+  line-height: 1.35;
+  text-align: center;
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  border: 1px solid color-mix(in srgb, var(--cat-border) 45%, transparent);
+  box-shadow: var(--neu-up-sm);
+  backdrop-filter: blur(8px);
+}
+
+.map-locate-feedback.is-error {
+  color: #fecaca;
+  background: color-mix(in srgb, #7f1d1d 72%, var(--surface));
+  border-color: color-mix(in srgb, #f87171 45%, transparent);
+}
+
+.map-locate-feedback.is-warning {
+  color: #fde68a;
+  background: color-mix(in srgb, #78350f 58%, var(--surface));
+  border-color: color-mix(in srgb, #fbbf24 45%, transparent);
+}
+
+.map-controls .act-view-switch-btn.has-error {
+  color: #f87171;
+}
+
+.location-consent-overlay {
+  z-index: 1200;
+}
+
+.location-consent-body {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.location-consent-text {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.location-consent-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.location-consent-decline {
+  background: transparent;
+  border-color: color-mix(in srgb, var(--cat-border) 55%, transparent);
+  color: var(--text-secondary);
+}
+
+/* Réutilise act-view-switch / act-view-switch-btn — coins carrés arrondis (DA site) */
+.map-controls .act-view-switch.map-control-stack {
+  display: flex;
+  grid-template-columns: unset;
+  margin: 0;
+  width: max-content;
+  border-radius: var(--radius-sm);
+}
+
+.map-controls .act-view-switch-btn {
+  width: 40px;
+  min-width: 40px;
+  min-height: 40px;
+  padding: 0;
+  flex: 0 0 40px;
+  border-radius: var(--radius-sm);
+}
+
+.map-controls .act-view-switch-btn:focus,
+.map-controls .act-view-switch-btn:focus-visible {
+  outline: none;
+}
+
+.map-controls .act-view-switch-btn[data-map-layer="activities"] svg {
+  transform: scale(1.12);
+}
+
+.map-controls .act-view-switch-btn[data-map-layer="restaurants"] svg {
+  transform: scale(1.08);
+}
+
+.map-controls .act-view-switch-btn.map-control-btn--layer.is-active {
+  color: var(--map-filter-color);
+  background: color-mix(in srgb, var(--map-filter-color) 12%, var(--bg));
+  border-color: color-mix(in srgb, var(--map-filter-color) 45%, transparent);
+  box-shadow:
+    var(--neu-up-sm),
+    0 0 16px color-mix(in srgb, var(--map-filter-color) 32%, transparent);
+}
+
+.map-controls .act-view-switch-btn.map-control-btn--layer.is-active svg {
+  color: var(--map-filter-color);
+}
+
+.map-controls .act-view-switch-btn.map-control-btn--layer[data-map-layer="activities"] {
+  --map-filter-color: #f97316;
+}
+
+.map-controls .act-view-switch-btn.map-control-btn--layer[data-map-layer="restaurants"] {
+  --map-filter-color: #f43f5e;
+}
+
+.map-controls .act-view-switch-btn.map-control-btn--layer[data-map-layer="travels"] {
+  --map-filter-color: #0ea5e9;
+}
+
+/* Carré neutre visible — tous les boutons désactivés */
+.map-controls .act-view-switch-btn:not(.is-active) {
+  color: var(--text-secondary);
+  background: var(--bg);
+  border: 1px solid color-mix(in srgb, var(--cat-border) 35%, transparent);
+  box-shadow: var(--neu-in);
+}
+
+.map-controls .act-view-switch-btn:not(.is-active) svg {
+  color: var(--text-placeholder);
+}
+
+.map-controls .act-view-switch-btn:not(.is-active):hover {
+  color: var(--text-primary);
+  background: var(--bg);
+  border-color: color-mix(in srgb, var(--cat-border) 45%, transparent);
+  box-shadow: var(--neu-in);
+}
+
+.map-controls .act-view-switch-btn:not(.is-active):hover svg {
+  color: var(--text-secondary);
+}
+
+.map-controls .act-view-switch-btn:not(.is-active):focus,
+.map-controls .act-view-switch-btn:not(.is-active):active {
+  color: var(--text-secondary);
+  background: var(--bg);
+  border-color: color-mix(in srgb, var(--cat-border) 35%, transparent);
+  box-shadow: var(--neu-press);
+}
+
+.map-controls .act-view-switch-btn:not(.is-active):focus svg,
+.map-controls .act-view-switch-btn:not(.is-active):active svg {
+  color: var(--text-placeholder);
+}
+
+.map-controls .act-view-switch-btn.map-control-btn--layer.is-active:active {
+  box-shadow: var(--neu-press);
+}
+
+.map-controls .act-view-switch-btn.is-active:not(.map-control-btn--layer) {
+  color: var(--cat-color);
+  background: color-mix(in srgb, var(--cat-color) 12%, var(--bg));
+  border-color: color-mix(in srgb, var(--cat-color) 45%, transparent);
+  box-shadow:
+    var(--neu-up-sm),
+    0 0 16px color-mix(in srgb, var(--cat-glow) 70%, transparent);
+}
+
+.map-controls .act-view-switch-btn.is-active:not(.map-control-btn--layer) svg {
+  color: var(--cat-color);
+}
+
+.map-controls #map-filter-btn {
+  position: relative;
+}
+
+.map-controls #map-filter-btn .act-filter-badge {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  line-height: 16px;
+  font-size: 0.62rem;
+}
+
+.map-controls .act-view-switch-btn.is-loading svg {
+  animation: map-locate-spin 0.85s linear infinite;
+}
+
+@keyframes map-locate-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 900px) {
+  .app-main:has(.map-page) {
+    padding-bottom: 18px;
+  }
+
+  .map-controls {
+    bottom: 10px;
+    transform: translateX(-50%);
+  }
+
+  .map-controls .act-view-switch.map-control-stack {
+    padding: 6px;
+    gap: 7px;
+  }
+
+  .map-controls .act-view-switch-btn {
+    width: 42px;
+    min-width: 42px;
+    min-height: 42px;
+    flex-basis: 42px;
+  }
+}

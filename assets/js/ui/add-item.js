@@ -4,6 +4,7 @@ import { patchCachedItem, upsertCachedItem } from '../data/appDataCache.js';
 import { Timestamp } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js';
 import { sidebarIcon } from './sidebar.js';
 import { initFormAddressFields } from './address-autocomplete.js';
+import { searchAddresses } from '../lib/address-search.js';
 import { waitForTransition, nextFrame } from '../lib/transitions.js';
 import {
   initFormSelectFields,
@@ -627,9 +628,44 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
         if (!el) continue;
         value = el.value.trim();
 
-        if (field.type === 'address' && el.dataset.lat && el.dataset.lng) {
-          data.latitude = Number(el.dataset.lat);
-          data.longitude = Number(el.dataset.lng);
+        if (field.type === 'address') {
+          let lat = el.dataset.lat ? Number(el.dataset.lat) : null;
+          let lng = el.dataset.lng ? Number(el.dataset.lng) : null;
+          let suggestion = null;
+
+          if ((!Number.isFinite(lat) || !Number.isFinite(lng)) && value) {
+            const results = await searchAddresses(value, { limit: 1 });
+            suggestion = results[0] ?? null;
+            if (Number.isFinite(suggestion?.lat) && Number.isFinite(suggestion?.lng)) {
+              lat = suggestion.lat;
+              lng = suggestion.lng;
+            }
+          }
+
+          if (Number.isFinite(lat) && Number.isFinite(lng)) {
+            data.latitude = lat;
+            data.longitude = lng;
+          } else if (editingItemId) {
+            data.latitude = null;
+            data.longitude = null;
+          }
+
+          if (suggestion && field.fills) {
+            for (const [fieldName, suggestionKey] of Object.entries(field.fills)) {
+              const target = form.elements[fieldName];
+              const existing = target?.value?.trim() || data[fieldName];
+              if (!existing && suggestion[suggestionKey]) {
+                data[fieldName] = suggestion[suggestionKey];
+              }
+            }
+          }
+
+          if (value) {
+            data[field.name] = value;
+          } else if (editingItemId) {
+            data[field.name] = null;
+          }
+          continue;
         }
       }
 
