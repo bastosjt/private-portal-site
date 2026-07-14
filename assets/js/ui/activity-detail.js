@@ -81,7 +81,7 @@ function getMapsUrl(item) {
   return null;
 }
 
-export function initActivityDetail({ onChanged, onEdit, theme = 'cyan' } = {}) {
+export function initActivityDetail({ onChanged, onEdit, onClose, theme = 'cyan' } = {}) {
   const category = getCategoryById('activities');
   let currentItem = null;
   let isBusy = false;
@@ -242,6 +242,8 @@ export function initActivityDetail({ onChanged, onEdit, theme = 'cyan' } = {}) {
 
   async function close() {
     if (overlay.classList.contains('hidden')) return;
+
+    onClose?.();
 
     overlay.classList.remove('is-active');
     document.body.classList.remove('modal-open');

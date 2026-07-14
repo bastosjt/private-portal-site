@@ -7,8 +7,10 @@ import {
   CloudSync,
   Dog,
   Fish,
+  Filter,
   Heart,
   House,
+  Map,
   Menu,
   Origami,
   Panda,
@@ -44,6 +46,7 @@ export function renderLucideIcon(Icon, { strokeWidth = 2, width, height, ...attr
 /** Icônes de navigation (clés = champ `icon` dans config.js). */
 const NAV_ICON_COMPONENTS = {
   home: House,
+  map: Map,
   activity: RollerCoaster,
   restaurant: Utensils,
   film: Clapperboard,
@@ -69,6 +72,7 @@ const NAV_ICON_COMPONENTS = {
   'user-pen': UserPen,
   close: X,
   menu: Menu,
+  filter: Filter,
 };
 
 export function renderNavIcon(name, { strokeWidth, width, height, ...attrs } = {}) {

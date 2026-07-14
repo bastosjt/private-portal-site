@@ -84,7 +84,7 @@ function getMapsUrl(item) {
   return null;
 }
 
-export function initRestaurantDetail({ onChanged, onEdit, theme = 'rose' } = {}) {
+export function initRestaurantDetail({ onChanged, onEdit, onClose, theme = 'rose' } = {}) {
   const category = getCategoryById('restaurants');
   let currentItem = null;
   let isBusy = false;
@@ -244,6 +244,8 @@ export function initRestaurantDetail({ onChanged, onEdit, theme = 'rose' } = {})
 
   async function close() {
     if (overlay.classList.contains('hidden')) return;
+
+    onClose?.();
 
     overlay.classList.remove('is-active');
     document.body.classList.remove('modal-open');

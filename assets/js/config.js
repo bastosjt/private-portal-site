@@ -4,7 +4,7 @@ export const COUPLE_START_DATE = '2026-06-27';
 /** Nom affiché dans l'onglet, le menu et l'icône d'installation */
 export const APP_NAME = 'Our Space';
 export const APP_TAGLINE = 'À nous deux';
-export const APP_VERSION = '1.0.0';
+export const APP_VERSION = '1.6.3';
 
 export function renderVersionBadgeHtml(version = APP_VERSION) {
   return `<span class="version-badge"><span class="version-badge-text">${version}</span></span>`;
@@ -18,6 +18,10 @@ export {
 /** Thème accueil & paramètres — gris lilas, neutre et distinct du cyan/bleu */
 export const BASE_THEME = 'base';
 
+/** Thème carte interactive — vert */
+export const MAP_THEME = 'emerald';
+export const MAP_ACCENT = '#22C55E';
+
 export const SETTINGS_THEME = BASE_THEME;
 
 export const NAV_ITEMS = [
@@ -26,6 +30,13 @@ export const NAV_ITEMS = [
     label: 'Accueil',
     href: '#accueil',
     icon: 'home',
+  },
+  {
+    id: 'carte',
+    label: 'Carte interactive',
+    href: '#carte',
+    icon: 'map',
+    theme: 'emerald',
   },
   {
     id: 'activites',
@@ -139,6 +150,7 @@ export const HOME_CATEGORIES = [
     modalTitle: 'Nouveau voyage',
     fields: [
       { name: 'destination', label: 'Destination', type: 'text', required: true, placeholder: 'Ex. Lisbonne' },
+      { name: 'localisation', label: 'Lieu sur la carte', type: 'address', placeholder: 'Ex. Lisbonne, Portugal…', fills: { pays: 'country' } },
       { name: 'type', label: 'Type', type: 'select', allowCustom: true },
       { name: 'pays', label: 'Pays', type: 'text', placeholder: 'Ex. Portugal' },
       { name: 'budget', label: 'Budget estimé', type: 'text', placeholder: 'Ex. 800' },

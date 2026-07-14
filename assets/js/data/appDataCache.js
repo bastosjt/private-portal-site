@@ -210,10 +210,72 @@ export function getGeolocatedPlacesFromCache(max = 4) {
     .slice(0, max);
 }
 
+const MAP_MARKER_SOURCES = [
+  { collection: 'activities' },
+  { collection: 'restaurants' },
+  { collection: 'travels' },
+];
+
+function hasMapCoordinates(item) {
+  return item?.latitude != null && item?.longitude != null;
+}
+
+export function getMapMarkersFromCache() {
+  const markers = [];
+
+  for (const item of itemsCache.get('activities') ?? []) {
+    if (!hasMapCoordinates(item)) continue;
+    markers.push({
+      categoryId: 'activities',
+      id: item.id,
+      title: item.nom || 'Sans titre',
+      coordinates: [item.longitude, item.latitude],
+      done: !!item.fait,
+      activityType: item.categorie || '',
+      restaurantType: '',
+      restaurantCuisine: '',
+      travelType: '',
+    });
+  }
+
+  for (const item of itemsCache.get('restaurants') ?? []) {
+    if (!hasMapCoordinates(item)) continue;
+    markers.push({
+      categoryId: 'restaurants',
+      id: item.id,
+      title: item.nom || 'Sans titre',
+      coordinates: [item.longitude, item.latitude],
+      done: !!item.fait,
+      activityType: '',
+      restaurantType: item.type || '',
+      restaurantCuisine: item.cuisine || '',
+      travelType: '',
+    });
+  }
+
+  for (const item of itemsCache.get('travels') ?? []) {
+    if (!hasMapCoordinates(item)) continue;
+    markers.push({
+      categoryId: 'travels',
+      id: item.id,
+      title: item.destination || 'Sans titre',
+      coordinates: [item.longitude, item.latitude],
+      done: !!item.fait,
+      activityType: '',
+      restaurantType: '',
+      restaurantCuisine: '',
+      travelType: item.type || '',
+    });
+  }
+
+  return markers;
+}
+
 export function countGeolocatedPlacesFromCache() {
-  const activities = (itemsCache.get('activities') ?? []).filter((item) => hasGeolocation(item, 'localisation')).length;
-  const restaurants = (itemsCache.get('restaurants') ?? []).filter((item) => hasGeolocation(item, 'adresse')).length;
-  return activities + restaurants;
+  return MAP_MARKER_SOURCES.reduce((sum, { collection }) => {
+    const count = (itemsCache.get(collection) ?? []).filter(hasMapCoordinates).length;
+    return sum + count;
+  }, 0);
 }
 
 export function getWeekItemsCountFromCache(collectionNames) {

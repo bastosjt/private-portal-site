@@ -24,6 +24,12 @@ import {
 } from '../../lib/user-profile.js';
 import { getSpaceTagline } from '../../lib/space-settings.js';
 import { renderNavIcon } from '../../lib/lucide-icon.js';
+import {
+  getUserLocationConsent,
+  getUserLocationLngLat,
+  onUserLocationChange,
+  setUserLocationEnabled,
+} from '../../lib/user-location.js';
 import { initProfileAnimalPicker } from '../../ui/profile-animal-picker.js';
 import { initProfileDisplayNamePicker } from '../../ui/profile-display-name-picker.js';
 import { initProfilePartnerNicknamePicker } from '../../ui/profile-partner-nickname-picker.js';
@@ -40,6 +46,7 @@ let profileAnimalPicker = null;
 let profileDisplayNamePicker = null;
 let profilePartnerNicknamePicker = null;
 let spaceTaglinePicker = null;
+let stopLocationListener = null;
 
 const MEMBER_THEMES = ['slate', 'love'];
 
@@ -233,11 +240,45 @@ function renderAppInfo() {
   }
 }
 
+function renderLocationStatus() {
+  const subEl = document.getElementById('settings-location-sub');
+  const switchEl = document.getElementById('settings-location-switch');
+  if (!subEl) return;
+
+  const isEnabled = getUserLocationConsent() === 'granted';
+  const hasPosition = Boolean(getUserLocationLngLat());
+
+  if (switchEl) {
+    switchEl.checked = isEnabled;
+    switchEl.disabled = false;
+  }
+
+  if (!isEnabled) {
+    subEl.textContent = 'Afficher votre position sur la carte';
+    return;
+  }
+
+  subEl.textContent = hasPosition
+    ? 'Activée · utilisée sur la carte'
+    : 'Activée · position en cours de récupération';
+}
+
+async function handleLocationSwitchChange(event) {
+  const input = event.currentTarget;
+  const enabled = input.checked;
+
+  input.disabled = true;
+  await setUserLocationEnabled(enabled);
+  renderLocationStatus();
+  input.disabled = false;
+}
+
 function renderAll(user) {
   renderProfile(user);
   renderSpace(user);
   renderMembers(user);
   renderDataStatus();
+  renderLocationStatus();
   renderAppInfo();
 }
 
@@ -314,6 +355,8 @@ export function initSettingsPage(user, { onLogout: logoutHandler, onDataSynced: 
   if (user) renderAll(user);
   startSyncStatusTimer();
 
+  stopLocationListener = onUserLocationChange(() => renderLocationStatus());
+
   profileDisplayNamePicker = initProfileDisplayNamePicker({
     user,
     onChange: () => {
@@ -377,6 +420,8 @@ export function initSettingsPage(user, { onLogout: logoutHandler, onDataSynced: 
     handleSyncClick(event.currentTarget);
   }, { signal });
 
+  document.getElementById('settings-location-switch')?.addEventListener('change', handleLocationSwitchChange, { signal });
+
   document.getElementById('settings-logout-btn')?.addEventListener('click', () => {
     onLogout?.();
   }, { signal });
@@ -393,6 +438,8 @@ export function destroySettingsPage() {
   profilePartnerNicknamePicker = null;
   spaceTaglinePicker?.destroy();
   spaceTaglinePicker = null;
+  stopLocationListener?.();
+  stopLocationListener = null;
   stopSyncStatusTimer();
   currentUser = null;
   onLogout = null;
