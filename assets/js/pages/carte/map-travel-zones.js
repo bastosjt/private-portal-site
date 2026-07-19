@@ -26,7 +26,7 @@ export function ensureTravelZoneLayers(map) {
     });
   }
 
-  const beforeId = map.getLayer('map-markers-activities') ? 'map-markers-activities' : undefined;
+  const beforeId = map.getLayer('map-markers-symbols') ? 'map-markers-symbols' : undefined;
 
   if (!map.getLayer('map-travel-zones-fill')) {
     map.addLayer({

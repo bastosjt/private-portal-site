@@ -1,4 +1,5 @@
 import { createElement } from '../../vendor/lucide.mjs';
+import { renderLucideIcon } from '../../lib/lucide-icon.js';
 import { getActivityTypeLucideIcon } from '../activites/IconsType.js';
 import { getRestaurantTypeLucideIcon } from '../restaurants/IconsType.js';
 import { getTravelTypeLucideIcon } from '../voyages/IconsType.js';
@@ -32,6 +33,15 @@ function getMarkerLucideIcon(marker) {
   if (marker.categoryId === 'restaurants') return getRestaurantTypeLucideIcon(marker.restaurantType);
   if (marker.categoryId === 'travels') return getTravelTypeLucideIcon(marker.travelType);
   return getActivityTypeLucideIcon('');
+}
+
+export function getMapMarkerCategoryColor(categoryId) {
+  return CATEGORY_COLORS[categoryId] || CATEGORY_COLORS.activities;
+}
+
+export function renderMapMarkerTypeIcon(marker, options = {}) {
+  const Icon = getMarkerLucideIcon(marker);
+  return renderLucideIcon(Icon, { strokeWidth: 2, width: 16, height: 16, ...options });
 }
 
 export function getMarkerIconImageId(marker) {

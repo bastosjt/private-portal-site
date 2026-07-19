@@ -74,6 +74,86 @@ let userLocationSourceReady = false;
 let lastUserLocation = null;
 let onLayerToggled = null;
 let stopUserLocationListener = null;
+let userLocationPulseFrame = null;
+let userLocationPulseStartedAt = 0;
+
+const USER_LOCATION_PULSE_DURATION_MS = 2400;
+const USER_LOCATION_PULSE_RADIUS = { min: 10, max: 34 };
+const MAP_BEARING_RESET_THRESHOLD = 0.5;
+
+function syncMapCompass(map) {
+  const compassBtn = document.getElementById('map-compass');
+  const compassIcon = compassBtn?.querySelector('.map-compass-icon');
+  if (!compassBtn || !compassIcon || !map) return;
+
+  const bearing = map.getBearing();
+  compassIcon.style.transform = `rotate(${-bearing}deg)`;
+  compassBtn.classList.toggle('is-visible', Math.abs(bearing) > MAP_BEARING_RESET_THRESHOLD);
+}
+
+function resetMapBearing(map) {
+  if (!map || Math.abs(map.getBearing()) <= MAP_BEARING_RESET_THRESHOLD) return;
+
+  map.easeTo({
+    bearing: 0,
+    pitch: 0,
+    duration: 350,
+    essential: true,
+  });
+}
+
+function bindMapCompass(map, signal) {
+  const compassBtn = document.getElementById('map-compass');
+  if (!compassBtn || !map) return;
+
+  const onRotate = () => syncMapCompass(map);
+  map.on('rotate', onRotate);
+  map.on('rotateend', onRotate);
+  signal?.addEventListener('abort', () => {
+    map.off('rotate', onRotate);
+    map.off('rotateend', onRotate);
+  }, { once: true });
+
+  compassBtn.addEventListener('click', () => {
+    compassBtn.blur();
+    resetMapBearing(map);
+  }, { signal });
+
+  syncMapCompass(map);
+}
+
+function stopUserLocationPulse() {
+  if (userLocationPulseFrame != null) {
+    cancelAnimationFrame(userLocationPulseFrame);
+    userLocationPulseFrame = null;
+  }
+  userLocationPulseStartedAt = 0;
+}
+
+function tickUserLocationPulse(map) {
+  if (!map?.getLayer('user-location-pulse')) {
+    stopUserLocationPulse();
+    return;
+  }
+
+  const elapsed = (performance.now() - userLocationPulseStartedAt) % USER_LOCATION_PULSE_DURATION_MS;
+  const progress = elapsed / USER_LOCATION_PULSE_DURATION_MS;
+  const fade = Math.sin(Math.PI * progress);
+  const { min, max } = USER_LOCATION_PULSE_RADIUS;
+  const radius = min + (max - min) * ((1 - Math.cos(Math.PI * progress)) / 2);
+
+  map.setPaintProperty('user-location-pulse', 'circle-radius', radius);
+  map.setPaintProperty('user-location-pulse', 'circle-opacity', fade * 0.26);
+  map.setPaintProperty('user-location-pulse', 'circle-stroke-opacity', fade * 0.42);
+
+  userLocationPulseFrame = requestAnimationFrame(() => tickUserLocationPulse(map));
+}
+
+function startUserLocationPulse(map) {
+  if (!map?.getLayer('user-location-pulse') || userLocationPulseFrame != null) return;
+  userLocationPulseStartedAt = performance.now();
+  tickUserLocationPulse(map);
+}
 
 function getMapLibre() {
   const maplibregl = window.maplibregl;
@@ -97,12 +177,12 @@ function ensureUserLocationSource(map) {
       type: 'circle',
       source: 'user-location',
       paint: {
-        'circle-radius': 18,
+        'circle-radius': USER_LOCATION_PULSE_RADIUS.min,
         'circle-color': ACCENT,
-        'circle-opacity': 0.12,
-        'circle-stroke-width': 1,
+        'circle-opacity': 0.28,
+        'circle-stroke-width': 1.5,
         'circle-stroke-color': ACCENT,
-        'circle-stroke-opacity': 0.28,
+        'circle-stroke-opacity': 0.46,
       },
     });
   }
@@ -126,6 +206,7 @@ function ensureUserLocationSource(map) {
 
 function clearUserLocationOnMap(map, root) {
   lastUserLocation = null;
+  stopUserLocationPulse();
   if (!map?.isStyleLoaded()) return;
   if (map.getSource('user-location')) {
     map.getSource('user-location').setData({ type: 'FeatureCollection', features: [] });
@@ -147,9 +228,11 @@ function setUserLocation(map, lngLat) {
       geometry: { type: 'Point', coordinates: lngLat },
     }],
   });
+  startUserLocationPulse(map);
 }
 
 function clearUserLocationSource() {
+  stopUserLocationPulse();
   userLocationSourceReady = false;
   lastUserLocation = null;
 }
@@ -225,7 +308,7 @@ function renderLayerControlButton({ id, label, icon }) {
   return `
     <button
       type="button"
-      class="act-view-switch-btn map-control-btn--layer is-active"
+      class="map-dock-btn map-dock-btn--layer is-active"
       data-map-layer="${id}"
       aria-label="${getLayerAriaLabel(label, true)}"
       aria-pressed="true"
@@ -252,6 +335,16 @@ export function syncMapLayerButtons(root = document.getElementById('map-controls
 function setLayerToggle(map, root, layerId, visible) {
   const control = MAP_LAYER_CONTROLS.find((entry) => entry.id === layerId);
   if (!control) return;
+
+  if (!visible) {
+    const otherVisible = MAP_LAYER_CONTROLS.some(
+      ({ id }) => id !== layerId && isMapLayerVisible(id),
+    );
+    if (!otherVisible) {
+      showLocateFeedback(root, 'Au moins une couche doit rester visible.', { variant: 'warning' });
+      return;
+    }
+  }
 
   setMapLayerVisible(map, layerId, visible);
   syncMapLayerButtons(root);
@@ -346,9 +439,10 @@ export function initInteractiveMap({
     attributionControl: false,
     pitch: 0,
     bearing: 0,
-    dragRotate: false,
+    dragRotate: true,
     pitchWithRotate: false,
     touchPitch: false,
+    touchRotate: true,
   });
 
   bindMapMarkerImageFallback(mapInstance);
@@ -366,35 +460,48 @@ export function initInteractiveMap({
       duration: 0,
     });
     refreshMapMarkers(mapInstance, { onUpdated: () => onMarkersReady?.(mapInstance) });
+    syncMapCompass(mapInstance);
   });
 
   controlsRoot.innerHTML = `
     <p class="map-locate-feedback hidden" id="map-locate-feedback" role="status" aria-live="polite"></p>
-    <div class="act-view-switch map-control-stack" role="group" aria-label="Contrôles carte">
-      <button type="button" class="act-view-switch-btn" data-map-action="fit-all" aria-label="Vue tous les lieux" aria-pressed="false">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/>
-        </svg>
-      </button>
-      <button type="button" class="act-view-switch-btn is-active" data-map-action="locate" aria-label="Vue rayon 3 km" aria-pressed="true">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <polygon points="3 11 22 2 13 21 11 13 3 11"/>
-        </svg>
-      </button>
-      ${MAP_LAYER_CONTROLS.map(renderLayerControlButton).join('')}
+    <div class="map-controls-core">
       <button
         type="button"
-        class="act-view-switch-btn map-control-btn--filters"
-        id="map-filter-btn"
-        aria-label="Filtres"
+        class="map-compass-float"
+        id="map-compass"
+        aria-label="Réorienter la carte au nord"
       >
-        ${renderNavIcon('filter', MAP_ICON_OPTS)}
-        <span class="act-filter-badge hidden" aria-hidden="true">0</span>
+        <span class="map-compass-icon" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="m16.24 7.76-1.804 5.411a2 2 0 0 1-1.265 1.265L7.76 16.24l1.804-5.411a2 2 0 0 1 1.265-1.265z"/>
+          </svg>
+        </span>
       </button>
+      <nav class="map-dock" role="toolbar" aria-label="Contrôles carte">
+      <div class="map-dock-zone map-dock-zone--view" role="group" aria-label="Vue carte">
+        <button type="button" class="map-dock-btn map-dock-btn--view" data-map-action="locate" aria-label="Vue rayon 3 km" aria-pressed="true">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polygon points="3 11 22 2 13 21 11 13 3 11"/>
+          </svg>
+        </button>
+        <button type="button" class="map-dock-btn map-dock-btn--view" data-map-action="fit-all" aria-label="Vue tous les lieux" aria-pressed="false">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/>
+          </svg>
+        </button>
+      </div>
+      <div class="map-dock-zone map-dock-zone--layers" role="group" aria-label="Couches">
+        ${MAP_LAYER_CONTROLS.map(renderLayerControlButton).join('')}
+      </div>
+    </nav>
     </div>
   `;
 
   bindControlButtons(mapInstance, controlsRoot, signal);
+  bindMapCompass(mapInstance, signal);
+  syncMapLayerButtons(controlsRoot);
   syncMapViewButtons(controlsRoot, 'local');
 
   const invalidate = () => {
@@ -422,6 +529,7 @@ export function destroyInteractiveMap() {
   onLayerToggled = null;
   stopUserLocationListener?.();
   stopUserLocationListener = null;
+  stopUserLocationPulse();
   clearLocateFeedbackTimer();
   clearUserLocationSource();
   resetMapMarkersState();
