@@ -1,8 +1,8 @@
-import { getCategoryById, getUserDisplayName } from '../../config.js';
+import { getCategoryById, getUserDisplayName, MAP_ACCENT } from '../../config.js';
 import { getListPreferences, saveListPreferences } from '../../lib/user-profile.js';
 import { formatItemPrice, compareItemsByPrice } from '../../lib/price-format.js';
 import { sortOptionsByLabel } from '../../lib/options-labels.js';
-import { ensureItems, hasCachedItems, getCachedItems } from '../../data/appDataCache.js';
+import { ensureItems, hasCachedItems, getCachedItems, findCachedItemById } from '../../data/appDataCache.js';
 import { sidebarIcon } from '../../ui/sidebar.js';
 import { initAddItem } from '../../ui/add-item.js';
 import { initListFilters } from '../../ui/list-filters.js';
@@ -24,6 +24,7 @@ import {
   MAX_DAILY_PICKS,
   resetTodayPicks,
 } from '../../firebase/dailyPicks.js';
+import { createCategoryMapTab } from './category-map-tab.js';
 
 export const DEFAULT_SORT_OPTIONS = [
   { id: 'alpha', label: 'Ordre alphabétique', shortLabel: 'A → Z' },
@@ -98,6 +99,8 @@ export function createListPageController(config) {
     titleKey = 'nom',
     subTitleElId = 'list-sub',
     useTodoHeaderSubtitle = true,
+    mapTab: mapTabOptions = null,
+    pageRootClass = 'activities-page',
     searchKeys = null,
     renderListGroups = null,
     listControlsMount = null,
@@ -120,6 +123,7 @@ export function createListPageController(config) {
   let pageAbort = null;
   let currentUserUid = null;
   let listViewMode = 'list';
+  let categoryMapTab = null;
 
   function getFieldLabel(fieldName, value) {
     return getFieldOptionLabel(categoryId, fieldName, value);
@@ -269,6 +273,11 @@ export function createListPageController(config) {
     `;
   }
 
+  function syncMapPanelLayout() {
+    if (listViewMode !== 'map' || !mapTabOptions) return;
+    categoryMapTab?.resize?.();
+  }
+
   function setViewMode(mode) {
     listViewMode = mode === 'map' ? 'map' : 'list';
 
@@ -288,6 +297,16 @@ export function createListPageController(config) {
     listBtn.setAttribute('aria-selected', isList ? 'true' : 'false');
     mapBtn.classList.toggle('is-active', !isList);
     mapBtn.setAttribute('aria-selected', !isList ? 'true' : 'false');
+
+    const pageRoot = document.querySelector(`.${pageRootClass}`);
+    pageRoot?.classList.toggle('is-map-view', listViewMode === 'map' && !!mapTabOptions);
+
+    if (listViewMode === 'map') {
+      categoryMapTab?.init(getFilterState());
+      requestAnimationFrame(() => {
+        syncMapPanelLayout();
+      });
+    }
   }
 
   function updateListSub(count, total = allItems.length) {
@@ -418,6 +437,10 @@ export function createListPageController(config) {
     listControls?.sync?.();
     renderList(sortItems(getFilteredItems()), { animate: !listHasAnimated });
     listHasAnimated = true;
+    if (listViewMode === 'map') {
+      categoryMapTab?.sync(getFilterState());
+      syncMapPanelLayout();
+    }
   }
 
   function findItemById(id) {
@@ -898,6 +921,9 @@ export function createListPageController(config) {
     cleanupPickRollAnimation();
     listHasAnimated = false;
     listViewMode = 'list';
+    categoryMapTab?.destroy();
+    categoryMapTab = null;
+    document.querySelector(`.${pageRootClass}`)?.classList.remove('is-map-view');
     currentSort = 'alpha';
     activeFilters = { ...filterDefaults };
     searchQuery = '';
@@ -946,8 +972,32 @@ export function createListPageController(config) {
       },
     });
 
+    if (mapTabOptions) {
+      categoryMapTab = createCategoryMapTab({
+        ...mapTabOptions,
+        categoryId,
+        accent: MAP_ACCENT,
+        itemIdAttr,
+        renderPlaceIcon: renderTypeIcon,
+        getPlaceTitle: (item) => item?.[titleKey] || 'Sans titre',
+        getPlaceLocation: getPickLocation,
+        onMarkerClick: ({ itemId }) => {
+          const item = findCachedItemById(categoryId, itemId);
+          if (item) detailModal.open(item);
+        },
+      });
+    }
+
     mountListToolbar();
     setViewMode('list');
+
+    if (mapTabOptions) {
+      const syncMapLayout = () => syncMapPanelLayout();
+      window.addEventListener('resize', syncMapLayout);
+      pageAbort.signal.addEventListener('abort', () => {
+        window.removeEventListener('resize', syncMapLayout);
+      }, { once: true });
+    }
 
     const filterHelpers = { getAvailableFilterOptions };
 

@@ -4,6 +4,7 @@ import { renderLucideIcon } from '../../lib/lucide-icon.js';
 import { renderTravelTypeIcon } from './IconsType.js';
 import { initTravelDetail } from '../../ui/travel-detail.js';
 import { createListPageController, DEFAULT_SORT_OPTIONS } from '../shared/listPageController.js';
+import { createMapTabOptions } from '../shared/listMapSection.js';
 
 const STATUS_FILTER_OPTIONS = [
   { value: 'all', label: 'Tout' },
@@ -152,6 +153,16 @@ const { init, destroy, refresh } = createListPageController({
   getItemRowClasses: (item) => (hasTravelPeriod(item) ? ' act-list-item--scheduled' : ''),
   renderItemBodyExtra: renderTravelPeriodNote,
   getPickLocation: (item) => item.localisation?.trim() || item.pays?.trim() || '',
+  mapTab: createMapTabOptions({
+    prefix: 'voyages',
+    countSingular: 'destination',
+    countPlural: 'destinations',
+    emptyHint: 'Ajoutez une adresse à vos voyages pour les voir ici.',
+    mapListFilters: (state) => ({
+      status: state.status,
+      travelType: state.type || [],
+    }),
+  }),
 });
 
 export const initVoyagesPage = init;

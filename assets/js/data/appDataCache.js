@@ -230,7 +230,7 @@ export function getMapMarkersFromCache() {
       id: item.id,
       title: item.nom || 'Sans titre',
       coordinates: [item.longitude, item.latitude],
-      done: !!item.fait,
+      done: getItemDoneState(item),
       activityType: item.categorie || '',
       restaurantType: '',
       restaurantCuisine: '',
@@ -245,7 +245,7 @@ export function getMapMarkersFromCache() {
       id: item.id,
       title: item.nom || 'Sans titre',
       coordinates: [item.longitude, item.latitude],
-      done: !!item.fait,
+      done: getItemDoneState(item),
       activityType: '',
       restaurantType: item.type || '',
       restaurantCuisine: item.cuisine || '',
@@ -260,7 +260,7 @@ export function getMapMarkersFromCache() {
       id: item.id,
       title: item.destination || 'Sans titre',
       coordinates: [item.longitude, item.latitude],
-      done: !!item.fait,
+      done: getItemDoneState(item),
       activityType: '',
       restaurantType: '',
       restaurantCuisine: '',
@@ -269,6 +269,58 @@ export function getMapMarkersFromCache() {
   }
 
   return markers;
+}
+
+function getItemDoneState(item) {
+  return Boolean(item?.done ?? item?.fait);
+}
+
+function getStraightLineDistanceKm([lngA, latA], [lngB, latB]) {
+  const toRad = (deg) => (deg * Math.PI) / 180;
+  const earthRadiusKm = 6371;
+  const dLat = toRad(latB - latA);
+  const dLng = toRad(lngB - lngA);
+  const a = Math.sin(dLat / 2) ** 2
+    + Math.cos(toRad(latA)) * Math.cos(toRad(latB)) * Math.sin(dLng / 2) ** 2;
+  return earthRadiusKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+export function formatPlaceDistanceKm(distanceKm) {
+  if (!Number.isFinite(distanceKm)) return '';
+  if (distanceKm < 1) return `${Math.max(1, Math.round(distanceKm * 1000))} m`;
+  if (distanceKm < 10) return `${distanceKm.toFixed(1).replace('.', ',')} km`;
+  return `${Math.round(distanceKm)} km`;
+}
+
+function getMapPlaceLocationLabel(categoryId, item) {
+  if (!item) return '';
+  if (categoryId === 'activities') return item.localisation?.trim() || '';
+  if (categoryId === 'restaurants') return item.adresse?.trim() || '';
+  if (categoryId === 'travels') return item.localisation?.trim() || item.destination?.trim() || '';
+  return '';
+}
+
+export function getNearestMapPlacesFromCache(max = 4, originLngLat = null) {
+  if (!Array.isArray(originLngLat) || originLngLat.length !== 2) return [];
+
+  return getMapMarkersFromCache()
+    .map((marker) => {
+      const item = findCachedItemById(marker.categoryId, marker.id);
+      const distanceKm = getStraightLineDistanceKm(originLngLat, marker.coordinates);
+
+      return {
+        categoryId: marker.categoryId,
+        item: item ?? { id: marker.id },
+        title: marker.title,
+        location: getMapPlaceLocationLabel(marker.categoryId, item),
+        distanceKm,
+        distanceLabel: formatPlaceDistanceKm(distanceKm),
+        done: getItemDoneState(item),
+        coordinates: marker.coordinates,
+      };
+    })
+    .sort((a, b) => a.distanceKm - b.distanceKm)
+    .slice(0, max);
 }
 
 export function countGeolocatedPlacesFromCache() {

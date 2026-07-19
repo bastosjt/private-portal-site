@@ -4,6 +4,7 @@ import { sanitizeHttpsUrl } from '../../lib/safe-url.js';
 import { renderRestaurantTypeIcon } from './IconsType.js';
 import { initRestaurantDetail } from '../../ui/restaurant-detail.js';
 import { createListPageController, DEFAULT_SORT_OPTIONS } from '../shared/listPageController.js';
+import { createMapTabOptions } from '../shared/listMapSection.js';
 
 const STATUS_FILTER_OPTIONS = [
   { value: 'all', label: 'Tout' },
@@ -140,6 +141,17 @@ const { init, destroy, refresh } = createListPageController({
   renderListMeta: renderRestaurantListMeta,
   renderLocation: renderRestaurantLocation,
   getPickLocation: (item) => item.adresse || '',
+  mapTab: createMapTabOptions({
+    prefix: 'restaurants',
+    countSingular: 'adresse',
+    countPlural: 'adresses',
+    emptyHint: 'Ajoutez une adresse à vos restaurants pour les voir ici.',
+    mapListFilters: (state) => ({
+      status: state.status,
+      restaurantType: state.type || [],
+      restaurantCuisine: state.cuisine || [],
+    }),
+  }),
 });
 
 export const initRestaurantsPage = init;

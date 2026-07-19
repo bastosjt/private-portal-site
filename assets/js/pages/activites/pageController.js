@@ -9,6 +9,7 @@ import {
   renderActivityScheduleNote,
 } from './scheduleDisplay.js';
 import { createListPageController, DEFAULT_SORT_OPTIONS } from '../shared/listPageController.js';
+import { createMapTabOptions } from '../shared/listMapSection.js';
 
 const STATUS_FILTER_OPTIONS = [
   { value: 'all', label: 'Tout' },
@@ -143,6 +144,16 @@ const { init, destroy, refresh } = createListPageController({
   getItemRowClasses: (item) => (hasActivitySchedule(item) ? ' act-list-item--scheduled' : ''),
   renderItemBodyExtra: (item) => renderActivityScheduleNote(item, scheduleNoteOptions),
   getPickLocation: (item) => item.localisation || '',
+  mapTab: createMapTabOptions({
+    prefix: 'activities',
+    countSingular: 'activité',
+    countPlural: 'activités',
+    emptyHint: 'Ajoutez une adresse à vos activités pour les voir ici.',
+    mapListFilters: (state) => ({
+      status: state.status,
+      activityType: state.categorie || [],
+    }),
+  }),
 });
 
 export const initActivitiesPage = init;

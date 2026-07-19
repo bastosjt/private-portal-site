@@ -10,6 +10,11 @@ import {
 } from '../../lib/user-location.js';
 import { bindMapMarkerImageFallback } from './map-marker-images.js';
 import {
+  clearMapUserLocationLayer,
+  destroyMapUserLocationLayer,
+  syncMapUserLocationLayer,
+} from './map-user-location.js';
+import {
   fitMapToLocalArea,
   fitMapToVisibleMarkers,
   isMapLayerVisible,
@@ -70,15 +75,10 @@ function configureScrollZoom(map) {
 
 let mapInstance = null;
 let resizeObserver = null;
-let userLocationSourceReady = false;
 let lastUserLocation = null;
 let onLayerToggled = null;
 let stopUserLocationListener = null;
-let userLocationPulseFrame = null;
-let userLocationPulseStartedAt = 0;
 
-const USER_LOCATION_PULSE_DURATION_MS = 2400;
-const USER_LOCATION_PULSE_RADIUS = { min: 10, max: 34 };
 const MAP_BEARING_RESET_THRESHOLD = 0.5;
 
 function syncMapCompass(map) {
@@ -122,124 +122,26 @@ function bindMapCompass(map, signal) {
   syncMapCompass(map);
 }
 
-function stopUserLocationPulse() {
-  if (userLocationPulseFrame != null) {
-    cancelAnimationFrame(userLocationPulseFrame);
-    userLocationPulseFrame = null;
-  }
-  userLocationPulseStartedAt = 0;
-}
-
-function tickUserLocationPulse(map) {
-  if (!map?.getLayer('user-location-pulse')) {
-    stopUserLocationPulse();
+function syncMapUserLocation(map, root, lngLat) {
+  if (!isUserLocationEnabled() || !lngLat) {
+    lastUserLocation = null;
+    clearMapUserLocationLayer(map);
     return;
   }
 
-  const elapsed = (performance.now() - userLocationPulseStartedAt) % USER_LOCATION_PULSE_DURATION_MS;
-  const progress = elapsed / USER_LOCATION_PULSE_DURATION_MS;
-  const fade = Math.sin(Math.PI * progress);
-  const { min, max } = USER_LOCATION_PULSE_RADIUS;
-  const radius = min + (max - min) * ((1 - Math.cos(Math.PI * progress)) / 2);
-
-  map.setPaintProperty('user-location-pulse', 'circle-radius', radius);
-  map.setPaintProperty('user-location-pulse', 'circle-opacity', fade * 0.26);
-  map.setPaintProperty('user-location-pulse', 'circle-stroke-opacity', fade * 0.42);
-
-  userLocationPulseFrame = requestAnimationFrame(() => tickUserLocationPulse(map));
+  lastUserLocation = lngLat;
+  syncMapUserLocationLayer(map, lngLat, { accent: ACCENT });
 }
 
-function startUserLocationPulse(map) {
-  if (!map?.getLayer('user-location-pulse') || userLocationPulseFrame != null) return;
-  userLocationPulseStartedAt = performance.now();
-  tickUserLocationPulse(map);
+export function getLastUserLocation() {
+  if (!isUserLocationEnabled()) return null;
+  return lastUserLocation ?? getUserLocationLngLat();
 }
 
 function getMapLibre() {
   const maplibregl = window.maplibregl;
   if (!maplibregl) throw new Error('MapLibre GL is not loaded');
   return maplibregl;
-}
-
-function ensureUserLocationSource(map) {
-  if (userLocationSourceReady && map.getSource('user-location')) return;
-
-  if (!map.getSource('user-location')) {
-    map.addSource('user-location', {
-      type: 'geojson',
-      data: { type: 'FeatureCollection', features: [] },
-    });
-  }
-
-  if (!map.getLayer('user-location-pulse')) {
-    map.addLayer({
-      id: 'user-location-pulse',
-      type: 'circle',
-      source: 'user-location',
-      paint: {
-        'circle-radius': USER_LOCATION_PULSE_RADIUS.min,
-        'circle-color': ACCENT,
-        'circle-opacity': 0.28,
-        'circle-stroke-width': 1.5,
-        'circle-stroke-color': ACCENT,
-        'circle-stroke-opacity': 0.46,
-      },
-    });
-  }
-
-  if (!map.getLayer('user-location-dot')) {
-    map.addLayer({
-      id: 'user-location-dot',
-      type: 'circle',
-      source: 'user-location',
-      paint: {
-        'circle-radius': 8,
-        'circle-color': ACCENT,
-        'circle-stroke-width': 3,
-        'circle-stroke-color': '#ffffff',
-      },
-    });
-  }
-
-  userLocationSourceReady = true;
-}
-
-function clearUserLocationOnMap(map, root) {
-  lastUserLocation = null;
-  stopUserLocationPulse();
-  if (!map?.isStyleLoaded()) return;
-  if (map.getSource('user-location')) {
-    map.getSource('user-location').setData({ type: 'FeatureCollection', features: [] });
-  }
-}
-
-function setUserLocation(map, lngLat) {
-  if (!map.isStyleLoaded()) {
-    map.once('load', () => setUserLocation(map, lngLat));
-    return;
-  }
-
-  ensureUserLocationSource(map);
-  lastUserLocation = lngLat;
-  map.getSource('user-location').setData({
-    type: 'FeatureCollection',
-    features: [{
-      type: 'Feature',
-      geometry: { type: 'Point', coordinates: lngLat },
-    }],
-  });
-  startUserLocationPulse(map);
-}
-
-function clearUserLocationSource() {
-  stopUserLocationPulse();
-  userLocationSourceReady = false;
-  lastUserLocation = null;
-}
-
-export function getLastUserLocation() {
-  if (!isUserLocationEnabled()) return null;
-  return lastUserLocation ?? getUserLocationLngLat();
 }
 
 const MAP_ICON_OPTS = { strokeWidth: 1.75, width: 15, height: 15 };
@@ -259,14 +161,6 @@ function syncMapViewButtons(root, mode = mapViewMode) {
 
   fitAllBtn.classList.toggle('is-active', !isLocal);
   fitAllBtn.setAttribute('aria-pressed', !isLocal ? 'true' : 'false');
-}
-
-function syncMapUserLocation(map, root, lngLat) {
-  if (!isUserLocationEnabled() || !lngLat) {
-    clearUserLocationOnMap(map, root);
-    return;
-  }
-  setUserLocation(map, lngLat);
 }
 
 function focusMapOnLocalArea(map, lngLat) {
@@ -529,16 +423,17 @@ export function destroyInteractiveMap() {
   onLayerToggled = null;
   stopUserLocationListener?.();
   stopUserLocationListener = null;
-  stopUserLocationPulse();
   clearLocateFeedbackTimer();
-  clearUserLocationSource();
   resetMapMarkersState();
   mapViewMode = 'local';
 
   if (mapInstance) {
+    destroyMapUserLocationLayer(mapInstance);
     mapInstance.remove();
     mapInstance = null;
   }
+
+  lastUserLocation = null;
 }
 
 export function refreshInteractiveMap(options = {}) {
