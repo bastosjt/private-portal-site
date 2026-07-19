@@ -116,6 +116,17 @@ export function initWishlistDetail({ onChanged, onEdit, theme = 'pink' } = {}) {
   let currentItem = null;
   let isBusy = false;
   let confirmDelete = false;
+  let selectedRow = null;
+
+  function setSelectedItem(itemId) {
+    selectedRow?.classList.remove('is-selected');
+    selectedRow = null;
+    if (!itemId) return;
+
+    const inner = document.querySelector(`[data-wishlist-id="${CSS.escape(itemId)}"]`);
+    selectedRow = inner?.closest('.act-list-item') || null;
+    selectedRow?.classList.add('is-selected');
+  }
 
   const overlay = document.createElement('div');
   overlay.className = 'add-modal-overlay hidden';
@@ -196,7 +207,7 @@ export function initWishlistDetail({ onChanged, onEdit, theme = 'pink' } = {}) {
       currentItem = { ...currentItem, done };
       syncCachedItemWrite(COLLECTION, currentItem.id, { patch: { done } });
       onChanged?.(COLLECTION, currentItem.id, { patch: true });
-      close();
+      await close();
     } catch (err) {
       console.error('toggle done:', err);
       isBusy = false;
@@ -244,6 +255,7 @@ export function initWishlistDetail({ onChanged, onEdit, theme = 'pink' } = {}) {
     confirmDelete = false;
     isBusy = false;
     renderContent(item);
+    setSelectedItem(item.id);
     overlay.classList.remove('hidden');
     document.body.classList.add('modal-open');
     lockScroll();
@@ -253,6 +265,8 @@ export function initWishlistDetail({ onChanged, onEdit, theme = 'pink' } = {}) {
   async function close() {
     if (overlay.classList.contains('hidden')) return;
 
+    const rowToReveal = selectedRow;
+
     overlay.classList.remove('is-active');
     document.body.classList.remove('modal-open');
     unlockScroll();
@@ -260,6 +274,8 @@ export function initWishlistDetail({ onChanged, onEdit, theme = 'pink' } = {}) {
     await waitForTransition(overlay.querySelector('.add-modal') || overlay, MODAL_MS);
 
     overlay.classList.add('hidden');
+    setSelectedItem(null);
+    rowToReveal?.scrollIntoView({ block: 'nearest' });
     currentItem = null;
     confirmDelete = false;
     isBusy = false;
