@@ -1,15 +1,62 @@
 import { getCategoryById } from '../../config.js';
 import { formatItemPrice, formatPrice } from '../../lib/price-format.js';
 import { sanitizeHttpsUrl } from '../../lib/safe-url.js';
+import { getPartnerUid, getPartnerBadgeLabel, getDisplayNameForUid, DEFAULT_PARTNER_NICKNAME_LABEL } from '../../lib/user-profile.js';
+import { getItemAuthorUid } from '../../ui/item-author.js';
 import { renderWishlistPriorityIcon } from './IconsType.js';
 import { initWishlistDetail } from '../../ui/wishlist-detail.js';
+import { initWishlistControls } from './wishlist-controls.js';
 import { createListPageController, DEFAULT_SORT_OPTIONS } from '../shared/listPageController.js';
 
-const STATUS_FILTER_OPTIONS = [
-  { value: 'all', label: 'Tout' },
-  { value: 'todo', label: 'À obtenir' },
-  { value: 'done', label: 'Obtenu' },
+const AUTHOR_FILTER_OPTIONS = [
+  { value: 'all', label: 'Tout', ariaLabel: 'Toutes les envies' },
+  { value: 'mine', label: 'Moi', ariaLabel: 'Mes envies' },
+  { value: 'partner', label: 'Partenaire', ariaLabel: 'Envies du partenaire' },
 ];
+
+const PRIORITY_ORDER = { haute: 0, moyenne: 1, basse: 2 };
+
+function getPartnerFirstName(viewerUid) {
+  const partnerUid = getPartnerUid(viewerUid);
+  if (!partnerUid) return 'Partenaire';
+  const name = getDisplayNameForUid(partnerUid);
+  const firstName = name.split(/\s+/).filter(Boolean)[0];
+  return firstName || 'Partenaire';
+}
+
+function getPartnerWishesLabel(viewerUid) {
+  const nickname = getPartnerBadgeLabel(viewerUid);
+  if (nickname === DEFAULT_PARTNER_NICKNAME_LABEL) return 'Envies du partenaire';
+  return `Envies de ${nickname}`;
+}
+
+function getAuthorFilterOptions(viewerUid) {
+  const partnerName = getPartnerFirstName(viewerUid);
+  return AUTHOR_FILTER_OPTIONS.map((opt) => {
+    if (opt.value === 'partner') {
+      return {
+        ...opt,
+        label: partnerName,
+        ariaLabel: getPartnerWishesLabel(viewerUid),
+      };
+    }
+    return opt;
+  });
+}
+
+function filterWishlistByAuthor(items, author, { viewerUid }) {
+  if (author === 'mine') {
+    return items.filter((item) => getItemAuthorUid(item) === viewerUid);
+  }
+
+  if (author === 'partner') {
+    const partnerUid = getPartnerUid(viewerUid);
+    if (!partnerUid) return [];
+    return items.filter((item) => getItemAuthorUid(item) === partnerUid);
+  }
+
+  return items;
+}
 
 function getLinkLabel(url) {
   try {
@@ -33,6 +80,58 @@ function getWishlistMetaLine(item, { getFieldLabel, formatItemPrice: formatItemP
   const priceLabel = getWishlistPriceLabel(item, formatItemPriceFn);
   if (priceLabel) parts.push(priceLabel);
   return parts.join(' · ');
+}
+
+function sortByPriorityThenAlpha(items) {
+  return [...items].sort((a, b) => {
+    const priorityA = PRIORITY_ORDER[a.priorite] ?? 99;
+    const priorityB = PRIORITY_ORDER[b.priorite] ?? 99;
+    if (priorityA !== priorityB) return priorityA - priorityB;
+    return (a.nom || '').localeCompare(b.nom || '', 'fr', { sensitivity: 'base' });
+  });
+}
+
+function renderWishlistListGroups(items, { activeFilters, labels, viewerUid }) {
+  if (activeFilters.status !== 'all') return null;
+
+  const partnerUid = getPartnerUid(viewerUid);
+  const mine = sortByPriorityThenAlpha(items.filter((item) => getItemAuthorUid(item) === viewerUid));
+  const partner = sortByPriorityThenAlpha(items.filter((item) => partnerUid && getItemAuthorUid(item) === partnerUid));
+  const other = sortByPriorityThenAlpha(items.filter((item) => {
+    const uid = getItemAuthorUid(item);
+    return uid && uid !== viewerUid && uid !== partnerUid;
+  }));
+
+  const groups = [];
+
+  if (mine.length) {
+    groups.push({
+      id: 'mine',
+      label: `${labels.authorMine} (${mine.length})`,
+      items: mine,
+      collapsible: false,
+    });
+  }
+
+  if (partner.length) {
+    groups.push({
+      id: 'partner',
+      label: `${labels.authorPartner(viewerUid)} (${partner.length})`,
+      items: partner,
+      collapsible: true,
+    });
+  }
+
+  if (other.length) {
+    groups.push({
+      id: 'other',
+      label: `${labels.authorOther} (${other.length})`,
+      items: other,
+      collapsible: true,
+    });
+  }
+
+  return groups.length ? groups : null;
 }
 
 const LINK_ICON = `
@@ -80,20 +179,27 @@ const { init, destroy, refresh } = createListPageController({
     listPanelId: 'wishlist-list-panel',
   },
   itemIdAttr: 'data-wishlist-id',
-  subTitleElId: 'page-header-sub',
-  useTodoHeaderSubtitle: false,
+  useTodoHeaderSubtitle: true,
+  searchKeys: ['nom', 'description'],
+  renderListGroups: renderWishlistListGroups,
+  filterByStatus: filterWishlistByAuthor,
+  defaultCollapsedGroups: ['partner'],
+  filterBadgeExcludeKeys: ['status'],
   filterFieldKeys: ['priorite'],
   sortOptions: DEFAULT_SORT_OPTIONS,
-  statusFilterOptions: STATUS_FILTER_OPTIONS,
+  statusFilterOptions: AUTHOR_FILTER_OPTIONS,
   filterDefaults: { priorite: [], status: 'all' },
+  listControlsMount: (api, signal) => initWishlistControls({
+    signal,
+    getSegmentOptions: () => getAuthorFilterOptions(api.getViewerUid?.()),
+    getFilterState: api.getFilterState,
+    setAuthor: api.setStatus,
+    setSearchQuery: api.setSearchQuery,
+    getSearchQuery: api.getSearchQuery,
+    removePriority: api.removePriority,
+    getPriorityOptions: api.getPriorityOptions,
+  }),
   getFilterSections: ({ getAvailableFilterOptions }) => [
-    {
-      id: 'status',
-      label: 'Statut',
-      mode: 'single',
-      collapsible: false,
-      options: STATUS_FILTER_OPTIONS,
-    },
     {
       id: 'sort',
       label: 'Trier',
@@ -108,9 +214,13 @@ const { init, destroy, refresh } = createListPageController({
     },
   ],
   labels: {
-    filterToolbarAria: 'Filtrer et trier la wishlist',
+    filterToolbarAria: 'Trier et filtrer par priorité',
     countSingular: 'envie',
     countPlural: 'envies',
+    countFiltered: (count, total) => `${count} affichée${count > 1 ? 's' : ''} sur ${total}`,
+    authorMine: 'Mes envies',
+    authorPartner: (viewerUid) => getPartnerWishesLabel(viewerUid),
+    authorOther: 'Autres envies',
     statusDone: 'Obtenu',
     statusTodo: 'À obtenir',
     headerEmpty: 'Ajoutez vos premières envies',
@@ -120,19 +230,14 @@ const { init, destroy, refresh } = createListPageController({
     emptyNone: 'Aucun élément dans la wishlist',
     emptyFiltered: 'Aucun élément ne correspond à ces filtres',
     addCta: 'Ajouter à la wishlist',
-    pickEmptyTitle: 'Rien à piocher',
-    pickEmptyText: 'Ajoutez des envies pour commencer.',
-    pickAllDoneTitle: 'Bravo !',
-    pickAllDoneText: 'Tout est dans la poche.',
-    pickIdleText: 'Lancez le dé pour piocher une envie',
-    pickQuotaExhaustedText: 'Vous avez tout pioché pour aujourd\'hui. Revenez demain !',
+    listEmptySub: 'Aucune envie pour le moment',
   },
   sidebarIconKey: 'wishlist',
   initDetail: initWishlistDetail,
   renderTypeIcon: (item) => renderWishlistPriorityIcon(item.priorite),
   renderListMeta: renderWishlistListMeta,
   renderLocation: renderWishlistLink,
-  getPickLocation: (item) => item.lien || '',
+  getPickLocation: () => '',
 });
 
 export const initWishlistPage = init;

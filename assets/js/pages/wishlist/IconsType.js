@@ -2,9 +2,9 @@ import { Heart } from '../../vendor/lucide.mjs';
 import { renderLucideIcon } from '../../lib/lucide-icon.js';
 
 const PRIORITY_ICON_CLASS = {
-  haute: 'wishlist-icon--high',
-  moyenne: 'wishlist-icon--medium',
-  basse: 'wishlist-icon--low',
+  haute: 'wishlist-priority-icon--high',
+  moyenne: 'wishlist-priority-icon--medium',
+  basse: 'wishlist-priority-icon--low',
 };
 
 export function renderWishlistPriorityIcon(priorite, options = {}) {

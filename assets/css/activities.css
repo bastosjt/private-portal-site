@@ -2474,7 +2474,8 @@
   color: #ffb4b4;
 }
 
-#films-list-panel {
+#films-list-panel,
+#wishlist-list-panel {
   margin-top: 1.5rem;
 }
 
@@ -2583,6 +2584,201 @@
 }
 
 /* ── Wishlist ─────────────────────────────────────────────── */
+
+.wishlist-page .act-cat-panel > .wishlist-search,
+.wishlist-page .act-cat-panel > .wishlist-author-switch,
+.wishlist-page .act-cat-panel > .wishlist-toolbar-row,
+.wishlist-page .act-cat-panel > .act-list {
+  position: relative;
+  z-index: 1;
+}
+
+.wishlist-search {
+  margin-bottom: 12px;
+}
+
+.wishlist-search-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: var(--radius-pill);
+  background: var(--bg);
+  border: 1px solid color-mix(in srgb, var(--cat-border) 70%, transparent);
+  box-shadow: var(--neu-in);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.wishlist-search-field:focus-within {
+  border-color: color-mix(in srgb, var(--cat-color) 55%, transparent);
+  box-shadow:
+    var(--neu-in),
+    0 0 0 1px color-mix(in srgb, var(--cat-color) 35%, transparent);
+}
+
+.wishlist-search-icon {
+  display: inline-flex;
+  color: var(--text-placeholder);
+  flex-shrink: 0;
+}
+
+.wishlist-search-input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+}
+
+.wishlist-search-input::placeholder {
+  color: var(--text-placeholder);
+}
+
+.wishlist-search-input::-webkit-search-cancel-button,
+.wishlist-search-input::-webkit-search-decoration {
+  display: none;
+}
+
+.wishlist-search-clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-pill);
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.wishlist-search-clear:hover {
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--cat-color) 10%, transparent);
+}
+
+.wishlist-author-switch {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0 0 12px;
+}
+
+.wishlist-author-switch .act-view-switch-btn {
+  min-width: 0;
+  padding: 0 10px;
+}
+
+.wishlist-author-switch-label {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wishlist-toolbar-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.wishlist-toolbar-row .act-list-toolbar {
+  margin-bottom: 0;
+}
+
+.wishlist-active-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.wishlist-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 32px;
+  padding: 0 10px 0 12px;
+  border-radius: var(--radius-pill);
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--cat-color);
+  background: color-mix(in srgb, var(--cat-color) 10%, var(--bg));
+  border: 1px solid color-mix(in srgb, var(--cat-color) 35%, transparent);
+}
+
+.wishlist-filter-chip svg {
+  width: 12px;
+  height: 12px;
+  opacity: 0.8;
+}
+
+.act-list.act-list--grouped {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.act-list-group {
+  list-style: none;
+}
+
+.act-list-group-head,
+.act-list-group-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  margin: 0 0 10px;
+  padding: 0 2px;
+  text-align: left;
+  color: var(--text-secondary);
+}
+
+.act-list-group-toggle {
+  border-radius: var(--radius-sm);
+}
+
+.act-list-group-toggle:hover {
+  color: var(--text-primary);
+}
+
+.act-list-group-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.act-list-group-chevron {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.act-list-group.is-collapsed .act-list-group-chevron {
+  transform: rotate(-90deg);
+}
+
+.act-list-group-items {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.wishlist-page .act-list-item.is-selected .act-list-item-inner {
+  border-color: color-mix(in srgb, var(--cat-color) 55%, transparent);
+  box-shadow:
+    var(--neu-out),
+    0 0 0 1px color-mix(in srgb, var(--cat-color) 35%, transparent),
+    0 0 20px var(--cat-glow);
+}
 
 .wishlist-priority-icon {
   display: inline-flex;
