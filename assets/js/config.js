@@ -1,7 +1,7 @@
-/** Date de début de la relation — à personnaliser */
+/** Date  **/
 export const COUPLE_START_DATE = '2026-06-27';
 
-/** Nom affiché dans l'onglet, le menu et l'icône d'installation */
+/** Nom de l'espace et version */
 export const APP_NAME = 'Our Space';
 export const APP_TAGLINE = 'À nous deux';
 export const APP_VERSION = '1.6.3';
@@ -15,10 +15,10 @@ export {
   getUserDisplayName,
 } from './lib/user-profile.js';
 
-/** Thème accueil & paramètres — gris lilas, neutre et distinct du cyan/bleu */
+/** Thème de l'espace et paramètres */
 export const BASE_THEME = 'base';
 
-/** Thème carte interactive — vert */
+/** Thème de la carte interactive */
 export const MAP_THEME = 'emerald';
 export const MAP_ACCENT = '#22C55E';
 

@@ -44,7 +44,9 @@ let markerClickHandler = null;
 let selectedMarker = null;
 let initialFitDone = false;
 
-const MARKER_LAYER_IDS = MARKER_LAYERS.map((layer) => `map-markers-${layer.id}`);
+const MARKERS_SYMBOL_LAYER_ID = 'map-markers-symbols';
+const MARKER_SORT_KEY = ['-', 0, ['get', 'lat']];
+const MARKER_LAYER_IDS = [MARKERS_SYMBOL_LAYER_ID];
 const INTERACTIVE_MARKER_LAYER_IDS = [...MARKER_LAYER_IDS, 'map-marker-selected'];
 
 const BASE_ICON_SIZE = ['interpolate', ['linear'], ['zoom'], 9, 0.7, 12, 0.88, 15, 1.05, 18, 1.25];
@@ -142,6 +144,21 @@ function isMarkerSelected(marker) {
   return selectedMarker.categoryId === marker.categoryId && selectedMarker.itemId === marker.id;
 }
 
+function getMarkersSymbolLayerFilter() {
+  const visibleIds = MARKER_LAYERS.filter(({ id }) => layerVisibility[id]).map(({ id }) => id);
+  const hideSelected = ['==', ['get', 'isSelected'], false];
+
+  if (visibleIds.length === 0) {
+    return ['all', ['==', ['get', 'categoryId'], '__none__'], hideSelected];
+  }
+
+  if (visibleIds.length === MARKER_LAYERS.length) {
+    return hideSelected;
+  }
+
+  return ['all', ['in', ['get', 'categoryId'], ['literal', visibleIds]], hideSelected];
+}
+
 function buildFeatureCollection() {
   const markers = getDisplayedMarkers();
 
@@ -157,19 +174,15 @@ function buildFeatureCollection() {
         iconImage: getMarkerIconImageId(marker),
         done: marker.done,
         isSelected: isMarkerSelected(marker),
+        lat: marker.coordinates[1],
       },
     })),
   };
 }
 
 function syncLayerVisibility(map) {
-  for (const layer of MARKER_LAYERS) {
-    if (!map.getLayer(`map-markers-${layer.id}`)) continue;
-    map.setLayoutProperty(
-      `map-markers-${layer.id}`,
-      'visibility',
-      layerVisibility[layer.id] ? 'visible' : 'none',
-    );
+  if (map.getLayer(MARKERS_SYMBOL_LAYER_ID)) {
+    map.setFilter(MARKERS_SYMBOL_LAYER_ID, getMarkersSymbolLayerFilter());
   }
 
   if (map.getLayer('map-marker-selected')) {
@@ -298,6 +311,70 @@ function markersAreMounted(map) {
   return Boolean(map?.getSource('map-markers'));
 }
 
+function removeLegacyMarkerLayers(map) {
+  for (const layer of MARKER_LAYERS) {
+    const legacyLayerId = `map-markers-${layer.id}`;
+    if (map.getLayer(legacyLayerId)) map.removeLayer(legacyLayerId);
+  }
+}
+
+function ensureMarkersSymbolLayer(map) {
+  removeLegacyMarkerLayers(map);
+
+  if (map.getLayer(MARKERS_SYMBOL_LAYER_ID)) {
+    map.setFilter(MARKERS_SYMBOL_LAYER_ID, getMarkersSymbolLayerFilter());
+    map.setLayoutProperty(MARKERS_SYMBOL_LAYER_ID, 'symbol-sort-key', MARKER_SORT_KEY);
+    map.setLayoutProperty(MARKERS_SYMBOL_LAYER_ID, 'symbol-z-order', 'auto');
+    return;
+  }
+
+  map.addLayer({
+    id: MARKERS_SYMBOL_LAYER_ID,
+    type: 'symbol',
+    source: 'map-markers',
+    filter: getMarkersSymbolLayerFilter(),
+    layout: {
+      'icon-image': ['get', 'iconImage'],
+      'icon-size': BASE_ICON_SIZE,
+      'icon-anchor': 'bottom',
+      'icon-allow-overlap': true,
+      'icon-ignore-placement': true,
+      'symbol-sort-key': MARKER_SORT_KEY,
+      'symbol-z-order': 'auto',
+    },
+    paint: {
+      'icon-opacity': DONE_ICON_OPACITY,
+    },
+  });
+}
+
+function ensureSelectedMarkerLayer(map) {
+  if (map.getLayer('map-marker-selected')) {
+    map.setLayoutProperty('map-marker-selected', 'symbol-sort-key', MARKER_SORT_KEY);
+    map.setLayoutProperty('map-marker-selected', 'symbol-z-order', 'auto');
+    return;
+  }
+
+  map.addLayer({
+    id: 'map-marker-selected',
+    type: 'symbol',
+    source: 'map-markers',
+    filter: ['==', ['get', 'isSelected'], true],
+    layout: {
+      'icon-image': ['get', 'iconImage'],
+      'icon-size': SELECTED_ICON_SIZE,
+      'icon-anchor': 'bottom',
+      'icon-allow-overlap': true,
+      'icon-ignore-placement': true,
+      'symbol-sort-key': MARKER_SORT_KEY,
+      'symbol-z-order': 'auto',
+    },
+    paint: {
+      'icon-opacity': DONE_ICON_OPACITY,
+    },
+  });
+}
+
 export async function ensureMapMarkerLayers(map) {
   if (!map) return;
 
@@ -310,6 +387,8 @@ export async function ensureMapMarkerLayers(map) {
 
   if (markersAreMounted(map)) {
     markersSourceReady = true;
+    ensureMarkersSymbolLayer(map);
+    ensureSelectedMarkerLayer(map);
     syncLayerVisibility(map);
     bindMapMarkerInteractions(map);
     ensureTravelZoneLayers(map);
@@ -331,46 +410,8 @@ export async function ensureMapMarkerLayers(map) {
         });
       }
 
-      for (const layer of MARKER_LAYERS) {
-        const layerId = `map-markers-${layer.id}`;
-        if (!map.getLayer(layerId)) {
-          map.addLayer({
-            id: layerId,
-            type: 'symbol',
-            source: 'map-markers',
-            filter: ['==', ['get', 'categoryId'], layer.id],
-            layout: {
-              'icon-image': ['get', 'iconImage'],
-              'icon-size': BASE_ICON_SIZE,
-              'icon-anchor': 'bottom',
-              'icon-allow-overlap': true,
-              'icon-ignore-placement': true,
-            },
-            paint: {
-              'icon-opacity': DONE_ICON_OPACITY,
-            },
-          });
-        }
-      }
-
-      if (!map.getLayer('map-marker-selected')) {
-        map.addLayer({
-          id: 'map-marker-selected',
-          type: 'symbol',
-          source: 'map-markers',
-          filter: ['==', ['get', 'isSelected'], true],
-          layout: {
-            'icon-image': ['get', 'iconImage'],
-            'icon-size': SELECTED_ICON_SIZE,
-            'icon-anchor': 'bottom',
-            'icon-allow-overlap': true,
-            'icon-ignore-placement': true,
-          },
-          paint: {
-            'icon-opacity': DONE_ICON_OPACITY,
-          },
-        });
-      }
+      ensureMarkersSymbolLayer(map);
+      ensureSelectedMarkerLayer(map);
 
       markersSourceReady = true;
       ensureTravelZoneLayers(map);

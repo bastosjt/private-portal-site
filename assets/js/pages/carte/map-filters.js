@@ -135,8 +135,17 @@ function countMapActiveFilters() {
   count += filterState.restaurantType.length;
   count += filterState.restaurantCuisine.length;
   count += filterState.travelType.length;
-  if (filterState.categories.length > 0) count += filterState.categories.length;
+  if (!LAYER_IDS.every((id) => isMapLayerVisible(id))) count += 1;
   return count;
+}
+
+function syncFilterCategoriesFromLayers() {
+  filterState.categories = categoriesFromLayerVisibility();
+}
+
+export function syncMapFiltersFromLayerVisibility() {
+  syncFilterCategoriesFromLayers();
+  updateMapFilterBadge();
 }
 
 function updateMapFilterBadge() {
@@ -153,11 +162,13 @@ function updateMapFilterBadge() {
 function applyCategoryVisibility(map, categories, syncLayerButtons) {
   if (categories.length === 0) {
     LAYER_IDS.forEach((id) => setMapLayerVisible(map, id, true));
+    filterState.categories = [];
   } else {
     LAYER_IDS.forEach((id) => setMapLayerVisible(map, id, categories.includes(id)));
+    const allVisible = LAYER_IDS.every((id) => categories.includes(id));
+    filterState.categories = allVisible ? [] : [...categories];
   }
 
-  filterState.categories = [...categories];
   syncLayerButtons?.();
 }
 
@@ -223,5 +234,6 @@ export function destroyMapFilters() {
 export { updateMapFilterBadge };
 
 export function onMapLayerToggled(map) {
+  syncMapFiltersFromLayerVisibility();
   refreshMapMarkers(map);
 }

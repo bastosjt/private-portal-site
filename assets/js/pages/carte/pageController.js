@@ -16,6 +16,7 @@ import {
   syncMapLayerButtons,
 } from './interactive-map.js';
 import { destroyMapFilters, initMapFilters, onMapLayerToggled, updateMapFilterBadge } from './map-filters.js';
+import { destroyMapSearch, initMapSearch } from './map-search.js';
 import {
   clearSelectedMapMarker,
   resetMapPageFit,
@@ -185,6 +186,13 @@ export async function initMapPage(user, { addItemModal: sharedModal } = {}) {
     });
   }
 
+  initMapSearch({
+    signal: pageAbort.signal,
+    onSelect: ({ categoryId, itemId }) => {
+      openMapItemDetail(categoryId, itemId, { flyTo: true });
+    },
+  });
+
   scheduleMapPageFinalize();
 }
 
@@ -194,6 +202,7 @@ export function destroyMapPage() {
   mapReadyHandled = false;
   setMapMarkerSelectionPrunedHandler(null);
   destroyMapFilters();
+  destroyMapSearch();
   destroyDetailModals();
   destroyInteractiveMap();
 }
