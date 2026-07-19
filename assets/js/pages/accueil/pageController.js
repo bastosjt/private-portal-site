@@ -2,13 +2,15 @@ import { COUPLE_START_DATE, HOME_CATEGORIES, MAP_THEME, getCategoryById, getUser
 import {
   ensurePrefetch,
   findCachedItemById,
-  getGeolocatedPlacesFromCache,
+  getNearestMapPlacesFromCache,
   countGeolocatedPlacesFromCache,
   getCachedItems,
   getWeekItemsCountFromCache,
   getCollectionCountFromCache,
   ITEM_COLLECTIONS,
 } from '../../data/appDataCache.js';
+import { getUserLocationLngLat, onUserLocationChange } from '../../lib/user-location.js';
+import { MAP_FALLBACK_CENTER } from '../carte/map-markers.js';
 import {
   loadDailyPicks,
   getDisplayedLatestPick,
@@ -24,6 +26,7 @@ import { initWishlistDetail } from '../../ui/wishlist-detail.js';
 import { initTravelDetail } from '../../ui/travel-detail.js';
 import { sidebarIcon } from '../../ui/sidebar.js';
 import { initAddItem } from '../../ui/add-item.js';
+import { destroyHomeMapPreview, initHomeMapPreview } from './home-map-preview.js';
 
 const COLLECTION_IDS = ITEM_COLLECTIONS;
 const PICK_SCOPES = ['activities', 'restaurants', 'movies'];
@@ -44,6 +47,7 @@ const DETAIL_INIT = {
 let currentUserName = '';
 let addItemModal = null;
 let homeAbort = null;
+let stopNearbyLocationListener = null;
 let detailModals = {};
 
 function escapeHtml(str) {
@@ -282,16 +286,41 @@ function renderTodaySection() {
   `;
 }
 
+function getNearbyOriginLngLat() {
+  return getUserLocationLngLat() || MAP_FALLBACK_CENTER;
+}
+
+function renderNearbyDistanceBadge(distanceLabel) {
+  return `
+    <span class="act-list-status home-nearby-place-distance-badge">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <polygon points="3 11 22 2 13 21 11 13 3 11"/>
+      </svg>
+      ${escapeHtml(distanceLabel)}
+    </span>
+  `;
+}
+
+function buildNearbySubtitle(totalPlaces, nearestCount) {
+  if (totalPlaces === 0) return 'Aucun lieu enregistré';
+  if (nearestCount === 0) {
+    return totalPlaces === 1 ? '1 lieu enregistré' : `${totalPlaces} lieux enregistrés`;
+  }
+
+  const proximityHint = getUserLocationLngLat() ? 'depuis vous' : 'à vol d\'oiseau';
+  if (totalPlaces === 1) return `1 lieu · le plus proche ${proximityHint}`;
+  return `${totalPlaces} lieux · ${nearestCount} plus proches ${proximityHint}`;
+}
+
 function renderNearbyMapPreview(totalPlaces) {
   const countLabel = totalPlaces === 1 ? '1 lieu sur la carte' : `${totalPlaces} lieux sur la carte`;
 
   return `
     <a href="#carte" class="home-nearby-map-link" aria-label="Ouvrir la carte interactive">
-      <div class="home-nearby-map-preview">
+      <div class="home-nearby-map-preview" data-theme="${MAP_THEME}">
+        <span class="home-nearby-map-preview-fallback" aria-hidden="true"></span>
+        <div class="home-nearby-map-preview-canvas" id="home-nearby-map-canvas" aria-hidden="true"></div>
         <span class="home-nearby-map-preview-grid" aria-hidden="true"></span>
-        <span class="home-nearby-map-preview-pin" aria-hidden="true">
-          ${renderNavIcon('map', { strokeWidth: 1.75, width: 28, height: 28 })}
-        </span>
         <span class="home-nearby-map-preview-copy">
           <span class="home-nearby-map-preview-title">Carte interactive</span>
           <span class="home-nearby-map-preview-text">${countLabel}</span>
@@ -306,18 +335,18 @@ function renderNearbySection() {
   const subEl = document.getElementById('home-nearby-sub');
   if (!inner) return;
 
+  destroyHomeMapPreview();
+
   if (inner.classList.contains('is-loading')) {
     inner.innerHTML = renderNearbySkeleton();
     return;
   }
 
   const totalPlaces = countGeolocatedPlacesFromCache();
-  const places = getGeolocatedPlacesFromCache(4);
+  const places = getNearestMapPlacesFromCache(4, getNearbyOriginLngLat());
 
   if (subEl) {
-    if (totalPlaces === 0) subEl.textContent = 'Aucun lieu enregistré';
-    else if (totalPlaces === 1) subEl.textContent = '1 lieu enregistré';
-    else subEl.textContent = `${totalPlaces} lieux enregistrés`;
+    subEl.textContent = buildNearbySubtitle(totalPlaces, places.length);
   }
 
   const mapPreview = totalPlaces > 0
@@ -336,10 +365,12 @@ function renderNearbySection() {
 
   if (!places.length) {
     inner.innerHTML = mapPreview;
+    if (totalPlaces > 0) initHomeMapPreview();
+    else destroyHomeMapPreview();
     return;
   }
 
-  const placesHtml = places.map(({ categoryId, item, title, location }) => {
+  const placesHtml = places.map(({ categoryId, item, title, location, distanceLabel }) => {
     const cat = getCategoryById(categoryId);
     const theme = cat?.theme || 'base';
     const tag = cat?.label?.replace(' & Séries', '') || 'Lieu';
@@ -357,6 +388,7 @@ function renderNearbySection() {
           <span class="home-nearby-place-title">${escapeHtml(title)}</span>
           ${location ? `<span class="home-nearby-place-loc">${escapeHtml(location)}</span>` : ''}
         </span>
+        ${renderNearbyDistanceBadge(distanceLabel)}
         <span class="home-nearby-place-arrow" aria-hidden="true">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
             <path d="m9 18 6-6-6-6"/>
@@ -374,6 +406,9 @@ function renderNearbySection() {
       ${placesHtml}
     </div>
   `;
+
+  if (totalPlaces > 0) initHomeMapPreview();
+  else destroyHomeMapPreview();
 }
 
 function renderShortcutsSection() {
@@ -478,6 +513,9 @@ function onHomeClick(event) {
 export function destroyHomePage() {
   homeAbort?.abort();
   homeAbort = null;
+  stopNearbyLocationListener?.();
+  stopNearbyLocationListener = null;
+  destroyHomeMapPreview();
   destroyDetailModals();
 }
 
@@ -502,6 +540,12 @@ export async function initHomePage(user, { addItemModal: sharedModal } = {}) {
   if (nearbyInner && !nearbyInner.innerHTML) nearbyInner.innerHTML = renderNearbySkeleton();
 
   document.addEventListener('click', onHomeClick, { signal });
+  stopNearbyLocationListener = onUserLocationChange(() => {
+    const nearbyInner = document.getElementById('home-nearby-inner');
+    if (nearbyInner && !nearbyInner.classList.contains('is-loading')) {
+      renderNearbySection();
+    }
+  });
   loadHomeData();
 }
 
