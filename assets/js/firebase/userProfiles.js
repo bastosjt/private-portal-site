@@ -1,4 +1,5 @@
 import { db } from './config.js';
+import { devWarn } from '../lib/dev-log.js';
 import {
   collection,
   doc,
@@ -19,7 +20,7 @@ export async function fetchAllUserProfiles() {
     });
     return result;
   } catch (err) {
-    console.warn('fetchAllUserProfiles:', err.message);
+    devWarn('fetchAllUserProfiles:', err.message);
     return {};
   }
 }
@@ -30,7 +31,7 @@ export async function fetchUserProfile(uid) {
     const snapshot = await getDoc(doc(db, USERS_COLLECTION, uid));
     return snapshot.exists() ? snapshot.data() : null;
   } catch (err) {
-    console.warn(`fetchUserProfile(${uid}):`, err.message);
+    devWarn(`fetchUserProfile(${uid}):`, err.message);
     return null;
   }
 }

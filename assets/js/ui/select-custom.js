@@ -1,4 +1,5 @@
 import { escapeHtml } from '../lib/escape-html.js';
+import { devWarn, devError } from '../lib/dev-log.js';
 import {
   ADD_OPTION_VALUE,
   addCustomOption,
@@ -155,7 +156,7 @@ function initCustomSelect(select, field, categoryId) {
         toggleAddPanel(false);
       })
       .catch((err) => {
-        console.error('addCustomOption:', err);
+        devError('addCustomOption:', err);
       })
       .finally(() => {
         addBtn.disabled = false;

@@ -1,4 +1,5 @@
 import { escapeHtml } from '../lib/escape-html.js';
+import { devWarn } from '../lib/dev-log.js';
 import { searchAddresses } from '../lib/address-search.js';
 
 function getSuggestionMeta(suggestion) {
@@ -147,7 +148,7 @@ export function initAddressAutocomplete(input, { form, fills = {}, onSelect } = 
       renderSuggestions(results);
     } catch (err) {
       if (err.name !== 'AbortError') {
-        console.warn('address search:', err.message);
+        devWarn('address search:', err.message);
         closeList();
       }
     } finally {

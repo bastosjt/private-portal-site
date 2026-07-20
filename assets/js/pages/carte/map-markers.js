@@ -1,4 +1,5 @@
 import { getMapMarkersFromCache } from '../../data/appDataCache.js';
+import { devWarn } from '../../lib/dev-log.js';
 import { getLngLatDeltaForRadiusKm } from '../../lib/geo-utils.js';
 import {
   ensureMapMarkerImages,
@@ -436,7 +437,7 @@ export function refreshMapMarkers(map, { onUpdated } = {}) {
         onUpdated?.();
       })
       .catch((err) => {
-        console.warn('refreshMapMarkers:', err.message);
+        devWarn('refreshMapMarkers:', err.message);
       });
   };
 
@@ -459,7 +460,7 @@ export function setMapLayerVisible(map, categoryId, visible) {
     syncMarkerSource(map);
     if (categoryId === 'travels') {
       syncTravelMapZones(map).catch((err) => {
-        console.warn('syncTravelMapZones:', err.message);
+        devWarn('syncTravelMapZones:', err.message);
       });
     }
   }

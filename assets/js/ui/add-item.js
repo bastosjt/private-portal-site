@@ -1,4 +1,5 @@
 import { escapeHtml } from '../lib/escape-html.js';
+import { devWarn, devError } from '../lib/dev-log.js';
 import { HOME_CATEGORIES, getCategoryById } from '../config.js';
 import { addItem, updateItem } from '../firebase/firestore.js';
 import { patchCachedItem, upsertCachedItem } from '../data/appDataCache.js';
@@ -759,7 +760,7 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
       if (itemId) onUpdated?.(category.id, itemId);
       else onAdded?.(category.id);
     } catch (err) {
-      console.error(editingItemId ? 'updateItem:' : 'addItem:', err);
+      devError(editingItemId ? 'updateItem:' : 'addItem:', err);
       saveDraftNow();
       errorEl.textContent = getSubmitErrorMessage(err);
       errorEl.classList.remove('hidden');

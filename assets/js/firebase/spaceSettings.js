@@ -1,4 +1,5 @@
 import { db } from './config.js';
+import { devWarn } from '../lib/dev-log.js';
 import {
   doc,
   getDoc,
@@ -14,7 +15,7 @@ export async function fetchSpaceSettings() {
     const snapshot = await getDoc(doc(db, SPACE_COLLECTION, SPACE_SETTINGS_DOC));
     return snapshot.exists() ? snapshot.data() : null;
   } catch (err) {
-    console.warn('fetchSpaceSettings:', err.message);
+    devWarn('fetchSpaceSettings:', err.message);
     return null;
   }
 }

@@ -1,4 +1,5 @@
 import { getCategoryById } from '../config.js';
+import { devWarn, devError } from '../lib/dev-log.js';
 import { updateItem, deleteItem } from '../firebase/firestore.js';
 import { syncCachedItemWrite } from '../data/appDataCache.js';
 import { formatItemPrice, formatPrice, hasItemPrice } from '../lib/price-format.js';
@@ -143,7 +144,7 @@ export function initWishlistDetail({ onChanged, onEdit, theme = 'pink' } = {}) {
       onChanged?.(COLLECTION, currentItem.id, { patch: true });
       await close();
     } catch (err) {
-      console.error('toggle done:', err);
+      devError('toggle done:', err);
       isBusy = false;
       updateDoneToggleUI(bodyEl, currentItem.done, false, DONE_LABELS);
       content?.classList.toggle('act-detail-content--done', currentItem.done);
@@ -174,7 +175,7 @@ export function initWishlistDetail({ onChanged, onEdit, theme = 'pink' } = {}) {
       close();
       onChanged?.(COLLECTION, itemId, { deleted: true });
     } catch (err) {
-      console.error('deleteItem:', err);
+      devError('deleteItem:', err);
       confirmDelete = false;
     } finally {
       isBusy = false;

@@ -1,7 +1,8 @@
 import { MAP_ACCENT } from '../../config.js';
+import { devWarn } from '../../lib/dev-log.js';
 import { getLngLatDeltaForRadiusKm } from '../../lib/geo-utils.js';
-import { getMapLibre, waitForContainerSize } from '../../lib/map-bootstrap.js';
-import { OUR_SPACE_MAP_STYLE } from '../carte/map-style.js';
+import { loadMapLibre, waitForContainerSize, MAP_BASE_OPTS } from '../../lib/map-bootstrap.js';
+import { OUR_SPACE_MAP_RASTER_STYLE } from '../carte/map-raster-style.js';
 import { bindMapMarkerImageFallback } from '../carte/map-marker-images.js';
 import {
   clearMapUserLocationLayer,
@@ -19,12 +20,14 @@ import {
   onUserLocationChange,
 } from '../../lib/user-location.js';
 
-const PREVIEW_ZOOM = 14;
+/** Zoom fixe — évite le chargement de tuiles sur plusieurs niveaux. */
+const PREVIEW_ZOOM = 12;
 const PREVIEW_PADDING = { top: 14, bottom: 42, left: 14, right: 14 };
 
 let previewMap = null;
 let resizeObserver = null;
 let stopLocationListener = null;
+let lazyLoadObserver = null;
 let initToken = 0;
 
 function getPreviewCenter() {
@@ -46,6 +49,7 @@ function fitPreviewMap(map, { duration = 0 } = {}) {
   map.fitBounds(bounds, {
     padding: PREVIEW_PADDING,
     maxZoom: PREVIEW_ZOOM,
+    minZoom: PREVIEW_ZOOM,
     duration,
     essential: true,
   });
@@ -66,6 +70,8 @@ function markPreviewReady(previewRoot) {
 
 export function destroyHomeMapPreview() {
   initToken += 1;
+  lazyLoadObserver?.disconnect();
+  lazyLoadObserver = null;
   stopLocationListener?.();
   stopLocationListener = null;
   resizeObserver?.disconnect();
@@ -81,7 +87,7 @@ async function mountHomeMapPreview(token) {
   const container = document.getElementById('home-nearby-map-canvas');
   if (!container || token !== initToken) return;
 
-  const maplibregl = getMapLibre();
+  const maplibregl = await loadMapLibre();
   if (!maplibregl) return;
 
   const previewRoot = container.closest('.home-nearby-map-preview');
@@ -90,23 +96,23 @@ async function mountHomeMapPreview(token) {
 
   previewMap = new maplibregl.Map({
     container,
-    style: OUR_SPACE_MAP_STYLE,
+    style: OUR_SPACE_MAP_RASTER_STYLE,
     center: getPreviewCenter(),
     zoom: PREVIEW_ZOOM,
-    minZoom: 3,
-    maxZoom: 16,
+    minZoom: PREVIEW_ZOOM,
+    maxZoom: PREVIEW_ZOOM,
     interactive: false,
-    attributionControl: false,
     pitch: 0,
     bearing: 0,
     dragRotate: false,
     touchZoomRotate: false,
+    ...MAP_BASE_OPTS,
   });
 
   bindMapMarkerImageFallback(previewMap);
 
   previewMap.on('error', (event) => {
-    console.warn('home-map-preview:', event.error?.message || event.error);
+    devWarn('home-map-preview:', event.error?.message || event.error);
   });
 
   previewMap.on('load', () => {
@@ -119,13 +125,6 @@ async function mountHomeMapPreview(token) {
     refreshMapMarkers(previewMap, {
       onUpdated: () => syncPreviewUserLocation(previewMap),
     });
-  });
-
-  previewMap.once('idle', () => {
-    if (token !== initToken) return;
-    previewMap?.resize();
-    fitPreviewMap(previewMap);
-    syncPreviewUserLocation(previewMap);
   });
 
   resizeObserver = new ResizeObserver(() => {
@@ -147,9 +146,17 @@ export function initHomeMapPreview() {
   destroyHomeMapPreview();
   const token = initToken;
 
-  requestAnimationFrame(() => {
-    mountHomeMapPreview(token).catch((error) => {
-      console.warn('home-map-preview init:', error.message);
+  lazyLoadObserver = new IntersectionObserver((entries) => {
+    if (!entries.some((entry) => entry.isIntersecting)) return;
+    lazyLoadObserver?.disconnect();
+    lazyLoadObserver = null;
+
+    requestAnimationFrame(() => {
+      mountHomeMapPreview(token).catch((error) => {
+        devWarn('home-map-preview init:', error.message);
+      });
     });
-  });
+  }, { rootMargin: '120px' });
+
+  lazyLoadObserver.observe(container);
 }

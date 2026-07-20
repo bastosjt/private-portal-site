@@ -1,7 +1,13 @@
 import { db } from './config.js';
+import { devWarn, devError } from '../lib/dev-log.js';
 import {
+  collection,
   doc,
+  query,
+  where,
   getDoc,
+  getDocs,
+  documentId,
   runTransaction,
   deleteDoc,
   Timestamp,
@@ -105,32 +111,6 @@ function normalizePickIds(rawIds) {
   return Array.isArray(rawIds) ? rawIds.slice(0, MAX_DAILY_PICKS) : [];
 }
 
-async function loadFallbackPick(scope = 'activities', lookbackDays = FALLBACK_LOOKBACK_DAYS) {
-  syncCacheWithToday();
-
-  const resolvedScope = resolveScope(scope);
-  const field = getScopeField(resolvedScope);
-
-  cachedFallbackPickByScope[resolvedScope] = null;
-
-  for (let daysAgo = 2; daysAgo <= lookbackDays; daysAgo += 1) {
-    const { key } = getDayKeyWithOffset(daysAgo);
-    const snap = await getDoc(pickDocRef(key));
-    if (!snap.exists()) continue;
-
-    const ids = normalizePickIds(snap.data()?.[field]);
-    if (!isFallbackDocValid(ids)) continue;
-
-    cachedFallbackPickByScope[resolvedScope] = {
-      id: getLatestId(ids),
-      daysAgo,
-    };
-    return cachedFallbackPickByScope[resolvedScope];
-  }
-
-  return null;
-}
-
 function clearScopeCache(scope) {
   cachedPickIdsByScope[scope] = [];
   cachedYesterdayPickIdsByScope[scope] = [];
@@ -157,7 +137,7 @@ function runResetListeners() {
     try {
       listener();
     } catch (err) {
-      console.warn('dailyPickReset listener:', err);
+      devWarn('dailyPickReset listener:', err);
     }
   });
 }
@@ -168,19 +148,6 @@ function ensureMaxLookbackDays(value) {
 
 function getScopeFieldValue(data, field) {
   return normalizePickIds(data?.[field]);
-}
-
-function readScopeIdsFromSnapshot(snap, field) {
-  if (!snap.exists()) return [];
-  return getScopeFieldValue(snap.data(), field);
-}
-
-function updateTodayCache(scope, ids) {
-  cachedPickIdsByScope[scope] = ids;
-}
-
-function updateYesterdayCache(scope, ids) {
-  cachedYesterdayPickIdsByScope[scope] = ids;
 }
 
 function syncCacheWithToday() {
@@ -198,9 +165,86 @@ function getMsUntilMidnight() {
   return Math.max(0, nextMidnight.getTime() - now.getTime());
 }
 
+function buildLookbackDateKeys(lookbackDays) {
+  const keys = [];
+  for (let daysAgo = 0; daysAgo <= lookbackDays; daysAgo += 1) {
+    keys.push(getDayKeyWithOffset(daysAgo).key);
+  }
+  return keys;
+}
+
+async function fetchDailyPickDocs(dateKeys) {
+  if (dateKeys.length === 0) return new Map();
+
+  const q = query(collection(db, COLLECTION), where(documentId(), 'in', dateKeys));
+  const snapshot = await getDocs(q);
+  return new Map(snapshot.docs.map((entry) => [entry.id, entry.data()]));
+}
+
+function applyPicksFromDocs(scope, docsByKey, lookbackDays) {
+  const resolvedScope = resolveScope(scope);
+  const field = getScopeField(resolvedScope);
+
+  const todayIds = getScopeFieldValue(docsByKey.get(getTodayKey()), field);
+  updateTodayCache(resolvedScope, todayIds);
+
+  const yesterdayIds = getScopeFieldValue(docsByKey.get(getYesterdayKey()), field);
+  updateYesterdayCache(resolvedScope, yesterdayIds);
+
+  cachedFallbackPickByScope[resolvedScope] = null;
+
+  if (!getLatestId(todayIds) && !getLatestId(yesterdayIds)) {
+    for (let daysAgo = 2; daysAgo <= lookbackDays; daysAgo += 1) {
+      const key = getDayKeyWithOffset(daysAgo).key;
+      const ids = getScopeFieldValue(docsByKey.get(key), field);
+      if (!isFallbackDocValid(ids)) continue;
+
+      cachedFallbackPickByScope[resolvedScope] = {
+        id: getLatestId(ids),
+        daysAgo,
+      };
+      break;
+    }
+  } else {
+    refreshInMemoryFallbackForScope(resolvedScope);
+  }
+
+  picksLoadedScopes.add(resolvedScope);
+}
+
+function updateTodayCache(scope, ids) {
+  cachedPickIdsByScope[scope] = ids;
+}
+
+function updateYesterdayCache(scope, ids) {
+  cachedYesterdayPickIdsByScope[scope] = ids;
+}
+
+/** Charge plusieurs scopes en une seule requête Firestore (au lieu de N×14 getDoc). */
+export async function loadDailyPicksBatch(
+  scopes,
+  { force = false, lookbackDays = FALLBACK_LOOKBACK_DAYS } = {},
+) {
+  syncCacheWithToday();
+
+  const resolvedScopes = scopes.map(resolveScope);
+  const scopesToLoad = force
+    ? resolvedScopes
+    : resolvedScopes.filter((scope) => !picksLoadedScopes.has(scope));
+
+  if (scopesToLoad.length === 0) return;
+
+  const lookback = ensureMaxLookbackDays(lookbackDays);
+  const docsByKey = await fetchDailyPickDocs(buildLookbackDateKeys(lookback));
+
+  for (const scope of scopesToLoad) {
+    applyPicksFromDocs(scope, docsByKey, lookback);
+  }
+}
+
 async function handleMidnightReset() {
   syncCacheWithToday();
-  await Promise.all(Object.keys(SCOPE_FIELDS).map((scope) => loadDailyPicks(scope)));
+  await loadDailyPicksBatch(Object.keys(SCOPE_FIELDS), { force: true });
   runResetListeners();
 }
 
@@ -271,43 +315,9 @@ export function getPickQuotaLabel(scope = 'activities') {
   return `${MAX_DAILY_PICKS} pioches disponibles aujourd'hui`;
 }
 
-export async function loadTodayPicks(scope = 'activities') {
-  syncCacheWithToday();
-
-  const resolvedScope = resolveScope(scope);
-  const field = getScopeField(resolvedScope);
-  const ref = pickDocRef(getTodayKey());
-  const snap = await getDoc(ref);
-  const ids = readScopeIdsFromSnapshot(snap, field);
-  updateTodayCache(resolvedScope, ids);
-  refreshInMemoryFallbackForScope(resolvedScope);
-  return cachedPickIdsByScope[resolvedScope];
-}
-
-export async function loadYesterdayPicks(scope = 'activities') {
-  syncCacheWithToday();
-
-  const resolvedScope = resolveScope(scope);
-  const field = getScopeField(resolvedScope);
-  const ref = pickDocRef(getYesterdayKey());
-  const snap = await getDoc(ref);
-  const ids = readScopeIdsFromSnapshot(snap, field);
-  updateYesterdayCache(resolvedScope, ids);
-  refreshInMemoryFallbackForScope(resolvedScope);
-  return cachedYesterdayPickIdsByScope[resolvedScope];
-}
-
 export async function loadDailyPicks(scope = 'activities', { force = false } = {}) {
-  const resolvedScope = resolveScope(scope);
-  if (!force && picksLoadedScopes.has(resolvedScope)) {
-    return getTodayPickIds(resolvedScope);
-  }
-
-  const lookback = ensureMaxLookbackDays(FALLBACK_LOOKBACK_DAYS);
-  await Promise.all([loadTodayPicks(scope), loadYesterdayPicks(scope), loadFallbackPick(scope, lookback)]);
-  refreshInMemoryFallbackForScope(resolvedScope);
-  picksLoadedScopes.add(resolvedScope);
-  return getTodayPickIds(resolvedScope);
+  await loadDailyPicksBatch([scope], { force });
+  return getTodayPickIds(scope);
 }
 
 export function resetDailyPicksLoadState() {
@@ -346,7 +356,7 @@ export async function addTodayPick(itemId, scope = 'activities') {
     refreshInMemoryFallbackForScope(resolvedScope);
     return true;
   } catch (err) {
-    console.error('addTodayPick:', err);
+    devError('addTodayPick:', err);
     return false;
   }
 }
@@ -385,6 +395,6 @@ export async function resetTodayPicks(scope = 'activities') {
       await deleteDoc(ref);
     }
   } catch (err) {
-    console.warn('resetTodayPicks:', err.message);
+    devWarn('resetTodayPicks:', err.message);
   }
 }

@@ -1,5 +1,5 @@
 import { MAP_ACCENT } from '../../config.js';
-import { OUR_SPACE_MAP_STYLE } from './map-style.js';
+import { OUR_SPACE_MAP_RASTER_LABELED_STYLE } from './map-raster-style.js';
 import { renderNavIcon } from '../../lib/lucide-icon.js';
 import {
   getGeolocationUserMessage,
@@ -24,7 +24,7 @@ import {
   setMapLayerVisible,
   setMapMarkerClickHandler,
 } from './map-markers.js';
-import { getMapLibre } from '../../lib/map-bootstrap.js';
+import { loadMapLibre, MAP_BASE_OPTS } from '../../lib/map-bootstrap.js';
 
 export { refreshTravelMapZones } from './map-markers.js';
 
@@ -299,7 +299,7 @@ function bindControlButtons(map, root, signal) {
   });
 }
 
-export function initInteractiveMap({
+export async function initInteractiveMap({
   signal,
   onLayerToggled: layerToggledHandler,
   onMarkerClick,
@@ -314,23 +314,23 @@ export function initInteractiveMap({
   const controlsRoot = document.getElementById('map-controls');
   if (!container || !controlsRoot) return null;
 
-  const maplibregl = getMapLibre();
+  const maplibregl = await loadMapLibre();
   if (!maplibregl) throw new Error('MapLibre GL is not loaded');
 
   mapInstance = new maplibregl.Map({
     container,
-    style: OUR_SPACE_MAP_STYLE,
+    style: OUR_SPACE_MAP_RASTER_LABELED_STYLE,
     center: DEFAULT_CENTER,
     zoom: DEFAULT_ZOOM,
     minZoom: 3,
-    maxZoom: 19,
-    attributionControl: false,
+    maxZoom: 16,
     pitch: 0,
     bearing: 0,
     dragRotate: true,
     pitchWithRotate: false,
     touchPitch: false,
     touchRotate: true,
+    ...MAP_BASE_OPTS,
   });
 
   bindMapMarkerImageFallback(mapInstance);

@@ -1,4 +1,5 @@
 import { clearMapPlaceHash, getMapPlaceFromHash } from '../../navigation/router.js';
+import { devWarn } from '../../lib/dev-log.js';
 import { countGeolocatedPlacesFromCache, findCachedItemById } from '../../data/appDataCache.js';
 import { initCustomOptions } from '../../lib/custom-types.js';
 import { destroyCategoryDetailModals, initCategoryDetailModals } from '../../ui/category-detail-registry.js';
@@ -111,7 +112,7 @@ function handleMarkersReady(map) {
   tryInitialMapFit(map, { skip: hasHashFocus, userLocation: getLastUserLocation() });
 
   refreshTravelMapZones(map).catch((err) => {
-    console.warn('refreshTravelMapZones:', err.message);
+    devWarn('refreshTravelMapZones:', err.message);
   });
 
   if (hasHashFocus && !mapReadyHandled) {
@@ -156,7 +157,7 @@ export async function initMapPage(user, { addItemModal: sharedModal } = {}) {
   setMapMarkerSelectionPrunedHandler(closeOpenMapDetail);
   updateHeaderSub();
 
-  initInteractiveMap({
+  await initInteractiveMap({
     signal: pageAbort.signal,
     onLayerToggled: handleLayerToggled,
     onMarkerClick: handleMarkerClick,
