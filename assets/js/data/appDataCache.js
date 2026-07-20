@@ -1,6 +1,8 @@
 import { HOME_CATEGORIES } from '../config.js';
 import { fetchAllItems } from '../firebase/firestore.js';
 import { loadDailyPicks, resetDailyPicksLoadState } from '../firebase/dailyPicks.js';
+import { getStraightLineDistanceKm } from '../lib/geo-utils.js';
+import { getItemLocationLabel } from '../lib/item-location.js';
 import { Timestamp } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js';
 
 export const ITEM_COLLECTIONS = HOME_CATEGORIES.map((cat) => cat.id);
@@ -175,41 +177,6 @@ export function getUnifiedRecentItemsFromCache(max = 6) {
     .slice(0, max);
 }
 
-function hasGeolocation(item, locationField) {
-  if (item?.[locationField]?.trim()) return true;
-  return item?.latitude != null && item?.longitude != null;
-}
-
-export function getGeolocatedPlacesFromCache(max = 4) {
-  const places = [];
-
-  for (const item of itemsCache.get('activities') ?? []) {
-    if (!hasGeolocation(item, 'localisation')) continue;
-    places.push({
-      categoryId: 'activities',
-      item,
-      title: item.nom || 'Sans titre',
-      location: item.localisation?.trim() || '',
-      createdAt: getItemCreatedAtMs(item),
-    });
-  }
-
-  for (const item of itemsCache.get('restaurants') ?? []) {
-    if (!hasGeolocation(item, 'adresse')) continue;
-    places.push({
-      categoryId: 'restaurants',
-      item,
-      title: item.nom || 'Sans titre',
-      location: item.adresse?.trim() || '',
-      createdAt: getItemCreatedAtMs(item),
-    });
-  }
-
-  return places
-    .sort((a, b) => b.createdAt - a.createdAt)
-    .slice(0, max);
-}
-
 const MAP_MARKER_SOURCES = [
   { collection: 'activities' },
   { collection: 'restaurants' },
@@ -275,29 +242,11 @@ function getItemDoneState(item) {
   return Boolean(item?.done ?? item?.fait);
 }
 
-function getStraightLineDistanceKm([lngA, latA], [lngB, latB]) {
-  const toRad = (deg) => (deg * Math.PI) / 180;
-  const earthRadiusKm = 6371;
-  const dLat = toRad(latB - latA);
-  const dLng = toRad(lngB - lngA);
-  const a = Math.sin(dLat / 2) ** 2
-    + Math.cos(toRad(latA)) * Math.cos(toRad(latB)) * Math.sin(dLng / 2) ** 2;
-  return earthRadiusKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-
 export function formatPlaceDistanceKm(distanceKm) {
   if (!Number.isFinite(distanceKm)) return '';
   if (distanceKm < 1) return `${Math.max(1, Math.round(distanceKm * 1000))} m`;
   if (distanceKm < 10) return `${distanceKm.toFixed(1).replace('.', ',')} km`;
   return `${Math.round(distanceKm)} km`;
-}
-
-function getMapPlaceLocationLabel(categoryId, item) {
-  if (!item) return '';
-  if (categoryId === 'activities') return item.localisation?.trim() || '';
-  if (categoryId === 'restaurants') return item.adresse?.trim() || '';
-  if (categoryId === 'travels') return item.localisation?.trim() || item.destination?.trim() || '';
-  return '';
 }
 
 export function getNearestMapPlacesFromCache(max = 4, originLngLat = null) {
@@ -312,7 +261,7 @@ export function getNearestMapPlacesFromCache(max = 4, originLngLat = null) {
         categoryId: marker.categoryId,
         item: item ?? { id: marker.id },
         title: marker.title,
-        location: getMapPlaceLocationLabel(marker.categoryId, item),
+        location: getItemLocationLabel(marker.categoryId, item),
         distanceKm,
         distanceLabel: formatPlaceDistanceKm(distanceKm),
         done: getItemDoneState(item),

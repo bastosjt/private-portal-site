@@ -1,7 +1,6 @@
 import { getCategoryById, getUserDisplayName, MAP_ACCENT } from '../../config.js';
 import { getListPreferences, saveListPreferences } from '../../lib/user-profile.js';
 import { formatItemPrice, compareItemsByPrice } from '../../lib/price-format.js';
-import { sortOptionsByLabel } from '../../lib/options-labels.js';
 import { ensureItems, hasCachedItems, getCachedItems, findCachedItemById } from '../../data/appDataCache.js';
 import { sidebarIcon } from '../../ui/sidebar.js';
 import { initAddItem } from '../../ui/add-item.js';
@@ -24,7 +23,9 @@ import {
   MAX_DAILY_PICKS,
   resetTodayPicks,
 } from '../../firebase/dailyPicks.js';
-import { createCategoryMapTab } from './category-map-tab.js';
+import { buildFieldFilterOptions } from './filterOptions.js';
+import { normalizeSearchText } from '../../lib/normalize-search.js';
+import { escapeHtml } from '../../lib/escape-html.js';
 
 export const DEFAULT_SORT_OPTIONS = [
   { id: 'alpha', label: 'Ordre alphabétique', shortLabel: 'A → Z' },
@@ -32,14 +33,6 @@ export const DEFAULT_SORT_OPTIONS = [
   { id: 'price-asc', label: 'Prix croissant', shortLabel: 'Prix ↑' },
   { id: 'price-desc', label: 'Prix décroissant', shortLabel: 'Prix ↓' },
 ];
-
-function escapeHtml(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
 
 function dataAttrToDatasetKey(attr) {
   return attr.replace(/^data-/, '').replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
@@ -134,30 +127,12 @@ export function createListPageController(config) {
   }
 
   function getAvailableFilterOptions(fieldName, items = allItems) {
-    const counts = new Map();
-    for (const item of items) {
-      const value = item[fieldName];
-      if (!value) continue;
-      counts.set(value, (counts.get(value) || 0) + 1);
-    }
-
-    const result = [];
-    const seen = new Set();
-
-    for (const opt of getFieldOptions(fieldName)) {
-      if ((counts.get(opt.value) || 0) > 0) {
-        result.push(opt);
-        seen.add(opt.value);
-      }
-    }
-
-    for (const [value, count] of counts) {
-      if (count > 0 && !seen.has(value)) {
-        result.push({ value, label: getFieldLabel(fieldName, value) });
-      }
-    }
-
-    return sortOptionsByLabel(result);
+    return buildFieldFilterOptions({
+      items,
+      fieldName,
+      getFieldLabel,
+      categoryId,
+    });
   }
 
   function pruneActiveFilters() {
@@ -182,14 +157,6 @@ export function createListPageController(config) {
     if (searchQuery.trim()) return true;
     if (activeFilters.status !== 'all') return true;
     return filterFieldKeys.some((key) => (activeFilters[key]?.length || 0) > 0);
-  }
-
-  function normalizeSearchText(value) {
-    return String(value || '')
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .toLowerCase()
-      .trim();
   }
 
   function matchesSearchQuery(item) {
@@ -973,6 +940,7 @@ export function createListPageController(config) {
     });
 
     if (mapTabOptions) {
+      const { createCategoryMapTab } = await import('./category-map-tab.js');
       categoryMapTab = createCategoryMapTab({
         ...mapTabOptions,
         categoryId,

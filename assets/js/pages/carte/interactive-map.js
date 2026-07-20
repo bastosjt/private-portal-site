@@ -24,13 +24,13 @@ import {
   setMapLayerVisible,
   setMapMarkerClickHandler,
 } from './map-markers.js';
+import { getMapLibre } from '../../lib/map-bootstrap.js';
 
 export { refreshTravelMapZones } from './map-markers.js';
 
 const DEFAULT_CENTER = MAP_FALLBACK_CENTER;
 const DEFAULT_ZOOM = 10;
 const ACCENT = MAP_ACCENT;
-const WORKER_URL = 'assets/js/vendor/maplibre-gl-csp-worker.js';
 /** Plus bas = molette plus douce (défaut MapLibre ≈ 1/450). */
 const WHEEL_ZOOM_RATE = 1 / 680;
 
@@ -136,12 +136,6 @@ function syncMapUserLocation(map, root, lngLat) {
 export function getLastUserLocation() {
   if (!isUserLocationEnabled()) return null;
   return lastUserLocation ?? getUserLocationLngLat();
-}
-
-function getMapLibre() {
-  const maplibregl = window.maplibregl;
-  if (!maplibregl) throw new Error('MapLibre GL is not loaded');
-  return maplibregl;
 }
 
 const MAP_ICON_OPTS = { strokeWidth: 1.75, width: 15, height: 15 };
@@ -321,7 +315,7 @@ export function initInteractiveMap({
   if (!container || !controlsRoot) return null;
 
   const maplibregl = getMapLibre();
-  maplibregl.setWorkerUrl(WORKER_URL);
+  if (!maplibregl) throw new Error('MapLibre GL is not loaded');
 
   mapInstance = new maplibregl.Map({
     container,

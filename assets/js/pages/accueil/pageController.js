@@ -16,16 +16,12 @@ import {
   getDisplayedLatestPick,
 } from '../../firebase/dailyPicks.js';
 import { initCustomOptions } from '../../lib/custom-types.js';
+import { escapeHtml } from '../../lib/escape-html.js';
 import { renderNavIcon } from '../../lib/lucide-icon.js';
 import { mapPlaceHref } from '../../navigation/router.js';
-import { sanitizeHttpsUrl } from '../../lib/safe-url.js';
-import { initActivityDetail } from '../../ui/activity-detail.js';
-import { initRestaurantDetail } from '../../ui/restaurant-detail.js';
-import { initMovieDetail } from '../../ui/movie-detail.js';
-import { initWishlistDetail } from '../../ui/wishlist-detail.js';
-import { initTravelDetail } from '../../ui/travel-detail.js';
-import { sidebarIcon } from '../../ui/sidebar.js';
+import { destroyCategoryDetailModals, initCategoryDetailModals } from '../../ui/category-detail-registry.js';
 import { initAddItem } from '../../ui/add-item.js';
+import { sidebarIcon } from '../../ui/sidebar.js';
 import { destroyHomeMapPreview, initHomeMapPreview } from './home-map-preview.js';
 
 const COLLECTION_IDS = ITEM_COLLECTIONS;
@@ -36,27 +32,13 @@ const PICK_CATEGORIES = [
   { scope: 'movies', categoryId: 'movies' },
 ];
 
-const DETAIL_INIT = {
-  activities: (opts) => initActivityDetail({ ...opts, theme: getCategoryById('activities')?.theme || 'cyan' }),
-  restaurants: (opts) => initRestaurantDetail({ ...opts, theme: getCategoryById('restaurants')?.theme || 'rose' }),
-  movies: (opts) => initMovieDetail({ ...opts, theme: getCategoryById('movies')?.theme || 'violet' }),
-  travels: (opts) => initTravelDetail({ ...opts, theme: getCategoryById('travels')?.theme || 'blue' }),
-  wishlist: (opts) => initWishlistDetail({ ...opts, theme: getCategoryById('wishlist')?.theme || 'pink' }),
-};
+const HOME_DETAIL_CATEGORIES = ['activities', 'restaurants', 'movies', 'travels', 'wishlist'];
 
 let currentUserName = '';
 let addItemModal = null;
 let homeAbort = null;
 let stopNearbyLocationListener = null;
 let detailModals = {};
-
-function escapeHtml(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
 
 function getItemTitle(item, titleKey) {
   return item[titleKey] || item.nom || item.titre || item.destination || 'Sans titre';
@@ -163,31 +145,6 @@ function buildShortcutsSubtitle() {
   if (total === 0) return 'Ajoutez vos premières idées';
   if (total === 1) return '1 idée à explorer';
   return `${total} idées à explorer`;
-}
-
-function getMapsUrl(item, categoryId) {
-  if (categoryId === 'restaurants') {
-    const safeLienMaps = sanitizeHttpsUrl(item.lienMaps);
-    if (safeLienMaps) return safeLienMaps;
-    if (item.latitude != null && item.longitude != null) {
-      return `https://www.google.com/maps/search/?api=1&query=${item.latitude},${item.longitude}`;
-    }
-    if (item.adresse) {
-      return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.adresse)}`;
-    }
-    return null;
-  }
-
-  if (item.latitude != null && item.longitude != null) {
-    return `https://www.google.com/maps/search/?api=1&query=${item.latitude},${item.longitude}`;
-  }
-
-  const location = item.localisation || item.adresse;
-  if (location) {
-    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`;
-  }
-
-  return null;
 }
 
 function renderTodaySkeleton() {
@@ -483,16 +440,14 @@ function renderExplorerSection() {
 }
 
 function initDetailModals() {
-  const onChanged = () => loadHomeData();
-
-  for (const [categoryId, initFn] of Object.entries(DETAIL_INIT)) {
-    detailModals[categoryId]?.destroy?.();
-    detailModals[categoryId] = initFn({ onChanged });
-  }
+  destroyCategoryDetailModals(detailModals);
+  detailModals = initCategoryDetailModals(HOME_DETAIL_CATEGORIES, {
+    onChanged: () => loadHomeData(),
+  });
 }
 
 function destroyDetailModals() {
-  Object.values(detailModals).forEach((modal) => modal?.destroy?.());
+  destroyCategoryDetailModals(detailModals);
   detailModals = {};
 }
 

@@ -7,6 +7,7 @@ import { renderWishlistPriorityIcon } from './IconsType.js';
 import { initWishlistDetail } from '../../ui/wishlist-detail.js';
 import { initWishlistControls } from './wishlist-controls.js';
 import { createListPageController, DEFAULT_SORT_OPTIONS } from '../shared/listPageController.js';
+import { createListPageLabels, createSortOnlyFilterSections } from '../shared/listPageBoilerplate.js';
 
 const AUTHOR_FILTER_OPTIONS = [
   { value: 'all', label: 'Tout', ariaLabel: 'Toutes les envies' },
@@ -199,28 +200,13 @@ const { init, destroy, refresh } = createListPageController({
     removePriority: api.removePriority,
     getPriorityOptions: api.getPriorityOptions,
   }),
-  getFilterSections: ({ getAvailableFilterOptions }) => [
-    {
-      id: 'sort',
-      label: 'Trier',
-      mode: 'single',
-      options: DEFAULT_SORT_OPTIONS.map((opt) => ({ value: opt.id, label: opt.label })),
-    },
-    {
-      id: 'priorite',
-      label: 'Priorité',
-      mode: 'multi',
-      getOptions: () => getAvailableFilterOptions('priorite'),
-    },
-  ],
-  labels: {
+  getFilterSections: createSortOnlyFilterSections(DEFAULT_SORT_OPTIONS, [
+    { id: 'priorite', label: 'Priorité' },
+  ]),
+  labels: createListPageLabels({
     filterToolbarAria: 'Trier et filtrer par priorité',
     countSingular: 'envie',
     countPlural: 'envies',
-    countFiltered: (count, total) => `${count} affichée${count > 1 ? 's' : ''} sur ${total}`,
-    authorMine: 'Mes envies',
-    authorPartner: (viewerUid) => getPartnerWishesLabel(viewerUid),
-    authorOther: 'Autres envies',
     statusDone: 'Obtenu',
     statusTodo: 'À obtenir',
     headerEmpty: 'Ajoutez vos premières envies',
@@ -230,8 +216,16 @@ const { init, destroy, refresh } = createListPageController({
     emptyNone: 'Aucun élément dans la wishlist',
     emptyFiltered: 'Aucun élément ne correspond à ces filtres',
     addCta: 'Ajouter à la wishlist',
+    pickEmptyText: '',
+    pickAllDoneText: '',
+    pickIdleText: '',
+    pickQuotaExhaustedText: '',
+    countFiltered: (count, total) => `${count} affichée${count > 1 ? 's' : ''} sur ${total}`,
+    authorMine: 'Mes envies',
+    authorPartner: (viewerUid) => getPartnerWishesLabel(viewerUid),
+    authorOther: 'Autres envies',
     listEmptySub: 'Aucune envie pour le moment',
-  },
+  }),
   sidebarIconKey: 'wishlist',
   initDetail: initWishlistDetail,
   renderTypeIcon: (item) => renderWishlistPriorityIcon(item.priorite),

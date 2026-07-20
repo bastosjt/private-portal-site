@@ -1,12 +1,5 @@
+import { escapeHtml } from '../../lib/escape-html.js';
 const SEARCH_DEBOUNCE_MS = 150;
-
-function escapeHtml(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
 
 function syncClearButton(input, clearBtn) {
   if (!clearBtn) return;

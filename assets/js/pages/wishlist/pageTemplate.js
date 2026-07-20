@@ -1,31 +1,14 @@
 import { getCategoryById } from '../../config.js';
 import { renderNavIcon } from '../../lib/lucide-icon.js';
+import {
+  renderCategoryListPageView,
+  renderListPageHeader,
+  renderListSection,
+} from '../shared/listPageTemplate.js';
 
 const THEME = getCategoryById('wishlist')?.theme || 'pink';
 
-export const WISHLIST_VIEW_HTML = `
-  <header class="page-header page-header--themed page-header--activities" data-theme="${THEME}">
-    <button type="button" class="btn-menu" id="menu-toggle" aria-label="Ouvrir le menu">
-      ${renderNavIcon('menu', { strokeWidth: 1.75 })}
-    </button>
-    <div class="page-header-mobile-icon" data-theme="${THEME}" aria-hidden="true">
-      ${renderNavIcon('wishlist', { strokeWidth: 2 })}
-    </div>
-    <div class="page-header-content">
-      <h1 class="page-header-title" id="page-title">Wishlist</h1>
-      <p class="page-header-sub" id="page-header-sub">-</p>
-    </div>
-  </header>
-
-  <main class="page-content activities-page wishlist-page" data-theme="${THEME}">
-    <section class="act-list-section" aria-labelledby="list-heading">
-      <div class="section-head">
-        <div>
-          <h2 id="list-heading">Toutes vos envies</h2>
-          <p id="list-sub">Votre liste complète</p>
-        </div>
-      </div>
-
+const WISHLIST_LIST_BODY = `
       <div class="act-view-panel" id="wishlist-list-panel">
         <div class="act-cat-panel">
           <span class="cat-panel-accent" aria-hidden="true"></span>
@@ -70,6 +53,21 @@ export const WISHLIST_VIEW_HTML = `
           <ul class="act-list is-loading" id="wishlist-list"></ul>
         </div>
       </div>
-    </section>
-  </main>
 `;
+
+export const WISHLIST_VIEW_HTML = renderCategoryListPageView({
+  theme: THEME,
+  pageRootClass: 'activities-page wishlist-page',
+  includePick: false,
+  headerHtml: renderListPageHeader({
+    theme: THEME,
+    menuIconHtml: renderNavIcon('menu', { strokeWidth: 1.75 }),
+    mobileIconHtml: renderNavIcon('wishlist', { strokeWidth: 2 }),
+    pageTitle: 'Wishlist',
+  }),
+  listSectionHtml: renderListSection({
+    listHeading: 'Toutes vos envies',
+    listSub: 'Votre liste complète',
+    body: WISHLIST_LIST_BODY,
+  }),
+});

@@ -1,3 +1,4 @@
+import { escapeHtml } from '../../lib/escape-html.js';
 import {
   APP_NAME,
   APP_VERSION,
@@ -49,14 +50,6 @@ let spaceTaglinePicker = null;
 let stopLocationListener = null;
 
 const MEMBER_THEMES = ['slate', 'love'];
-
-function escapeHtml(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
 
 function getDaysTogether(startDateStr) {
   const start = new Date(startDateStr);

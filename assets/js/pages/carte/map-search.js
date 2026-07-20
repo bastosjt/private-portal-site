@@ -1,41 +1,33 @@
 import { getCategoryById } from '../../config.js';
 import { findCachedItemById, getMapMarkersFromCache } from '../../data/appDataCache.js';
+import { escapeHtml } from '../../lib/escape-html.js';
+import { getItemLocationLabel } from '../../lib/item-location.js';
+import { normalizeSearchText } from '../../lib/normalize-search.js';
 import { renderMapMarkerTypeIcon } from './map-marker-images.js';
 
 const MAX_RESULTS = 8;
 const SEARCH_DEBOUNCE_MS = 120;
 
-function escapeHtml(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
-
-function normalizeSearchText(value) {
-  return String(value || '')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .trim();
-}
-
-function getItemLocationLabel(categoryId, item) {
-  if (!item) return '';
-
-  if (categoryId === 'activities') return item.localisation?.trim() || '';
-  if (categoryId === 'restaurants') return item.adresse?.trim() || '';
-  if (categoryId === 'travels') return item.localisation?.trim() || item.destination?.trim() || '';
-  return '';
-}
-
 function getCategoryShortLabel(categoryId) {
   return getCategoryById(categoryId)?.label?.replace(' & Séries', '') || categoryId;
 }
 
+function getSearchEntriesSignature(markers) {
+  return markers.map((marker) => `${marker.categoryId}:${marker.id}:${marker.title}`).join('|');
+}
+
+let cachedSearchEntries = null;
+let cachedSearchEntriesSignature = '';
+
 function buildSearchEntries() {
-  return getMapMarkersFromCache().map((marker) => {
+  const markers = getMapMarkersFromCache();
+  const signature = getSearchEntriesSignature(markers);
+  if (cachedSearchEntries && cachedSearchEntriesSignature === signature) {
+    return cachedSearchEntries;
+  }
+
+  cachedSearchEntriesSignature = signature;
+  cachedSearchEntries = markers.map((marker) => {
     const item = findCachedItemById(marker.categoryId, marker.id);
     const categoryLabel = getCategoryShortLabel(marker.categoryId);
     const location = getItemLocationLabel(marker.categoryId, item);
@@ -52,6 +44,7 @@ function buildSearchEntries() {
       searchText: normalizeSearchText([marker.title, location, categoryLabel].filter(Boolean).join(' ')),
     };
   });
+  return cachedSearchEntries;
 }
 
 function rankSearchResults(entries, query) {

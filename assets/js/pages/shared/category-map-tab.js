@@ -1,4 +1,7 @@
 import { findCachedItemById, formatPlaceDistanceKm } from '../../data/appDataCache.js';
+import { escapeHtml } from '../../lib/escape-html.js';
+import { getStraightLineDistanceKm } from '../../lib/geo-utils.js';
+import { getMapLibre, waitForContainerSize } from '../../lib/map-bootstrap.js';
 import { OUR_SPACE_MAP_STYLE } from '../carte/map-style.js';
 import { bindMapMarkerImageFallback } from '../carte/map-marker-images.js';
 import {
@@ -25,63 +28,8 @@ import {
   requestUserLocationUpdate,
 } from '../../lib/user-location.js';
 
-const WORKER_URL = 'assets/js/vendor/maplibre-gl-csp-worker.js';
 const MAP_PADDING = { top: 48, bottom: 64, left: 40, right: 40 };
 const MARKER_FOCUS_ZOOM = 15;
-
-function escapeHtml(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
-
-function getMapLibre() {
-  const maplibregl = window.maplibregl;
-  if (!maplibregl) return null;
-  maplibregl.setWorkerUrl(WORKER_URL);
-  return maplibregl;
-}
-
-function waitForContainerSize(container) {
-  return new Promise((resolve) => {
-    const isReady = () => container.offsetWidth >= 2 && container.offsetHeight >= 2;
-    if (isReady()) {
-      resolve();
-      return;
-    }
-
-    const observer = new ResizeObserver(() => {
-      if (!isReady()) return;
-      observer.disconnect();
-      resolve();
-    });
-    observer.observe(container);
-
-    requestAnimationFrame(() => {
-      if (isReady()) {
-        observer.disconnect();
-        resolve();
-        return;
-      }
-      requestAnimationFrame(() => {
-        observer.disconnect();
-        resolve();
-      });
-    });
-  });
-}
-
-function getStraightLineDistanceKm([lngA, latA], [lngB, latB]) {
-  const toRad = (deg) => (deg * Math.PI) / 180;
-  const earthRadiusKm = 6371;
-  const dLat = toRad(latB - latA);
-  const dLng = toRad(lngB - lngA);
-  const a = Math.sin(dLat / 2) ** 2
-    + Math.cos(toRad(latA)) * Math.cos(toRad(latB)) * Math.sin(dLng / 2) ** 2;
-  return earthRadiusKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
 
 function resetGlobalMapState(categoryId) {
   setMapMarkerFilters({

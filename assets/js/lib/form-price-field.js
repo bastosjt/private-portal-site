@@ -1,17 +1,10 @@
+import { escapeHtml } from './escape-html.js';
 import { deleteField } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js';
 import {
   formatMoneyAmount,
   normalizeItemPrice,
   parseMoneyInput,
 } from './price-format.js';
-
-function escapeHtml(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
 
 export function renderPriceRangeField(field) {
   const id = `add-field-${field.name}`;

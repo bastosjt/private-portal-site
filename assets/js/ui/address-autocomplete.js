@@ -1,12 +1,5 @@
+import { escapeHtml } from '../lib/escape-html.js';
 import { searchAddresses } from '../lib/address-search.js';
-
-function escapeHtml(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
 
 function getSuggestionMeta(suggestion) {
   const parts = [suggestion.postcode, suggestion.city, suggestion.country]

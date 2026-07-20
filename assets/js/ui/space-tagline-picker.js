@@ -1,16 +1,9 @@
+import { escapeHtml } from '../lib/escape-html.js';
 import { SETTINGS_THEME } from '../config.js';
 import { APP_TAGLINE } from '../config.js';
 import { getSpaceTagline, setSpaceTagline } from '../lib/space-settings.js';
 import { renderNavIcon } from '../lib/lucide-icon.js';
 import { lockScroll, unlockScroll } from '../lib/scroll-lock.js';
-
-function escapeHtml(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
 
 function renderFormHtml(tagline) {
   return `

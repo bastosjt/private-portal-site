@@ -1,3 +1,4 @@
+import { escapeHtml } from '../lib/escape-html.js';
 import {
   ADD_OPTION_VALUE,
   addCustomOption,
@@ -10,14 +11,6 @@ import {
 import { formatOptionLabel, sortOptionsByLabel } from '../lib/options-labels.js';
 
 export const PLACEHOLDER_OPTION_VALUE = '';
-
-function escapeHtml(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
 
 function getMergedFieldOptions(field, categoryId, extra = []) {
   const options = field.allowCustom

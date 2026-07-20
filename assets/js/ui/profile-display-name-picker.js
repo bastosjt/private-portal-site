@@ -1,15 +1,8 @@
+import { escapeHtml } from '../lib/escape-html.js';
 import { SETTINGS_THEME, getUserDisplayName } from '../config.js';
 import { setUserDisplayName } from '../lib/user-profile.js';
 import { renderNavIcon } from '../lib/lucide-icon.js';
 import { lockScroll, unlockScroll } from '../lib/scroll-lock.js';
-
-function escapeHtml(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
 
 function getInitialsFromName(name) {
   const parts = name.split(/\s+/).filter(Boolean);

@@ -1,4 +1,6 @@
 import { MAP_ACCENT } from '../../config.js';
+import { getLngLatDeltaForRadiusKm } from '../../lib/geo-utils.js';
+import { getMapLibre, waitForContainerSize } from '../../lib/map-bootstrap.js';
 import { OUR_SPACE_MAP_STYLE } from '../carte/map-style.js';
 import { bindMapMarkerImageFallback } from '../carte/map-marker-images.js';
 import {
@@ -17,7 +19,6 @@ import {
   onUserLocationChange,
 } from '../../lib/user-location.js';
 
-const WORKER_URL = 'assets/js/vendor/maplibre-gl-csp-worker.js';
 const PREVIEW_ZOOM = 14;
 const PREVIEW_PADDING = { top: 14, bottom: 42, left: 14, right: 14 };
 
@@ -28,12 +29,6 @@ let initToken = 0;
 
 function getPreviewCenter() {
   return getUserLocationLngLat() || MAP_FALLBACK_CENTER;
-}
-
-function getLngLatDeltaForRadiusKm(centerLat, radiusKm) {
-  const latDelta = radiusKm / 111.32;
-  const lngDelta = radiusKm / (111.32 * Math.cos((centerLat * Math.PI) / 180));
-  return { latDelta, lngDelta };
 }
 
 function fitPreviewMap(map, { duration = 0 } = {}) {
@@ -63,44 +58,6 @@ function syncPreviewUserLocation(map) {
     return;
   }
   clearMapUserLocationLayer(map);
-}
-
-function getMapLibre() {
-  const maplibregl = window.maplibregl;
-  if (!maplibregl) return null;
-  maplibregl.setWorkerUrl(WORKER_URL);
-  return maplibregl;
-}
-
-function waitForContainerSize(container) {
-  return new Promise((resolve) => {
-    const isReady = () => container.offsetWidth >= 2 && container.offsetHeight >= 2;
-
-    if (isReady()) {
-      resolve();
-      return;
-    }
-
-    const observer = new ResizeObserver(() => {
-      if (!isReady()) return;
-      observer.disconnect();
-      resolve();
-    });
-    observer.observe(container);
-
-    requestAnimationFrame(() => {
-      if (isReady()) {
-        observer.disconnect();
-        resolve();
-        return;
-      }
-
-      requestAnimationFrame(() => {
-        observer.disconnect();
-        resolve();
-      });
-    });
-  });
 }
 
 function markPreviewReady(previewRoot) {

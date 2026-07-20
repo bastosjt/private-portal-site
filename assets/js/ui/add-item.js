@@ -1,3 +1,4 @@
+import { escapeHtml } from '../lib/escape-html.js';
 import { HOME_CATEGORIES, getCategoryById } from '../config.js';
 import { addItem, updateItem } from '../firebase/firestore.js';
 import { patchCachedItem, upsertCachedItem } from '../data/appDataCache.js';
@@ -35,14 +36,6 @@ import {
 } from '../auth/ensure-auth.js';
 import { lockScroll, unlockScroll } from '../lib/scroll-lock.js';
 import { sanitizeHttpsUrl } from '../lib/safe-url.js';
-
-function escapeHtml(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
 
 function renderField(field, categoryId) {
   const id = `add-field-${field.name}`;

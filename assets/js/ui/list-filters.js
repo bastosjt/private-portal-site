@@ -1,3 +1,4 @@
+import { escapeHtml } from '../lib/escape-html.js';
 import { nextFrame, waitForTransition } from '../lib/transitions.js';
 import { lockScroll, unlockScroll } from '../lib/scroll-lock.js';
 
@@ -8,14 +9,6 @@ const CHECK_ICON = `
     <path d="M20 6 9 17l-5-5"/>
   </svg>
 `;
-
-function escapeHtml(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
 
 export function initListFilters({
   theme = 'cyan',

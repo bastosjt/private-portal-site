@@ -4,25 +4,19 @@ import { renderLucideIcon } from '../../lib/lucide-icon.js';
 import { renderTravelTypeIcon } from './IconsType.js';
 import { initTravelDetail } from '../../ui/travel-detail.js';
 import { createListPageController, DEFAULT_SORT_OPTIONS } from '../shared/listPageController.js';
+import {
+  createListFilterSections,
+  createListPageLabels,
+  createTodoStatusFilterOptions,
+} from '../shared/listPageBoilerplate.js';
+import { renderPinLocation, renderGlobeLocation } from '../shared/listLocation.js';
 import { createMapTabOptions } from '../shared/listMapSection.js';
 
-const STATUS_FILTER_OPTIONS = [
-  { value: 'all', label: 'Tout' },
-  { value: 'todo', label: 'À faire' },
-  { value: 'done', label: 'Fait' },
-];
+const STATUS_FILTER_OPTIONS = createTodoStatusFilterOptions('À faire', 'Fait');
 
 const SORT_OPTIONS = DEFAULT_SORT_OPTIONS.filter((opt) => opt.id === 'alpha' || opt.id === 'recent');
 
 const PERIOD_ICON = renderLucideIcon(CalendarClock, { strokeWidth: 2, width: 16, height: 16 });
-
-const GLOBE_ICON = `
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-    <circle cx="12" cy="12" r="10"/>
-    <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/>
-    <path d="M2 12h20"/>
-  </svg>
-`;
 
 function formatBudgetLabel(budget) {
   const value = String(budget || '').trim();
@@ -56,32 +50,15 @@ function renderTravelPeriodNote(item, { escapeHtml }) {
   `;
 }
 
-const PIN_ICON = `
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-    <path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/>
-    <circle cx="12" cy="10" r="3"/>
-  </svg>
-`;
-
-function renderTravelCountry(item, { escapeHtml: esc }) {
+function renderTravelCountry(item, ctx) {
   const localisation = item.localisation?.trim();
   if (localisation) {
-    return `
-      <p class="act-location act-location--text">
-        ${PIN_ICON}
-        <span>${esc(localisation)}</span>
-      </p>
-    `;
+    return renderPinLocation(localisation, ctx);
   }
 
   if (!item.pays?.trim()) return '';
 
-  return `
-    <p class="act-location act-location--text">
-      ${GLOBE_ICON}
-      <span>${esc(item.pays.trim())}</span>
-    </p>
-  `;
+  return renderGlobeLocation(item.pays.trim(), ctx);
 }
 
 const { init, destroy, refresh } = createListPageController({
@@ -103,28 +80,12 @@ const { init, destroy, refresh } = createListPageController({
   sortOptions: SORT_OPTIONS,
   statusFilterOptions: STATUS_FILTER_OPTIONS,
   filterDefaults: { type: [], status: 'all' },
-  getFilterSections: ({ getAvailableFilterOptions }) => [
-    {
-      id: 'status',
-      label: 'Statut',
-      mode: 'single',
-      collapsible: false,
-      options: STATUS_FILTER_OPTIONS,
-    },
-    {
-      id: 'sort',
-      label: 'Trier',
-      mode: 'single',
-      options: SORT_OPTIONS.map((opt) => ({ value: opt.id, label: opt.label })),
-    },
-    {
-      id: 'type',
-      label: 'Type',
-      mode: 'multi',
-      getOptions: () => getAvailableFilterOptions('type'),
-    },
-  ],
-  labels: {
+  getFilterSections: createListFilterSections({
+    statusOptions: STATUS_FILTER_OPTIONS,
+    sortOptions: SORT_OPTIONS,
+    fields: [{ id: 'type', label: 'Type' }],
+  }),
+  labels: createListPageLabels({
     filterToolbarAria: 'Filtrer et trier les voyages',
     countSingular: 'destination',
     countPlural: 'destinations',
@@ -137,13 +98,11 @@ const { init, destroy, refresh } = createListPageController({
     emptyNone: 'Aucun voyage enregistré',
     emptyFiltered: 'Aucun voyage ne correspond à ces filtres',
     addCta: 'Ajouter un voyage',
-    pickEmptyTitle: 'Rien à piocher',
     pickEmptyText: 'Ajoutez des destinations pour commencer.',
-    pickAllDoneTitle: 'Bravo !',
     pickAllDoneText: 'Toutes vos destinations sont faites.',
     pickIdleText: 'Lancez le dé pour piocher une destination',
     pickQuotaExhaustedText: 'Vous avez pioché toutes vos destinations disponibles. Revenez demain !',
-  },
+  }),
   sidebarIconKey: 'travel',
   initDetail: initTravelDetail,
   renderTypeIcon: (item) => renderTravelTypeIcon(item.type),

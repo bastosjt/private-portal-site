@@ -1,4 +1,5 @@
 import { getMapMarkersFromCache } from '../../data/appDataCache.js';
+import { getLngLatDeltaForRadiusKm } from '../../lib/geo-utils.js';
 import {
   ensureMapMarkerImages,
   getMarkerIconImageId,
@@ -228,12 +229,6 @@ export function setSelectedMapMarker(map, selection) {
 
 export function clearSelectedMapMarker(map) {
   setSelectedMapMarker(map, null);
-}
-
-function getLngLatDeltaForRadiusKm(centerLat, radiusKm) {
-  const latDelta = radiusKm / 111.32;
-  const lngDelta = radiusKm / (111.32 * Math.cos((centerLat * Math.PI) / 180));
-  return { latDelta, lngDelta };
 }
 
 export function fitMapToLocalArea(map, {
