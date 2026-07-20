@@ -4,7 +4,7 @@ export const COUPLE_START_DATE = '2026-06-27';
 /** Nom de l'espace et version */
 export const APP_NAME = 'Our Space';
 export const APP_TAGLINE = 'À nous deux';
-export const APP_VERSION = '2.0.0';
+export const APP_VERSION = '2.0.1';
 
 export function renderVersionBadgeHtml(version = APP_VERSION) {
   return `<span class="version-badge"><span class="version-badge-text">${version}</span></span>`;

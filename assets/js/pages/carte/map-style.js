@@ -1,12 +1,6 @@
 /** Style vectoriel minimal — fond plat, sans relief, labels FR. */
 export const FRENCH_NAME = ['coalesce', ['get', 'name:fr'], ['get', 'name:latin'], ['get', 'name']];
 
-/** Une seule police par variante — évite les requêtes glyph .pbf en cascade. */
-const MAP_FONT_REGULAR = ['Montserrat Regular'];
-const MAP_FONT_MEDIUM = ['Montserrat Medium'];
-const MAP_FONT_ITALIC = ['Montserrat Regular Italic'];
-const MAP_FONT_MEDIUM_ITALIC = ['Montserrat Medium Italic'];
-
 /** Fenêtre de fondu entre niveaux de détail (en incréments de zoom). */
 const FADE = 2.2;
 
@@ -601,7 +595,7 @@ export const OUR_SPACE_MAP_STYLE = {
       layout: {
         'symbol-placement': 'line',
         'text-field': FRENCH_NAME,
-        'text-font': MAP_FONT_REGULAR,
+        'text-font': ['Montserrat Regular', 'Open Sans Regular', 'Noto Sans Regular'],
         'text-size': zoomEase(9, 10, 14, 12),
         'text-max-angle': 30,
       },
@@ -621,7 +615,7 @@ export const OUR_SPACE_MAP_STYLE = {
       layout: {
         'symbol-placement': 'line',
         'text-field': FRENCH_NAME,
-        'text-font': MAP_FONT_REGULAR,
+        'text-font': ['Montserrat Regular', 'Open Sans Regular', 'Noto Sans Regular'],
         'text-size': zoomEase(11, 10, 16, 12),
         'text-max-angle': 30,
       },
@@ -641,7 +635,7 @@ export const OUR_SPACE_MAP_STYLE = {
       layout: {
         'symbol-placement': 'line',
         'text-field': FRENCH_NAME,
-        'text-font': MAP_FONT_REGULAR,
+        'text-font': ['Montserrat Regular', 'Open Sans Regular', 'Noto Sans Regular'],
         'text-size': zoomEase(13, 9, 16, 11, 18, 12),
         'text-max-angle': 30,
       },
@@ -660,7 +654,7 @@ export const OUR_SPACE_MAP_STYLE = {
       filter: ['in', ['get', 'class'], ['literal', ['ocean', 'sea', 'lake', 'bay', 'strait']]],
       layout: {
         'text-field': FRENCH_NAME,
-        'text-font': MAP_FONT_MEDIUM_ITALIC,
+        'text-font': ['Montserrat Medium Italic', 'Open Sans Italic', 'Noto Sans Regular'],
         'text-size': zoomEase(0, 11, 3, 13, 6, 16, 10, 18),
         'text-letter-spacing': 0.04,
       },
@@ -680,7 +674,7 @@ export const OUR_SPACE_MAP_STYLE = {
       layout: {
         'symbol-placement': 'line',
         'text-field': FRENCH_NAME,
-        'text-font': MAP_FONT_ITALIC,
+        'text-font': ['Montserrat Regular Italic', 'Open Sans Italic', 'Noto Sans Regular'],
         'text-size': zoomEase(5, 8, 10, 10, 14, 12),
         'symbol-spacing': 250,
       },
@@ -699,7 +693,7 @@ export const OUR_SPACE_MAP_STYLE = {
       filter: ['in', ['get', 'class'], ['literal', ['suburb', 'neighbourhood', 'quarter']]],
       layout: {
         'text-field': FRENCH_NAME,
-        'text-font': MAP_FONT_MEDIUM,
+        'text-font': ['Montserrat Medium', 'Open Sans Bold', 'Noto Sans Regular'],
         'text-size': zoomEase(9, 11, 13, 13, 15, 14),
         'text-anchor': 'center',
       },
@@ -718,7 +712,7 @@ export const OUR_SPACE_MAP_STYLE = {
       filter: ['in', ['get', 'class'], ['literal', ['town', 'village']]],
       layout: {
         'text-field': FRENCH_NAME,
-        'text-font': MAP_FONT_MEDIUM,
+        'text-font': ['Montserrat Medium', 'Open Sans Bold', 'Noto Sans Regular'],
         'text-size': zoomEase(7, 10, 11, 12, 13, 14),
         'text-anchor': 'center',
       },
@@ -737,7 +731,7 @@ export const OUR_SPACE_MAP_STYLE = {
       filter: ['==', ['get', 'class'], 'city'],
       layout: {
         'text-field': FRENCH_NAME,
-        'text-font': MAP_FONT_MEDIUM,
+        'text-font': ['Montserrat Medium', 'Open Sans Bold', 'Noto Sans Regular'],
         'text-size': zoomEase(4, 11, 8, 15, 12, 20, 16, 24),
         'text-anchor': 'center',
       },
@@ -756,7 +750,7 @@ export const OUR_SPACE_MAP_STYLE = {
       filter: ['in', ['get', 'class'], ['literal', ['state', 'region']]],
       layout: {
         'text-field': FRENCH_NAME,
-        'text-font': MAP_FONT_MEDIUM,
+        'text-font': ['Montserrat Medium', 'Open Sans Bold', 'Noto Sans Regular'],
         'text-size': zoomEase(3, 10, 6, 13, 9, 16),
         'text-transform': 'uppercase',
         'text-letter-spacing': 0.06,
@@ -776,7 +770,7 @@ export const OUR_SPACE_MAP_STYLE = {
       filter: ['==', ['get', 'class'], 'country'],
       layout: {
         'text-field': FRENCH_NAME,
-        'text-font': MAP_FONT_MEDIUM,
+        'text-font': ['Montserrat Medium', 'Open Sans Bold', 'Noto Sans Regular'],
         'text-size': zoomEase(2, 10, 5, 14),
         'text-transform': 'uppercase',
         'text-letter-spacing': 0.08,
@@ -815,7 +809,7 @@ export const OUR_SPACE_MAP_STYLE = {
       filter: ['in', ['get', 'class'], ['literal', ['peak', 'volcano']]],
       layout: {
         'text-field': FRENCH_NAME,
-        'text-font': MAP_FONT_MEDIUM,
+        'text-font': ['Montserrat Medium', 'Open Sans Bold', 'Noto Sans Regular'],
         'text-size': zoomEase(8, 9, 11, 10, 14, 12),
         'text-anchor': 'top',
         'text-offset': [0, 0.55],

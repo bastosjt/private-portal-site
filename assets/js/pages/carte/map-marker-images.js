@@ -1,5 +1,4 @@
 import { createElement } from '../../vendor/lucide.mjs';
-import { devWarn } from '../../lib/dev-log.js';
 import { renderLucideIcon } from '../../lib/lucide-icon.js';
 import { getActivityTypeLucideIcon } from '../activites/IconsType.js';
 import { getRestaurantTypeLucideIcon } from '../restaurants/IconsType.js';
@@ -95,7 +94,7 @@ export function bindMapMarkerImageFallback(map) {
         if (loaded) map.triggerRepaint();
       })
       .catch((err) => {
-        devWarn('styleimagemissing:', id, err.message);
+        console.warn('styleimagemissing:', id, err.message);
       });
   });
 }
@@ -191,7 +190,7 @@ export async function ensureMapMarkerImages(map, markers = []) {
         map.addImage(descriptor.imageId, image, { pixelRatio: 2 });
       }
     } catch (err) {
-      devWarn('ensureMapMarkerImages:', descriptor.imageId, err.message);
+      console.warn('ensureMapMarkerImages:', descriptor.imageId, err.message);
     }
   }));
 }

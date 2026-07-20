@@ -12,6 +12,7 @@ import {
 import { getUserLocationLngLat, onUserLocationChange } from '../../lib/user-location.js';
 import { MAP_FALLBACK_CENTER } from '../carte/map-markers.js';
 import {
+  loadDailyPicks,
   getDisplayedLatestPick,
 } from '../../firebase/dailyPicks.js';
 import { initCustomOptions } from '../../lib/custom-types.js';
@@ -539,6 +540,8 @@ function animateCount(el, target) {
 async function loadHomeData() {
   await initCustomOptions();
   await ensurePrefetch();
+
+  await Promise.all(PICK_SCOPES.map((scope) => loadDailyPicks(scope)));
 
   const total = COLLECTION_IDS.reduce((sum, id) => sum + getCollectionCountFromCache(id), 0);
   const weekCount = getWeekItemsCountFromCache(COLLECTION_IDS);
