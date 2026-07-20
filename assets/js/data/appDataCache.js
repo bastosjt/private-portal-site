@@ -1,7 +1,6 @@
 import { HOME_CATEGORIES } from '../config.js';
-import { devWarn } from '../lib/dev-log.js';
 import { fetchAllItems } from '../firebase/firestore.js';
-import { loadDailyPicksBatch, resetDailyPicksLoadState } from '../firebase/dailyPicks.js';
+import { loadDailyPicks, resetDailyPicksLoadState } from '../firebase/dailyPicks.js';
 import { getStraightLineDistanceKm } from '../lib/geo-utils.js';
 import { getItemLocationLabel } from '../lib/item-location.js';
 import { Timestamp } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js';
@@ -18,7 +17,6 @@ export const PRIMARY_PICK_SCOPES = ['activities', 'restaurants', 'movies'];
 export const SECONDARY_PICK_SCOPES = ['travels'];
 
 const itemsCache = new Map();
-const collectionLoadedAt = new Map();
 let prefetchPromise = null;
 let secondaryPrefetchPromise = null;
 let backgroundRefreshPromise = null;
@@ -35,10 +33,6 @@ const MIN_REFRESH_INTERVAL_MS = 2 * 60 * 1000;
 
 function markCacheFresh() {
   cacheLoadedAt = Date.now();
-}
-
-function markCollectionFresh(collectionName) {
-  collectionLoadedAt.set(collectionName, Date.now());
 }
 
 export function getCacheAgeMs() {
@@ -62,41 +56,11 @@ export function shouldBackgroundRefresh({ hiddenDurationMs = 0 } = {}) {
   return false;
 }
 
-function collectionsNeedingRefresh({ hiddenDurationMs = 0, forceAll = false } = {}) {
-  if (forceAll) return [...ITEM_COLLECTIONS];
-
-  const now = Date.now();
-  const globalStale = getCacheAgeMs() >= CACHE_STALE_MS;
-  const tabReturnStale = hiddenDurationMs >= TAB_HIDDEN_STALE_MS;
-
-  return ITEM_COLLECTIONS.filter((name) => {
-    if (!itemsCache.has(name)) return true;
-    if (globalStale) return true;
-    if (tabReturnStale) {
-      const loadedAt = collectionLoadedAt.get(name) || 0;
-      return now - loadedAt >= hiddenDurationMs;
-    }
-    return false;
-  });
-}
-
-async function runBackgroundRefresh({ hiddenDurationMs = 0, forceAll = false } = {}) {
-  const collectionsToRefresh = collectionsNeedingRefresh({ hiddenDurationMs, forceAll });
-  const tabReturnStale = hiddenDurationMs >= TAB_HIDDEN_STALE_MS;
-  const globalStale = getCacheAgeMs() >= CACHE_STALE_MS;
-  const refreshPicks = forceAll || globalStale || tabReturnStale || collectionsToRefresh.length > 0;
-
-  const tasks = [
-    ...collectionsToRefresh.map((collection) => ensureItems(collection, { force: true })),
-  ];
-
-  if (refreshPicks) {
-    tasks.push(loadDailyPicksBatch(PICK_SCOPES, { force: true }));
-  }
-
-  if (tasks.length === 0) return;
-
-  await Promise.all(tasks);
+async function runBackgroundRefresh() {
+  await Promise.all([
+    ...ITEM_COLLECTIONS.map((collection) => ensureItems(collection, { force: true })),
+    ...PICK_SCOPES.map((scope) => loadDailyPicks(scope, { force: true })),
+  ]);
   markCacheFresh();
 }
 
@@ -107,17 +71,10 @@ async function runBackgroundRefresh({ hiddenDurationMs = 0, forceAll = false } =
 export function scheduleBackgroundRefreshIfNeeded({ hiddenDurationMs = 0 } = {}) {
   if (!shouldBackgroundRefresh({ hiddenDurationMs })) return null;
 
-  const collectionsToRefresh = collectionsNeedingRefresh({ hiddenDurationMs });
-  const tabReturnStale = hiddenDurationMs >= TAB_HIDDEN_STALE_MS;
-  const globalStale = getCacheAgeMs() >= CACHE_STALE_MS;
-  const refreshPicks = globalStale || tabReturnStale || collectionsToRefresh.length > 0;
-
-  if (collectionsToRefresh.length === 0 && !refreshPicks) return null;
-
   lastRefreshStartedAt = Date.now();
-  backgroundRefreshPromise = runBackgroundRefresh({ hiddenDurationMs })
+  backgroundRefreshPromise = runBackgroundRefresh()
     .catch((err) => {
-      devWarn('scheduleBackgroundRefreshIfNeeded:', err.message);
+      console.warn('scheduleBackgroundRefreshIfNeeded:', err.message);
     })
     .finally(() => {
       backgroundRefreshPromise = null;
@@ -139,7 +96,7 @@ function notifySecondaryPrefetchDone() {
     try {
       listener();
     } catch (err) {
-      devWarn('secondaryPrefetch listener:', err);
+      console.warn('secondaryPrefetch listener:', err);
     }
   });
 }
@@ -152,12 +109,12 @@ function scheduleSecondaryPrefetch() {
       try {
         await Promise.all([
           ...SECONDARY_COLLECTIONS.map((collection) => ensureItems(collection)),
-          loadDailyPicksBatch(SECONDARY_PICK_SCOPES),
+          ...SECONDARY_PICK_SCOPES.map((scope) => loadDailyPicks(scope)),
         ]);
         markCacheFresh();
         notifySecondaryPrefetchDone();
       } catch (err) {
-        devWarn('scheduleSecondaryPrefetch:', err.message);
+        console.warn('scheduleSecondaryPrefetch:', err.message);
       } finally {
         resolve();
       }
@@ -341,7 +298,6 @@ export async function ensureItems(collectionName, { force = false } = {}) {
 
   const items = await fetchAllItems(collectionName);
   itemsCache.set(collectionName, items);
-  markCollectionFresh(collectionName);
   return items;
 }
 
@@ -390,7 +346,6 @@ export function upsertCachedItem(collectionName, item) {
   }
 
   itemsCache.set(collectionName, items);
-  markCollectionFresh(collectionName);
   return true;
 }
 
@@ -407,7 +362,7 @@ export function prefetchAppData() {
 
   prefetchPromise = Promise.all([
     ...PRIMARY_COLLECTIONS.map((collection) => ensureItems(collection)),
-    loadDailyPicksBatch(PRIMARY_PICK_SCOPES),
+    ...PRIMARY_PICK_SCOPES.map((scope) => loadDailyPicks(scope)),
   ])
     .then(() => {
       markCacheFresh();
@@ -435,7 +390,6 @@ export function isFullPrefetchComplete() {
 
 export function clearAppDataCache() {
   itemsCache.clear();
-  collectionLoadedAt.clear();
   prefetchPromise = null;
   secondaryPrefetchPromise = null;
   backgroundRefreshPromise = null;
@@ -447,9 +401,9 @@ export function clearAppDataCache() {
 /** Recharge toutes les collections et pioches depuis Firestore. */
 export function refreshAppData() {
   lastRefreshStartedAt = Date.now();
-  backgroundRefreshPromise = runBackgroundRefresh({ forceAll: true })
+  backgroundRefreshPromise = runBackgroundRefresh()
     .catch((err) => {
-      devWarn('refreshAppData:', err.message);
+      console.warn('refreshAppData:', err.message);
       throw err;
     })
     .finally(() => {

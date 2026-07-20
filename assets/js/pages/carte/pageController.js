@@ -157,7 +157,7 @@ export async function initMapPage(user, { addItemModal: sharedModal } = {}) {
   setMapMarkerSelectionPrunedHandler(closeOpenMapDetail);
   updateHeaderSub();
 
-  await initInteractiveMap({
+  initInteractiveMap({
     signal: pageAbort.signal,
     onLayerToggled: handleLayerToggled,
     onMarkerClick: handleMarkerClick,

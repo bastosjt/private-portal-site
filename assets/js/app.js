@@ -14,8 +14,16 @@ import { initUserProfiles, clearUserProfilesCache } from './lib/user-profile.js'
 import { initSpaceSettings, clearSpaceSettingsCache } from './lib/space-settings.js';
 import { initUserLocationAtLaunch, clearUserLocationState } from './lib/user-location.js';
 import { debounce } from './lib/debounce.js';
+import { init as initAccueil, destroy as destroyAccueil, refresh as refreshAccueil, HOME_VIEW_HTML } from './pages/accueil/index.js';
 import { initCustomOptions } from './lib/custom-types.js';
 import { startDailyPickMidnightReset } from './firebase/dailyPicks.js';
+import { init as initActivites, destroy as destroyActivites, refresh as refreshActivites, ACTIVITIES_VIEW_HTML } from './pages/activites/index.js';
+import { init as initRestaurants, destroy as destroyRestaurants, refresh as refreshRestaurants, RESTAURANTS_VIEW_HTML } from './pages/restaurants/index.js';
+import { init as initFilms, destroy as destroyFilms, refresh as refreshFilms, FILMS_VIEW_HTML } from './pages/films/index.js';
+import { init as initWishlist, destroy as destroyWishlist, refresh as refreshWishlist, WISHLIST_VIEW_HTML } from './pages/wishlist/index.js';
+import { init as initVoyages, destroy as destroyVoyages, refresh as refreshVoyages, VOYAGES_VIEW_HTML } from './pages/voyages/index.js';
+import { init as initCarte, destroy as destroyCarte, refresh as refreshCarte, MAP_VIEW_HTML } from './pages/carte/index.js';
+import { init as initParametres, destroy as destroyParametres, refresh as refreshParametres, SETTINGS_VIEW_HTML } from './pages/parametres/index.js';
 import { getPlaceholderViewHtml } from './navigation/placeholder.js';
 
 const PAGE_TITLES = {
@@ -47,32 +55,6 @@ let bootMountResolved = false;
 
 const PAGE_TRANSITION_MS = 300;
 
-/** Chargement à la demande — évite ~80 requêtes JS au démarrage. */
-const PAGE_IMPORTS = {
-  accueil: () => import('./pages/accueil/index.js'),
-  carte: () => import('./pages/carte/index.js'),
-  activites: () => import('./pages/activites/index.js'),
-  restaurants: () => import('./pages/restaurants/index.js'),
-  films: () => import('./pages/films/index.js'),
-  wishlist: () => import('./pages/wishlist/index.js'),
-  voyages: () => import('./pages/voyages/index.js'),
-  parametres: () => import('./pages/parametres/index.js'),
-};
-
-const PAGE_VIEW_HTML = {
-  accueil: (mod) => mod.HOME_VIEW_HTML,
-  carte: (mod) => mod.MAP_VIEW_HTML,
-  activites: (mod) => mod.ACTIVITIES_VIEW_HTML,
-  restaurants: (mod) => mod.RESTAURANTS_VIEW_HTML,
-  films: (mod) => mod.FILMS_VIEW_HTML,
-  wishlist: (mod) => mod.WISHLIST_VIEW_HTML,
-  voyages: (mod) => mod.VOYAGES_VIEW_HTML,
-  parametres: (mod) => mod.SETTINGS_VIEW_HTML,
-};
-
-const pageModuleCache = new Map();
-let activePageModule = null;
-
 const authView = document.getElementById('auth-view');
 const appView = document.getElementById('app-view');
 const pageRoot = document.getElementById('page-root');
@@ -89,24 +71,27 @@ function setPageTitle(routeId) {
   document.title = `${label} — ${APP_NAME}`;
 }
 
-async function loadPageModule(routeId) {
-  if (pageModuleCache.has(routeId)) return pageModuleCache.get(routeId);
-
-  const loader = PAGE_IMPORTS[routeId];
-  if (!loader) return null;
-
-  const mod = await loader();
-  pageModuleCache.set(routeId, mod);
-  return mod;
-}
-
 function destroyCurrentView() {
-  activePageModule?.destroy?.();
-  activePageModule = null;
+  destroyAccueil();
+  destroyCarte();
+  destroyActivites();
+  destroyRestaurants();
+  destroyFilms();
+  destroyWishlist();
+  destroyVoyages();
+  destroyParametres();
 }
 
 function refreshCurrentViewNow() {
-  return activePageModule?.refresh?.();
+  if (currentRoute === 'accueil') return refreshAccueil();
+  if (currentRoute === 'carte') return refreshCarte();
+  if (currentRoute === 'activites') return refreshActivites();
+  if (currentRoute === 'restaurants') return refreshRestaurants();
+  if (currentRoute === 'films') return refreshFilms();
+  if (currentRoute === 'wishlist') return refreshWishlist();
+  if (currentRoute === 'voyages') return refreshVoyages();
+  if (currentRoute === 'parametres') return refreshParametres();
+  return undefined;
 }
 
 const refreshCurrentView = debounce(refreshCurrentViewNow, 250);
@@ -175,29 +160,75 @@ async function mountRoute(routeId) {
     pageRoot.classList.remove('is-page-leaving', 'is-page-entering');
   };
 
-  const pageMod = await loadPageModule(routeId);
-  const getViewHtml = PAGE_VIEW_HTML[routeId];
-
-  if (pageMod && getViewHtml) {
-    pageRoot.innerHTML = getViewHtml(pageMod);
+  if (routeId === 'accueil') {
+    pageRoot.innerHTML = HOME_VIEW_HTML;
     await finishPageEnter();
     if (token !== pageTransitionToken) return;
+    await initAccueil(currentUser, { addItemModal: sharedModal });
+    return;
+  }
 
-    activePageModule = pageMod;
+  if (routeId === 'carte') {
+    pageRoot.innerHTML = MAP_VIEW_HTML;
+    await finishPageEnter();
+    if (token !== pageTransitionToken) return;
+    await initCarte(currentUser, { addItemModal: sharedModal });
+    return;
+  }
 
-    if (routeId === 'parametres') {
-      pageMod.init(currentUser, {
-        onLogout: async () => {
-          await logout();
-          showAuthView();
-          window.location.hash = '';
-        },
-        onDataSynced: () => refreshCurrentView(),
-        onProfileUpdated: () => refreshCurrentView(),
-      });
-    } else {
-      await pageMod.init(currentUser, { addItemModal: sharedModal });
-    }
+  if (routeId === 'activites') {
+    pageRoot.innerHTML = ACTIVITIES_VIEW_HTML;
+    await finishPageEnter();
+    if (token !== pageTransitionToken) return;
+    await initActivites(currentUser, { addItemModal: sharedModal });
+    return;
+  }
+
+  if (routeId === 'restaurants') {
+    pageRoot.innerHTML = RESTAURANTS_VIEW_HTML;
+    await finishPageEnter();
+    if (token !== pageTransitionToken) return;
+    await initRestaurants(currentUser, { addItemModal: sharedModal });
+    return;
+  }
+
+  if (routeId === 'films') {
+    pageRoot.innerHTML = FILMS_VIEW_HTML;
+    await finishPageEnter();
+    if (token !== pageTransitionToken) return;
+    await initFilms(currentUser, { addItemModal: sharedModal });
+    return;
+  }
+
+  if (routeId === 'wishlist') {
+    pageRoot.innerHTML = WISHLIST_VIEW_HTML;
+    await finishPageEnter();
+    if (token !== pageTransitionToken) return;
+    await initWishlist(currentUser, { addItemModal: sharedModal });
+    return;
+  }
+
+  if (routeId === 'voyages') {
+    pageRoot.innerHTML = VOYAGES_VIEW_HTML;
+    await finishPageEnter();
+    if (token !== pageTransitionToken) return;
+    await initVoyages(currentUser, { addItemModal: sharedModal });
+    return;
+  }
+
+  if (routeId === 'parametres') {
+    pageRoot.innerHTML = SETTINGS_VIEW_HTML;
+    await finishPageEnter();
+    if (token !== pageTransitionToken) return;
+    initParametres(currentUser, {
+      onLogout: async () => {
+        await logout();
+        showAuthView();
+        window.location.hash = '';
+      },
+      onDataSynced: () => refreshCurrentView(),
+      onProfileUpdated: () => refreshCurrentView(),
+    });
     return;
   }
 
@@ -216,7 +247,6 @@ function showAuthView({ reveal = true } = {}) {
   destroyCurrentView();
   addItemModal?.destroy?.();
   addItemModal = null;
-  pageModuleCache.clear();
   stopDailyPickReset?.();
   stopDailyPickReset = null;
   stopRouter?.();
