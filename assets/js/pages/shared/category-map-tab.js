@@ -1,8 +1,9 @@
 import { findCachedItemById, formatPlaceDistanceKm } from '../../data/appDataCache.js';
 import { escapeHtml } from '../../lib/escape-html.js';
 import { getStraightLineDistanceKm } from '../../lib/geo-utils.js';
-import { getMapLibre, waitForContainerSize } from '../../lib/map-bootstrap.js';
-import { OUR_SPACE_MAP_STYLE } from '../carte/map-style.js';
+import { devWarn } from '../../lib/dev-log.js';
+import { loadMapLibre, waitForContainerSize, MAP_BASE_OPTS } from '../../lib/map-bootstrap.js';
+import { OUR_SPACE_MAP_RASTER_STYLE } from '../carte/map-raster-style.js';
 import { bindMapMarkerImageFallback } from '../carte/map-marker-images.js';
 import {
   fitMapToLocalArea,
@@ -296,7 +297,7 @@ export function createCategoryMapTab({
           duration: 700,
         });
       } catch (error) {
-        console.warn('category-map-tab locate:', getGeolocationUserMessage(error));
+        devWarn('category-map-tab locate:', getGeolocationUserMessage(error));
       } finally {
         locateBtn?.classList.remove('is-loading');
         locateBtn?.setAttribute('aria-busy', 'false');
@@ -331,7 +332,7 @@ export function createCategoryMapTab({
     const container = document.getElementById(canvasId);
     if (!container || token !== initToken) return;
 
-    const maplibregl = getMapLibre();
+    const maplibregl = await loadMapLibre();
     if (!maplibregl) return;
 
     await waitForContainerSize(container);
@@ -339,14 +340,14 @@ export function createCategoryMapTab({
 
     map = new maplibregl.Map({
       container,
-      style: OUR_SPACE_MAP_STYLE,
+      style: OUR_SPACE_MAP_RASTER_STYLE,
       center: getUserLocationLngLat() || MAP_FALLBACK_CENTER,
       zoom: 11,
       minZoom: 3,
-      maxZoom: 16,
-      attributionControl: false,
+      maxZoom: 14,
       pitch: 0,
       bearing: 0,
+      ...MAP_BASE_OPTS,
     });
 
     bindMapMarkerImageFallback(map);
@@ -388,7 +389,7 @@ export function createCategoryMapTab({
       initToken += 1;
       const token = initToken;
       mount(filterState, token).catch((error) => {
-        console.warn('category-map-tab init:', error.message);
+        devWarn('category-map-tab init:', error.message);
       });
     },
 

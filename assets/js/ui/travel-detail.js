@@ -1,4 +1,5 @@
 import { getCategoryById } from '../config.js';
+import { devWarn, devError } from '../lib/dev-log.js';
 import { updateItem, deleteItem } from '../firebase/firestore.js';
 import { syncCachedItemWrite } from '../data/appDataCache.js';
 import { getFieldOptionLabel, initCustomOptions } from '../lib/custom-types.js';
@@ -98,7 +99,7 @@ export function initTravelDetail({ onChanged, onEdit, onClose, theme = 'blue' } 
       onChanged?.(COLLECTION, currentItem.id, { patch: true });
       close();
     } catch (err) {
-      console.error('toggle done:', err);
+      devError('toggle done:', err);
       isBusy = false;
       updateDoneToggleUI(bodyEl, currentItem.done, false, DONE_LABELS);
       content?.classList.toggle('act-detail-content--done', currentItem.done);
@@ -129,7 +130,7 @@ export function initTravelDetail({ onChanged, onEdit, onClose, theme = 'blue' } 
       close();
       onChanged?.(COLLECTION, itemId, { deleted: true });
     } catch (err) {
-      console.error('deleteItem:', err);
+      devError('deleteItem:', err);
       confirmDelete = false;
     } finally {
       isBusy = false;

@@ -1,3 +1,4 @@
+import { devWarn, devError } from './dev-log.js';
 const NOMINATIM_URL = 'https://nominatim.openstreetmap.org/search';
 const NOMINATIM_REVERSE_URL = 'https://nominatim.openstreetmap.org/reverse';
 const USER_AGENT = 'OurSpacePrivatePortal/1.0';
@@ -111,7 +112,7 @@ export async function getPlaceBoundary({ label, lat, lng, signal } = {}) {
     if (!geometry) geometry = await fetchBoundaryFromReverse(lat, lng, signal);
   } catch (err) {
     if (err.name !== 'AbortError') {
-      console.warn('getPlaceBoundary:', err.message);
+      devWarn('getPlaceBoundary:', err.message);
     }
   }
 

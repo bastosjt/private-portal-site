@@ -1,4 +1,6 @@
+import { HOME_CATEGORIES } from '../config.js';
 import { db } from './config.js';
+import { devWarn } from '../lib/dev-log.js';
 import {
   collection,
   query,
@@ -16,12 +18,49 @@ const CUSTOM_OPTIONS_COLLECTION = 'customOptions';
 
 const IMMUTABLE_ITEM_FIELDS = ['createdBy', 'userId', 'createdAt'];
 
+const COMMON_ITEM_FIELDS = new Set([
+  'done',
+  'fait',
+  'latitude',
+  'longitude',
+  'prix',
+  'prixMin',
+  'prixMax',
+  'country',
+  'mapsUrl',
+  'createdAt',
+  'updatedAt',
+  'createdBy',
+  'userId',
+]);
+
+const COLLECTION_FIELD_ALLOWLIST = Object.fromEntries(
+  HOME_CATEGORIES.map((category) => {
+    const allowed = new Set([
+      ...category.fields.map((field) => field.name),
+      ...COMMON_ITEM_FIELDS,
+    ]);
+    return [category.id, allowed];
+  }),
+);
+
 function stripImmutableItemFields(data) {
   const sanitized = { ...data };
   for (const key of IMMUTABLE_ITEM_FIELDS) {
     delete sanitized[key];
   }
   return sanitized;
+}
+
+function sanitizeFetchedItem(collectionName, id, data) {
+  const allowed = COLLECTION_FIELD_ALLOWLIST[collectionName];
+  if (!allowed) return { id, ...data };
+
+  const item = { id };
+  for (const [key, value] of Object.entries(data)) {
+    if (allowed.has(key)) item[key] = value;
+  }
+  return item;
 }
 
 export async function fetchAllItems(collectionName) {
@@ -31,9 +70,9 @@ export async function fetchAllItems(collectionName) {
       orderBy('createdAt', 'desc'),
     );
     const snapshot = await getDocs(q);
-    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    return snapshot.docs.map((entry) => sanitizeFetchedItem(collectionName, entry.id, entry.data()));
   } catch (err) {
-    console.warn(`fetchAllItems(${collectionName}):`, err.message);
+    devWarn(`fetchAllItems(${collectionName}):`, err.message);
     return [];
   }
 }
@@ -78,7 +117,7 @@ export async function fetchAllCustomOptions() {
 
     return result;
   } catch (err) {
-    console.warn('fetchAllCustomOptions:', err.message);
+    devWarn('fetchAllCustomOptions:', err.message);
     return {};
   }
 }

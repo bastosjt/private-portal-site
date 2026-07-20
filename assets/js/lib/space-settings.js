@@ -1,4 +1,5 @@
 import { APP_TAGLINE } from '../config.js';
+import { devWarn } from '../lib/dev-log.js';
 import { fetchSpaceSettings, upsertSpaceTagline } from '../firebase/spaceSettings.js';
 
 let cachedTagline = '';
@@ -22,7 +23,7 @@ export async function setSpaceTagline(tagline) {
     await upsertSpaceTagline(trimmed);
     return true;
   } catch (err) {
-    console.warn('setSpaceTagline:', err.message);
+    devWarn('setSpaceTagline:', err.message);
     return false;
   }
 }
@@ -37,7 +38,7 @@ export async function initSpaceSettings() {
   })().catch((err) => {
     initPromise = null;
     cachedTagline = APP_TAGLINE;
-    console.warn('initSpaceSettings:', err.message);
+    devWarn('initSpaceSettings:', err.message);
   });
 
   return initPromise;
