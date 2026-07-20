@@ -1,7 +1,12 @@
 import { MAP_THEME } from '../../config.js';
 import { initListFilters } from '../../ui/list-filters.js';
-import { initCustomOptions, getFieldOptionLabel } from '../../lib/custom-types.js';
+import { initCustomOptions } from '../../lib/custom-types.js';
 import { getCachedItems } from '../../data/appDataCache.js';
+import {
+  createMapFilterSections,
+  createTodoStatusFilterOptions,
+} from '../shared/listPageBoilerplate.js';
+import { buildMapFieldFilterOptions } from '../shared/filterOptions.js';
 import {
   isMapLayerVisible,
   refreshMapMarkers,
@@ -9,11 +14,7 @@ import {
   setMapMarkerFilters,
 } from './map-markers.js';
 
-const STATUS_FILTER_OPTIONS = [
-  { value: 'all', label: 'Tout' },
-  { value: 'todo', label: 'Non fait' },
-  { value: 'done', label: 'Fait' },
-];
+const STATUS_FILTER_OPTIONS = createTodoStatusFilterOptions('Non fait', 'Fait');
 
 const CATEGORY_OPTIONS = [
   { value: 'activities', label: 'Activités' },
@@ -49,63 +50,22 @@ function getGeolocatedItems(collection) {
   );
 }
 
-function getAvailableMapFilterOptions(categoryId, fieldName) {
-  const values = new Map();
-
-  for (const item of getGeolocatedItems(categoryId)) {
-    const value = item[fieldName];
-    if (!value) continue;
-    if (!values.has(value)) {
-      values.set(value, getFieldOptionLabel(categoryId, fieldName, value) || value);
-    }
-  }
-
-  return [...values.entries()]
-    .sort((a, b) => a[1].localeCompare(b[1], 'fr'))
-    .map(([value, label]) => ({ value, label }));
+function getMapFieldOptions(categoryId, fieldName) {
+  return buildMapFieldFilterOptions(categoryId, fieldName, getGeolocatedItems(categoryId));
 }
 
 function getFilterSections() {
-  return [
-    {
-      id: 'status',
-      label: 'Statut',
-      mode: 'single',
-      collapsible: false,
-      options: STATUS_FILTER_OPTIONS,
-    },
-    {
-      id: 'categories',
-      label: 'Catégories',
-      mode: 'multi',
-      collapsible: false,
-      options: CATEGORY_OPTIONS,
-    },
-    {
-      id: 'activityType',
-      label: "Type d'activité",
-      mode: 'multi',
-      getOptions: () => getAvailableMapFilterOptions('activities', 'categorie'),
-    },
-    {
-      id: 'restaurantType',
-      label: 'Type de restaurant',
-      mode: 'multi',
-      getOptions: () => getAvailableMapFilterOptions('restaurants', 'type'),
-    },
-    {
-      id: 'restaurantCuisine',
-      label: 'Type de cuisine',
-      mode: 'multi',
-      getOptions: () => getAvailableMapFilterOptions('restaurants', 'cuisine'),
-    },
-    {
-      id: 'travelType',
-      label: 'Type de voyage',
-      mode: 'multi',
-      getOptions: () => getAvailableMapFilterOptions('travels', 'type'),
-    },
-  ];
+  return createMapFilterSections({
+    statusOptions: STATUS_FILTER_OPTIONS,
+    categoryOptions: CATEGORY_OPTIONS,
+    getMapFieldOptions,
+    typeFields: [
+      { id: 'activityType', label: "Type d'activité", categoryId: 'activities', fieldName: 'categorie' },
+      { id: 'restaurantType', label: 'Type de restaurant', categoryId: 'restaurants', fieldName: 'type' },
+      { id: 'restaurantCuisine', label: 'Type de cuisine', categoryId: 'restaurants', fieldName: 'cuisine' },
+      { id: 'travelType', label: 'Type de voyage', categoryId: 'travels', fieldName: 'type' },
+    ],
+  });
 }
 
 function categoriesFromLayerVisibility() {
@@ -135,8 +95,17 @@ function countMapActiveFilters() {
   count += filterState.restaurantType.length;
   count += filterState.restaurantCuisine.length;
   count += filterState.travelType.length;
-  if (filterState.categories.length > 0) count += filterState.categories.length;
+  if (!LAYER_IDS.every((id) => isMapLayerVisible(id))) count += 1;
   return count;
+}
+
+function syncFilterCategoriesFromLayers() {
+  filterState.categories = categoriesFromLayerVisibility();
+}
+
+export function syncMapFiltersFromLayerVisibility() {
+  syncFilterCategoriesFromLayers();
+  updateMapFilterBadge();
 }
 
 function updateMapFilterBadge() {
@@ -153,11 +122,13 @@ function updateMapFilterBadge() {
 function applyCategoryVisibility(map, categories, syncLayerButtons) {
   if (categories.length === 0) {
     LAYER_IDS.forEach((id) => setMapLayerVisible(map, id, true));
+    filterState.categories = [];
   } else {
     LAYER_IDS.forEach((id) => setMapLayerVisible(map, id, categories.includes(id)));
+    const allVisible = LAYER_IDS.every((id) => categories.includes(id));
+    filterState.categories = allVisible ? [] : [...categories];
   }
 
-  filterState.categories = [...categories];
   syncLayerButtons?.();
 }
 
@@ -223,5 +194,6 @@ export function destroyMapFilters() {
 export { updateMapFilterBadge };
 
 export function onMapLayerToggled(map) {
+  syncMapFiltersFromLayerVisibility();
   refreshMapMarkers(map);
 }

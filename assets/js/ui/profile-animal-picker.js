@@ -1,3 +1,4 @@
+import { escapeHtml } from '../lib/escape-html.js';
 import { SETTINGS_THEME } from '../config.js';
 import {
   PROFILE_ANIMALS,
@@ -13,14 +14,6 @@ import { lockScroll, unlockScroll } from '../lib/scroll-lock.js';
 import { nextFrame, waitForTransition } from '../lib/transitions.js';
 
 const STEP_MS = 260;
-
-function escapeHtml(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
 
 function renderPickerHtml({ hasAnimal = false, selectedAnimalId = null } = {}) {
   const clearItem = hasAnimal ? `

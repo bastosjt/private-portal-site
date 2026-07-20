@@ -10,6 +10,7 @@ import {
   Filter,
   Heart,
   House,
+  Layers,
   Map,
   Menu,
   Origami,
@@ -18,6 +19,7 @@ import {
   Rabbit,
   Rat,
   RollerCoaster,
+  Search,
   Settings,
   Shrimp,
   Snail,
@@ -73,6 +75,8 @@ const NAV_ICON_COMPONENTS = {
   close: X,
   menu: Menu,
   filter: Filter,
+  search: Search,
+  layers: Layers,
 };
 
 export function renderNavIcon(name, { strokeWidth, width, height, ...attrs } = {}) {

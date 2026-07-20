@@ -1,3 +1,4 @@
+import { escapeHtml } from '../lib/escape-html.js';
 import { auth } from '../firebase/config.js';
 import { paintAvatarElement, renderAvatarContent } from '../lib/profile-avatar.js';
 import {
@@ -6,14 +7,6 @@ import {
   getItemAuthorDisplayLabel,
   getItemAuthorHeadline,
 } from '../lib/user-profile.js';
-
-function escapeHtml(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
 
 export function getItemAuthorUid(item) {
   return item?.createdBy || item?.userId || null;

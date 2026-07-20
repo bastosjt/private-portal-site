@@ -1,73 +1,24 @@
 import { getCategoryById } from '../config.js';
+import { devWarn, devError } from '../lib/dev-log.js';
 import { updateItem, deleteItem } from '../firebase/firestore.js';
 import { syncCachedItemWrite } from '../data/appDataCache.js';
 import { getFieldOptionLabel, initCustomOptions } from '../lib/custom-types.js';
 import { waitForTransition, nextFrame } from '../lib/transitions.js';
 import { lockScroll, unlockScroll } from '../lib/scroll-lock.js';
+import { escapeHtml } from '../lib/escape-html.js';
+import {
+  createDetailModalOverlay,
+  DETAIL_MODAL_MS,
+  renderDoneToggle,
+  updateDoneToggleUI,
+} from './item-detail-shared.js';
 import { paintItemAuthors, renderItemAuthorMarkup } from './item-author.js';
 
-const MODAL_MS = 420;
 const COLLECTION = 'movies';
-
-function escapeHtml(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
+const DONE_LABELS = { done: 'Déjà vu', todo: 'Pas encore vu' };
 
 function getFieldLabel(category, fieldName, value) {
   return getFieldOptionLabel(category.id, fieldName, value);
-}
-
-function renderDoneToggle(done, busy = false) {
-  return `
-    <div class="act-done-card${done ? ' is-done' : ''}${busy ? ' is-busy' : ''}" id="act-done-card">
-      <button
-        type="button"
-        class="act-done-toggle"
-        id="act-detail-done"
-        aria-pressed="${done ? 'true' : 'false'}"
-        ${busy ? 'disabled' : ''}
-      >
-        <span class="act-done-toggle-icon" aria-hidden="true">
-          <svg class="act-done-icon act-done-icon--pending" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="9"/>
-          </svg>
-          <svg class="act-done-icon act-done-icon--checked" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20 6 9 17l-5-5"/>
-          </svg>
-        </span>
-        <span class="act-done-toggle-copy">
-          <span class="act-done-toggle-label" id="act-done-label">${done ? 'Déjà vu' : 'Pas encore vu'}</span>
-          <span class="act-done-toggle-hint" id="act-done-hint">${done ? 'C\'est dans la poche' : 'Appuyez pour cocher'}</span>
-        </span>
-        <span class="act-done-switch" aria-hidden="true">
-          <span class="act-done-switch-track">
-            <span class="act-done-switch-thumb"></span>
-          </span>
-        </span>
-      </button>
-    </div>
-  `;
-}
-
-function updateDoneToggleUI(root, done, busy = false) {
-  const card = root.querySelector('#act-done-card');
-  const btn = root.querySelector('#act-detail-done');
-  const label = root.querySelector('#act-done-label');
-  const hint = root.querySelector('#act-done-hint');
-
-  card?.classList.toggle('is-done', done);
-  card?.classList.toggle('is-busy', busy);
-
-  if (btn) {
-    btn.setAttribute('aria-pressed', done ? 'true' : 'false');
-    btn.disabled = busy;
-  }
-  if (label) label.textContent = done ? 'Déjà vu' : 'Pas encore vu';
-  if (hint) hint.textContent = done ? 'C\'est dans la poche' : 'Appuyez pour cocher';
 }
 
 export function initMovieDetail({ onChanged, onEdit, theme = 'violet' } = {}) {
@@ -76,27 +27,11 @@ export function initMovieDetail({ onChanged, onEdit, theme = 'violet' } = {}) {
   let isBusy = false;
   let confirmDelete = false;
 
-  const overlay = document.createElement('div');
-  overlay.className = 'add-modal-overlay hidden';
-  overlay.id = 'movie-detail-overlay';
-  overlay.innerHTML = `
-    <div class="add-modal act-detail-modal" data-theme="${theme}" role="dialog" aria-modal="true" aria-labelledby="act-detail-title">
-      <div class="add-modal-head">
-        <button type="button" class="add-modal-back hidden" tabindex="-1" aria-hidden="true"></button>
-        <h2 class="add-modal-title" id="act-detail-title">Film</h2>
-        <button type="button" class="add-modal-close" id="act-detail-close" aria-label="Fermer">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
-          </svg>
-        </button>
-      </div>
-      <div class="add-modal-body act-detail-body" id="act-detail-body"></div>
-    </div>
-  `;
-  document.body.appendChild(overlay);
-
-  const bodyEl = overlay.querySelector('#act-detail-body');
-  const closeBtn = overlay.querySelector('#act-detail-close');
+  const { overlay, bodyEl, closeBtn } = createDetailModalOverlay({
+    overlayId: 'movie-detail-overlay',
+    title: 'Film',
+    theme,
+  });
   const abort = new AbortController();
   const { signal } = abort;
 
@@ -114,7 +49,7 @@ export function initMovieDetail({ onChanged, onEdit, theme = 'violet' } = {}) {
         <h3 class="act-detail-name">${escapeHtml(item.titre)}</h3>
         ${chips.length ? `<div class="act-chips">${chips.join('')}</div>` : ''}
 
-        ${renderDoneToggle(Boolean(item.done), isBusy)}
+        ${renderDoneToggle(Boolean(item.done), isBusy, DONE_LABELS)}
 
         ${renderItemAuthorMarkup(item)}
 
@@ -141,7 +76,7 @@ export function initMovieDetail({ onChanged, onEdit, theme = 'violet' } = {}) {
     const done = !currentItem.done;
     const statut = done ? 'termine' : 'a_voir';
     isBusy = true;
-    updateDoneToggleUI(bodyEl, done, true);
+    updateDoneToggleUI(bodyEl, done, true, DONE_LABELS);
 
     const content = bodyEl.querySelector('.act-detail-content');
     content?.classList.toggle('act-detail-content--done', done);
@@ -153,9 +88,9 @@ export function initMovieDetail({ onChanged, onEdit, theme = 'violet' } = {}) {
       onChanged?.(COLLECTION, currentItem.id, { patch: true });
       close();
     } catch (err) {
-      console.error('toggle done:', err);
+      devError('toggle done:', err);
       isBusy = false;
-      updateDoneToggleUI(bodyEl, currentItem.done, false);
+      updateDoneToggleUI(bodyEl, currentItem.done, false, DONE_LABELS);
       content?.classList.toggle('act-detail-content--done', currentItem.done);
     }
   }
@@ -184,7 +119,7 @@ export function initMovieDetail({ onChanged, onEdit, theme = 'violet' } = {}) {
       close();
       onChanged?.(COLLECTION, itemId, { deleted: true });
     } catch (err) {
-      console.error('deleteItem:', err);
+      devError('deleteItem:', err);
       confirmDelete = false;
     } finally {
       isBusy = false;
@@ -212,7 +147,7 @@ export function initMovieDetail({ onChanged, onEdit, theme = 'violet' } = {}) {
     document.body.classList.remove('modal-open');
     unlockScroll();
 
-    await waitForTransition(overlay.querySelector('.add-modal') || overlay, MODAL_MS);
+    await waitForTransition(overlay.querySelector('.add-modal') || overlay, DETAIL_MODAL_MS);
 
     overlay.classList.add('hidden');
     currentItem = null;

@@ -1,12 +1,6 @@
+import { escapeHtml } from '../lib/escape-html.js';
+import { devWarn } from '../lib/dev-log.js';
 import { searchAddresses } from '../lib/address-search.js';
-
-function escapeHtml(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
 
 function getSuggestionMeta(suggestion) {
   const parts = [suggestion.postcode, suggestion.city, suggestion.country]
@@ -154,7 +148,7 @@ export function initAddressAutocomplete(input, { form, fills = {}, onSelect } = 
       renderSuggestions(results);
     } catch (err) {
       if (err.name !== 'AbortError') {
-        console.warn('address search:', err.message);
+        devWarn('address search:', err.message);
         closeList();
       }
     } finally {

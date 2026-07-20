@@ -1,4 +1,5 @@
 import { getCategoryById } from '../config.js';
+import { devWarn, devError } from '../lib/dev-log.js';
 import { updateItem, deleteItem } from '../firebase/firestore.js';
 import { syncCachedItemWrite } from '../data/appDataCache.js';
 import { formatItemPrice, hasItemPrice } from '../lib/price-format.js';
@@ -6,79 +7,20 @@ import { getFieldOptionLabel, initCustomOptions } from '../lib/custom-types.js';
 import { renderActivityScheduleNote } from '../pages/activites/scheduleDisplay.js';
 import { waitForTransition, nextFrame } from '../lib/transitions.js';
 import { lockScroll, unlockScroll } from '../lib/scroll-lock.js';
+import { escapeHtml } from '../lib/escape-html.js';
+import { renderGeoCategoryLocation } from '../pages/shared/listLocation.js';
+import {
+  createDetailModalOverlay,
+  DETAIL_MODAL_MS,
+  renderDoneToggle,
+  updateDoneToggleUI,
+} from './item-detail-shared.js';
 import { paintItemAuthors, renderItemAuthorMarkup } from './item-author.js';
 
-const MODAL_MS = 420;
-
-function escapeHtml(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
+const DONE_LABELS = { done: 'Activité réalisée', todo: 'Pas encore fait' };
 
 function getFieldLabel(category, fieldName, value) {
   return getFieldOptionLabel(category.id, fieldName, value);
-}
-
-function renderDoneToggle(done, busy = false) {
-  return `
-    <div class="act-done-card${done ? ' is-done' : ''}${busy ? ' is-busy' : ''}" id="act-done-card">
-      <button
-        type="button"
-        class="act-done-toggle"
-        id="act-detail-done"
-        aria-pressed="${done ? 'true' : 'false'}"
-        ${busy ? 'disabled' : ''}
-      >
-        <span class="act-done-toggle-icon" aria-hidden="true">
-          <svg class="act-done-icon act-done-icon--pending" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="9"/>
-          </svg>
-          <svg class="act-done-icon act-done-icon--checked" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20 6 9 17l-5-5"/>
-          </svg>
-        </span>
-        <span class="act-done-toggle-copy">
-          <span class="act-done-toggle-label" id="act-done-label">${done ? 'Activité réalisée' : 'Pas encore fait'}</span>
-          <span class="act-done-toggle-hint" id="act-done-hint">${done ? 'C\'est dans la poche' : 'Appuyez pour cocher'}</span>
-        </span>
-        <span class="act-done-switch" aria-hidden="true">
-          <span class="act-done-switch-track">
-            <span class="act-done-switch-thumb"></span>
-          </span>
-        </span>
-      </button>
-    </div>
-  `;
-}
-
-function updateDoneToggleUI(root, done, busy = false) {
-  const card = root.querySelector('#act-done-card');
-  const btn = root.querySelector('#act-detail-done');
-  const label = root.querySelector('#act-done-label');
-  const hint = root.querySelector('#act-done-hint');
-
-  card?.classList.toggle('is-done', done);
-  card?.classList.toggle('is-busy', busy);
-
-  if (btn) {
-    btn.setAttribute('aria-pressed', done ? 'true' : 'false');
-    btn.disabled = busy;
-  }
-  if (label) label.textContent = done ? 'Activité réalisée' : 'Pas encore fait';
-  if (hint) hint.textContent = done ? 'C\'est dans la poche' : 'Appuyez pour cocher';
-}
-
-function getMapsUrl(item) {
-  if (item.latitude != null && item.longitude != null) {
-    return `https://www.google.com/maps/search/?api=1&query=${item.latitude},${item.longitude}`;
-  }
-  if (item.localisation) {
-    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.localisation)}`;
-  }
-  return null;
 }
 
 export function initActivityDetail({ onChanged, onEdit, onClose, theme = 'cyan' } = {}) {
@@ -87,32 +29,15 @@ export function initActivityDetail({ onChanged, onEdit, onClose, theme = 'cyan' 
   let isBusy = false;
   let confirmDelete = false;
 
-  const overlay = document.createElement('div');
-  overlay.className = 'add-modal-overlay hidden';
-  overlay.id = 'activity-detail-overlay';
-  overlay.innerHTML = `
-    <div class="add-modal act-detail-modal" data-theme="${theme}" role="dialog" aria-modal="true" aria-labelledby="act-detail-title">
-      <div class="add-modal-head">
-        <button type="button" class="add-modal-back hidden" tabindex="-1" aria-hidden="true"></button>
-        <h2 class="add-modal-title" id="act-detail-title">Activité</h2>
-        <button type="button" class="add-modal-close" id="act-detail-close" aria-label="Fermer">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
-          </svg>
-        </button>
-      </div>
-      <div class="add-modal-body act-detail-body" id="act-detail-body"></div>
-    </div>
-  `;
-  document.body.appendChild(overlay);
-
-  const bodyEl = overlay.querySelector('#act-detail-body');
-  const closeBtn = overlay.querySelector('#act-detail-close');
+  const { overlay, bodyEl, closeBtn } = createDetailModalOverlay({
+    overlayId: 'activity-detail-overlay',
+    title: 'Activité',
+    theme,
+  });
   const abort = new AbortController();
   const { signal } = abort;
 
   function renderContent(item) {
-    const mapsUrl = getMapsUrl(item);
     const chips = [];
     if (item.categorie) {
       chips.push(`<span class="act-chip">${escapeHtml(getFieldLabel(category, 'categorie', item.categorie))}</span>`);
@@ -129,27 +54,9 @@ export function initActivityDetail({ onChanged, onEdit, onClose, theme = 'cyan' 
           getDisponibiliteLabel: (value) => getFieldLabel(category, 'disponibilite', value),
           escapeHtml,
         })}
-        ${item.localisation ? `
-          ${mapsUrl ? `
-            <a href="${mapsUrl}" class="act-location" target="_blank" rel="noopener noreferrer">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/>
-                <circle cx="12" cy="10" r="3"/>
-              </svg>
-              <span>${escapeHtml(item.localisation)}</span>
-            </a>
-          ` : `
-            <p class="act-location act-location--text">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/>
-                <circle cx="12" cy="10" r="3"/>
-              </svg>
-              <span>${escapeHtml(item.localisation)}</span>
-            </p>
-          `}
-        ` : ''}
+        ${renderGeoCategoryLocation(item, 'activities', { escapeHtml })}
 
-        ${renderDoneToggle(Boolean(item.done), isBusy)}
+        ${renderDoneToggle(Boolean(item.done), isBusy, DONE_LABELS)}
 
         ${renderItemAuthorMarkup(item)}
 
@@ -175,7 +82,7 @@ export function initActivityDetail({ onChanged, onEdit, onClose, theme = 'cyan' 
 
     const done = !currentItem.done;
     isBusy = true;
-    updateDoneToggleUI(bodyEl, done, true);
+    updateDoneToggleUI(bodyEl, done, true, DONE_LABELS);
 
     const content = bodyEl.querySelector('.act-detail-content');
     content?.classList.toggle('act-detail-content--done', done);
@@ -187,11 +94,11 @@ export function initActivityDetail({ onChanged, onEdit, onClose, theme = 'cyan' 
       onChanged?.('activities', currentItem.id, { patch: true });
       close();
     } catch (err) {
-      console.error('toggle done:', err);
-      updateDoneToggleUI(bodyEl, !done, false);
+      devError('toggle done:', err);
+      updateDoneToggleUI(bodyEl, !done, false, DONE_LABELS);
       content?.classList.toggle('act-detail-content--done', !done);
       isBusy = false;
-      updateDoneToggleUI(bodyEl, currentItem.done, false);
+      updateDoneToggleUI(bodyEl, currentItem.done, false, DONE_LABELS);
     }
   }
 
@@ -219,7 +126,7 @@ export function initActivityDetail({ onChanged, onEdit, onClose, theme = 'cyan' 
       close();
       onChanged?.('activities', itemId, { deleted: true });
     } catch (err) {
-      console.error('deleteItem:', err);
+      devError('deleteItem:', err);
       confirmDelete = false;
     } finally {
       isBusy = false;
@@ -249,7 +156,7 @@ export function initActivityDetail({ onChanged, onEdit, onClose, theme = 'cyan' 
     document.body.classList.remove('modal-open');
     unlockScroll();
 
-    await waitForTransition(overlay.querySelector('.add-modal') || overlay, MODAL_MS);
+    await waitForTransition(overlay.querySelector('.add-modal') || overlay, DETAIL_MODAL_MS);
 
     overlay.classList.add('hidden');
     currentItem = null;

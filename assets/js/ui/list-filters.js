@@ -1,3 +1,4 @@
+import { escapeHtml } from '../lib/escape-html.js';
 import { nextFrame, waitForTransition } from '../lib/transitions.js';
 import { lockScroll, unlockScroll } from '../lib/scroll-lock.js';
 
@@ -9,14 +10,6 @@ const CHECK_ICON = `
   </svg>
 `;
 
-function escapeHtml(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
-
 export function initListFilters({
   theme = 'cyan',
   title = 'Filtres',
@@ -26,6 +19,7 @@ export function initListFilters({
   onApply,
   beforeOpen,
   triggerButtonId = 'act-filter-btn',
+  badgeExcludeSectionIds = [],
 } = {}) {
   let draftState = {};
   let expandedSections = new Set();
@@ -221,6 +215,8 @@ export function initListFilters({
 
   function countActiveFilters(state) {
     return sections.reduce((sum, section) => {
+      if (badgeExcludeSectionIds.includes(section.id)) return sum;
+
       if (isSingle(section)) {
         const value = state[section.id];
         const defaultValue = getDefaultValue(section);

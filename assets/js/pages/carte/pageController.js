@@ -1,11 +1,9 @@
-import { getCategoryById } from '../../config.js';
+import { clearMapPlaceHash, getMapPlaceFromHash } from '../../navigation/router.js';
+import { devWarn } from '../../lib/dev-log.js';
 import { countGeolocatedPlacesFromCache, findCachedItemById } from '../../data/appDataCache.js';
 import { initCustomOptions } from '../../lib/custom-types.js';
-import { clearMapPlaceHash, getMapPlaceFromHash } from '../../navigation/router.js';
-import { initActivityDetail } from '../../ui/activity-detail.js';
+import { destroyCategoryDetailModals, initCategoryDetailModals } from '../../ui/category-detail-registry.js';
 import { initAddItem } from '../../ui/add-item.js';
-import { initRestaurantDetail } from '../../ui/restaurant-detail.js';
-import { initTravelDetail } from '../../ui/travel-detail.js';
 import {
   destroyInteractiveMap,
   getInteractiveMap,
@@ -16,6 +14,7 @@ import {
   syncMapLayerButtons,
 } from './interactive-map.js';
 import { destroyMapFilters, initMapFilters, onMapLayerToggled, updateMapFilterBadge } from './map-filters.js';
+import { destroyMapSearch, initMapSearch } from './map-search.js';
 import {
   clearSelectedMapMarker,
   resetMapPageFit,
@@ -24,11 +23,7 @@ import {
   tryInitialMapFit,
 } from './map-markers.js';
 
-const MAP_DETAIL_INIT = {
-  activities: (opts) => initActivityDetail({ ...opts, theme: getCategoryById('activities')?.theme || 'cyan' }),
-  restaurants: (opts) => initRestaurantDetail({ ...opts, theme: getCategoryById('restaurants')?.theme || 'rose' }),
-  travels: (opts) => initTravelDetail({ ...opts, theme: getCategoryById('travels')?.theme || 'blue' }),
-};
+const MAP_DETAIL_CATEGORIES = ['activities', 'restaurants', 'travels'];
 
 const MARKER_FOCUS_ZOOM = 15;
 
@@ -60,25 +55,19 @@ function closeOpenMapDetail() {
 }
 
 function initDetailModals() {
-  const onChanged = () => handleMapDataChanged();
-  const onClose = () => clearSelectedMapMarker(getInteractiveMap());
-
-  for (const [categoryId, initFn] of Object.entries(MAP_DETAIL_INIT)) {
-    detailModals[categoryId]?.destroy?.();
-    const modal = initFn({
-      onChanged,
-      onClose,
-      onEdit: async (item) => {
-        await detailModals[categoryId]?.close?.();
-        addItemModal?.openEdit(categoryId, item);
-      },
-    });
-    detailModals[categoryId] = modal;
-  }
+  destroyCategoryDetailModals(detailModals);
+  detailModals = initCategoryDetailModals(MAP_DETAIL_CATEGORIES, {
+    onChanged: () => handleMapDataChanged(),
+    onClose: () => clearSelectedMapMarker(getInteractiveMap()),
+    onEdit: async (categoryId, item) => {
+      await detailModals[categoryId]?.close?.();
+      addItemModal?.openEdit(categoryId, item);
+    },
+  });
 }
 
 function destroyDetailModals() {
-  Object.values(detailModals).forEach((modal) => modal?.destroy?.());
+  destroyCategoryDetailModals(detailModals);
   detailModals = {};
 }
 
@@ -123,7 +112,7 @@ function handleMarkersReady(map) {
   tryInitialMapFit(map, { skip: hasHashFocus, userLocation: getLastUserLocation() });
 
   refreshTravelMapZones(map).catch((err) => {
-    console.warn('refreshTravelMapZones:', err.message);
+    devWarn('refreshTravelMapZones:', err.message);
   });
 
   if (hasHashFocus && !mapReadyHandled) {
@@ -168,7 +157,7 @@ export async function initMapPage(user, { addItemModal: sharedModal } = {}) {
   setMapMarkerSelectionPrunedHandler(closeOpenMapDetail);
   updateHeaderSub();
 
-  initInteractiveMap({
+  await initInteractiveMap({
     signal: pageAbort.signal,
     onLayerToggled: handleLayerToggled,
     onMarkerClick: handleMarkerClick,
@@ -185,6 +174,13 @@ export async function initMapPage(user, { addItemModal: sharedModal } = {}) {
     });
   }
 
+  initMapSearch({
+    signal: pageAbort.signal,
+    onSelect: ({ categoryId, itemId }) => {
+      openMapItemDetail(categoryId, itemId, { flyTo: true });
+    },
+  });
+
   scheduleMapPageFinalize();
 }
 
@@ -194,6 +190,7 @@ export function destroyMapPage() {
   mapReadyHandled = false;
   setMapMarkerSelectionPrunedHandler(null);
   destroyMapFilters();
+  destroyMapSearch();
   destroyDetailModals();
   destroyInteractiveMap();
 }

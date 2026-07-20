@@ -1,3 +1,4 @@
+import { escapeHtml } from '../lib/escape-html.js';
 import { SETTINGS_THEME } from '../config.js';
 import {
   DEFAULT_PARTNER_NICKNAME_LABEL,
@@ -8,14 +9,6 @@ import {
 } from '../lib/user-profile.js';
 import { renderNavIcon } from '../lib/lucide-icon.js';
 import { lockScroll, unlockScroll } from '../lib/scroll-lock.js';
-
-function escapeHtml(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
 
 function renderFormHtml({ partnerName, nickname }) {
   return `

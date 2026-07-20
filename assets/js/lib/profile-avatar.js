@@ -1,14 +1,7 @@
+import { escapeHtml } from './escape-html.js';
 import { applyAnimalAvatarStyles } from './profile-animal.js';
 import { getProfileAnimalEntry } from './user-profile.js';
 import { renderNavIcon } from './lucide-icon.js';
-
-function escapeHtml(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
 
 export function getInitialsFromEmail(email) {
   const name = email.split('@')[0] || '?';

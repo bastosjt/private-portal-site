@@ -1,3 +1,5 @@
+import { escapeHtml } from '../lib/escape-html.js';
+import { devWarn, devError } from '../lib/dev-log.js';
 import {
   ADD_OPTION_VALUE,
   addCustomOption,
@@ -10,14 +12,6 @@ import {
 import { formatOptionLabel, sortOptionsByLabel } from '../lib/options-labels.js';
 
 export const PLACEHOLDER_OPTION_VALUE = '';
-
-function escapeHtml(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
 
 function getMergedFieldOptions(field, categoryId, extra = []) {
   const options = field.allowCustom
@@ -162,7 +156,7 @@ function initCustomSelect(select, field, categoryId) {
         toggleAddPanel(false);
       })
       .catch((err) => {
-        console.error('addCustomOption:', err);
+        devError('addCustomOption:', err);
       })
       .finally(() => {
         addBtn.disabled = false;

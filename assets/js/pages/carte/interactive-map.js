@@ -1,5 +1,5 @@
 import { MAP_ACCENT } from '../../config.js';
-import { OUR_SPACE_MAP_STYLE } from './map-style.js';
+import { OUR_SPACE_MAP_RASTER_LABELED_STYLE } from './map-raster-style.js';
 import { renderNavIcon } from '../../lib/lucide-icon.js';
 import {
   getGeolocationUserMessage,
@@ -10,6 +10,11 @@ import {
 } from '../../lib/user-location.js';
 import { bindMapMarkerImageFallback } from './map-marker-images.js';
 import {
+  clearMapUserLocationLayer,
+  destroyMapUserLocationLayer,
+  syncMapUserLocationLayer,
+} from './map-user-location.js';
+import {
   fitMapToLocalArea,
   fitMapToVisibleMarkers,
   isMapLayerVisible,
@@ -19,13 +24,13 @@ import {
   setMapLayerVisible,
   setMapMarkerClickHandler,
 } from './map-markers.js';
+import { loadMapLibre, MAP_BASE_OPTS } from '../../lib/map-bootstrap.js';
 
 export { refreshTravelMapZones } from './map-markers.js';
 
 const DEFAULT_CENTER = MAP_FALLBACK_CENTER;
 const DEFAULT_ZOOM = 10;
 const ACCENT = MAP_ACCENT;
-const WORKER_URL = 'assets/js/vendor/maplibre-gl-csp-worker.js';
 /** Plus bas = molette plus douce (défaut MapLibre ≈ 1/450). */
 const WHEEL_ZOOM_RATE = 1 / 680;
 
@@ -70,88 +75,62 @@ function configureScrollZoom(map) {
 
 let mapInstance = null;
 let resizeObserver = null;
-let userLocationSourceReady = false;
 let lastUserLocation = null;
 let onLayerToggled = null;
 let stopUserLocationListener = null;
 
-function getMapLibre() {
-  const maplibregl = window.maplibregl;
-  if (!maplibregl) throw new Error('MapLibre GL is not loaded');
-  return maplibregl;
+const MAP_BEARING_RESET_THRESHOLD = 0.5;
+
+function syncMapCompass(map) {
+  const compassBtn = document.getElementById('map-compass');
+  const compassIcon = compassBtn?.querySelector('.map-compass-icon');
+  if (!compassBtn || !compassIcon || !map) return;
+
+  const bearing = map.getBearing();
+  compassIcon.style.transform = `rotate(${-bearing}deg)`;
+  compassBtn.classList.toggle('is-visible', Math.abs(bearing) > MAP_BEARING_RESET_THRESHOLD);
 }
 
-function ensureUserLocationSource(map) {
-  if (userLocationSourceReady && map.getSource('user-location')) return;
+function resetMapBearing(map) {
+  if (!map || Math.abs(map.getBearing()) <= MAP_BEARING_RESET_THRESHOLD) return;
 
-  if (!map.getSource('user-location')) {
-    map.addSource('user-location', {
-      type: 'geojson',
-      data: { type: 'FeatureCollection', features: [] },
-    });
-  }
-
-  if (!map.getLayer('user-location-pulse')) {
-    map.addLayer({
-      id: 'user-location-pulse',
-      type: 'circle',
-      source: 'user-location',
-      paint: {
-        'circle-radius': 18,
-        'circle-color': ACCENT,
-        'circle-opacity': 0.12,
-        'circle-stroke-width': 1,
-        'circle-stroke-color': ACCENT,
-        'circle-stroke-opacity': 0.28,
-      },
-    });
-  }
-
-  if (!map.getLayer('user-location-dot')) {
-    map.addLayer({
-      id: 'user-location-dot',
-      type: 'circle',
-      source: 'user-location',
-      paint: {
-        'circle-radius': 8,
-        'circle-color': ACCENT,
-        'circle-stroke-width': 3,
-        'circle-stroke-color': '#ffffff',
-      },
-    });
-  }
-
-  userLocationSourceReady = true;
-}
-
-function clearUserLocationOnMap(map, root) {
-  lastUserLocation = null;
-  if (!map?.isStyleLoaded()) return;
-  if (map.getSource('user-location')) {
-    map.getSource('user-location').setData({ type: 'FeatureCollection', features: [] });
-  }
-}
-
-function setUserLocation(map, lngLat) {
-  if (!map.isStyleLoaded()) {
-    map.once('load', () => setUserLocation(map, lngLat));
-    return;
-  }
-
-  ensureUserLocationSource(map);
-  lastUserLocation = lngLat;
-  map.getSource('user-location').setData({
-    type: 'FeatureCollection',
-    features: [{
-      type: 'Feature',
-      geometry: { type: 'Point', coordinates: lngLat },
-    }],
+  map.easeTo({
+    bearing: 0,
+    pitch: 0,
+    duration: 350,
+    essential: true,
   });
 }
 
-function clearUserLocationSource() {
-  userLocationSourceReady = false;
-  lastUserLocation = null;
+function bindMapCompass(map, signal) {
+  const compassBtn = document.getElementById('map-compass');
+  if (!compassBtn || !map) return;
+
+  const onRotate = () => syncMapCompass(map);
+  map.on('rotate', onRotate);
+  map.on('rotateend', onRotate);
+  signal?.addEventListener('abort', () => {
+    map.off('rotate', onRotate);
+    map.off('rotateend', onRotate);
+  }, { once: true });
+
+  compassBtn.addEventListener('click', () => {
+    compassBtn.blur();
+    resetMapBearing(map);
+  }, { signal });
+
+  syncMapCompass(map);
+}
+
+function syncMapUserLocation(map, root, lngLat) {
+  if (!isUserLocationEnabled() || !lngLat) {
+    lastUserLocation = null;
+    clearMapUserLocationLayer(map);
+    return;
+  }
+
+  lastUserLocation = lngLat;
+  syncMapUserLocationLayer(map, lngLat, { accent: ACCENT });
 }
 
 export function getLastUserLocation() {
@@ -176,14 +155,6 @@ function syncMapViewButtons(root, mode = mapViewMode) {
 
   fitAllBtn.classList.toggle('is-active', !isLocal);
   fitAllBtn.setAttribute('aria-pressed', !isLocal ? 'true' : 'false');
-}
-
-function syncMapUserLocation(map, root, lngLat) {
-  if (!isUserLocationEnabled() || !lngLat) {
-    clearUserLocationOnMap(map, root);
-    return;
-  }
-  setUserLocation(map, lngLat);
 }
 
 function focusMapOnLocalArea(map, lngLat) {
@@ -225,7 +196,7 @@ function renderLayerControlButton({ id, label, icon }) {
   return `
     <button
       type="button"
-      class="act-view-switch-btn map-control-btn--layer is-active"
+      class="map-dock-btn map-dock-btn--layer is-active"
       data-map-layer="${id}"
       aria-label="${getLayerAriaLabel(label, true)}"
       aria-pressed="true"
@@ -252,6 +223,16 @@ export function syncMapLayerButtons(root = document.getElementById('map-controls
 function setLayerToggle(map, root, layerId, visible) {
   const control = MAP_LAYER_CONTROLS.find((entry) => entry.id === layerId);
   if (!control) return;
+
+  if (!visible) {
+    const otherVisible = MAP_LAYER_CONTROLS.some(
+      ({ id }) => id !== layerId && isMapLayerVisible(id),
+    );
+    if (!otherVisible) {
+      showLocateFeedback(root, 'Au moins une couche doit rester visible.', { variant: 'warning' });
+      return;
+    }
+  }
 
   setMapLayerVisible(map, layerId, visible);
   syncMapLayerButtons(root);
@@ -318,7 +299,7 @@ function bindControlButtons(map, root, signal) {
   });
 }
 
-export function initInteractiveMap({
+export async function initInteractiveMap({
   signal,
   onLayerToggled: layerToggledHandler,
   onMarkerClick,
@@ -333,22 +314,23 @@ export function initInteractiveMap({
   const controlsRoot = document.getElementById('map-controls');
   if (!container || !controlsRoot) return null;
 
-  const maplibregl = getMapLibre();
-  maplibregl.setWorkerUrl(WORKER_URL);
+  const maplibregl = await loadMapLibre();
+  if (!maplibregl) throw new Error('MapLibre GL is not loaded');
 
   mapInstance = new maplibregl.Map({
     container,
-    style: OUR_SPACE_MAP_STYLE,
+    style: OUR_SPACE_MAP_RASTER_LABELED_STYLE,
     center: DEFAULT_CENTER,
     zoom: DEFAULT_ZOOM,
     minZoom: 3,
-    maxZoom: 19,
-    attributionControl: false,
+    maxZoom: 16,
     pitch: 0,
     bearing: 0,
-    dragRotate: false,
+    dragRotate: true,
     pitchWithRotate: false,
     touchPitch: false,
+    touchRotate: true,
+    ...MAP_BASE_OPTS,
   });
 
   bindMapMarkerImageFallback(mapInstance);
@@ -366,35 +348,48 @@ export function initInteractiveMap({
       duration: 0,
     });
     refreshMapMarkers(mapInstance, { onUpdated: () => onMarkersReady?.(mapInstance) });
+    syncMapCompass(mapInstance);
   });
 
   controlsRoot.innerHTML = `
     <p class="map-locate-feedback hidden" id="map-locate-feedback" role="status" aria-live="polite"></p>
-    <div class="act-view-switch map-control-stack" role="group" aria-label="Contrôles carte">
-      <button type="button" class="act-view-switch-btn" data-map-action="fit-all" aria-label="Vue tous les lieux" aria-pressed="false">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/>
-        </svg>
-      </button>
-      <button type="button" class="act-view-switch-btn is-active" data-map-action="locate" aria-label="Vue rayon 3 km" aria-pressed="true">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <polygon points="3 11 22 2 13 21 11 13 3 11"/>
-        </svg>
-      </button>
-      ${MAP_LAYER_CONTROLS.map(renderLayerControlButton).join('')}
+    <div class="map-controls-core">
       <button
         type="button"
-        class="act-view-switch-btn map-control-btn--filters"
-        id="map-filter-btn"
-        aria-label="Filtres"
+        class="map-compass-float"
+        id="map-compass"
+        aria-label="Réorienter la carte au nord"
       >
-        ${renderNavIcon('filter', MAP_ICON_OPTS)}
-        <span class="act-filter-badge hidden" aria-hidden="true">0</span>
+        <span class="map-compass-icon" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="m16.24 7.76-1.804 5.411a2 2 0 0 1-1.265 1.265L7.76 16.24l1.804-5.411a2 2 0 0 1 1.265-1.265z"/>
+          </svg>
+        </span>
       </button>
+      <nav class="map-dock" role="toolbar" aria-label="Contrôles carte">
+      <div class="map-dock-zone map-dock-zone--view" role="group" aria-label="Vue carte">
+        <button type="button" class="map-dock-btn map-dock-btn--view" data-map-action="locate" aria-label="Vue rayon 3 km" aria-pressed="true">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polygon points="3 11 22 2 13 21 11 13 3 11"/>
+          </svg>
+        </button>
+        <button type="button" class="map-dock-btn map-dock-btn--view" data-map-action="fit-all" aria-label="Vue tous les lieux" aria-pressed="false">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/>
+          </svg>
+        </button>
+      </div>
+      <div class="map-dock-zone map-dock-zone--layers" role="group" aria-label="Couches">
+        ${MAP_LAYER_CONTROLS.map(renderLayerControlButton).join('')}
+      </div>
+    </nav>
     </div>
   `;
 
   bindControlButtons(mapInstance, controlsRoot, signal);
+  bindMapCompass(mapInstance, signal);
+  syncMapLayerButtons(controlsRoot);
   syncMapViewButtons(controlsRoot, 'local');
 
   const invalidate = () => {
@@ -423,14 +418,16 @@ export function destroyInteractiveMap() {
   stopUserLocationListener?.();
   stopUserLocationListener = null;
   clearLocateFeedbackTimer();
-  clearUserLocationSource();
   resetMapMarkersState();
   mapViewMode = 'local';
 
   if (mapInstance) {
+    destroyMapUserLocationLayer(mapInstance);
     mapInstance.remove();
     mapInstance = null;
   }
+
+  lastUserLocation = null;
 }
 
 export function refreshInteractiveMap(options = {}) {

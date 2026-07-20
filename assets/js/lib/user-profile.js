@@ -1,4 +1,5 @@
 import { fetchAllUserProfiles, upsertUserProfile } from '../firebase/userProfiles.js';
+import { devWarn } from '../lib/dev-log.js';
 import {
   DEFAULT_PROFILE_COLOR,
   PROFILE_ANIMAL_COLORS,
@@ -172,7 +173,7 @@ export function setProfileAnimal(uid, animalId, colorId = DEFAULT_COLOR) {
   syncLegacyAnimalCache(uid, entry);
 
   upsertUserProfile(uid, { profileAnimal: entry }).catch((err) => {
-    console.warn('setProfileAnimal:', err.message);
+    devWarn('setProfileAnimal:', err.message);
   });
 }
 
@@ -184,7 +185,7 @@ export function clearProfileAnimal(uid) {
   syncLegacyAnimalCache(uid, null);
 
   upsertUserProfile(uid, { profileAnimal: null }).catch((err) => {
-    console.warn('clearProfileAnimal:', err.message);
+    devWarn('clearProfileAnimal:', err.message);
   });
 }
 
@@ -206,7 +207,7 @@ export function saveListPreferences(uid, categoryId, settings) {
   setCachedProfile(uid, { ...profile, listPreferences });
 
   upsertUserProfile(uid, { listPreferences }).catch((err) => {
-    console.warn('saveListPreferences:', err.message);
+    devWarn('saveListPreferences:', err.message);
   });
 }
 
@@ -223,7 +224,7 @@ export async function setUserDisplayName(uid, displayName) {
     await upsertUserProfile(uid, { displayName: trimmed });
     return true;
   } catch (err) {
-    console.warn('setUserDisplayName:', err.message);
+    devWarn('setUserDisplayName:', err.message);
     return false;
   }
 }
@@ -239,7 +240,7 @@ export async function setPartnerNickname(uid, nickname) {
     await upsertUserProfile(uid, { partnerNickname: trimmed || '' });
     return true;
   } catch (err) {
-    console.warn('setPartnerNickname:', err.message);
+    devWarn('setPartnerNickname:', err.message);
     return false;
   }
 }
@@ -257,7 +258,7 @@ async function migrateLegacyAnimals(remoteProfiles) {
 
     migrations.push(
       upsertUserProfile(uid, { profileAnimal: entry }).catch((err) => {
-        console.warn(`migrateLegacyAnimal(${uid}):`, err.message);
+        devWarn(`migrateLegacyAnimal(${uid}):`, err.message);
       }),
     );
   }
@@ -290,7 +291,7 @@ export async function initUserProfiles(currentUid) {
     }
   })().catch((err) => {
     initPromise = null;
-    console.warn('initUserProfiles:', err.message);
+    devWarn('initUserProfiles:', err.message);
   });
 
   return initPromise;

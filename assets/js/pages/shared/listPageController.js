@@ -1,8 +1,7 @@
-import { getCategoryById, getUserDisplayName } from '../../config.js';
+import { getCategoryById, getUserDisplayName, MAP_ACCENT } from '../../config.js';
 import { getListPreferences, saveListPreferences } from '../../lib/user-profile.js';
 import { formatItemPrice, compareItemsByPrice } from '../../lib/price-format.js';
-import { sortOptionsByLabel } from '../../lib/options-labels.js';
-import { ensureItems, hasCachedItems, getCachedItems } from '../../data/appDataCache.js';
+import { ensureItems, hasCachedItems, getCachedItems, findCachedItemById } from '../../data/appDataCache.js';
 import { sidebarIcon } from '../../ui/sidebar.js';
 import { initAddItem } from '../../ui/add-item.js';
 import { initListFilters } from '../../ui/list-filters.js';
@@ -24,6 +23,9 @@ import {
   MAX_DAILY_PICKS,
   resetTodayPicks,
 } from '../../firebase/dailyPicks.js';
+import { buildFieldFilterOptions } from './filterOptions.js';
+import { normalizeSearchText } from '../../lib/normalize-search.js';
+import { escapeHtml } from '../../lib/escape-html.js';
 
 export const DEFAULT_SORT_OPTIONS = [
   { id: 'alpha', label: 'Ordre alphabétique', shortLabel: 'A → Z' },
@@ -31,14 +33,6 @@ export const DEFAULT_SORT_OPTIONS = [
   { id: 'price-asc', label: 'Prix croissant', shortLabel: 'Prix ↑' },
   { id: 'price-desc', label: 'Prix décroissant', shortLabel: 'Prix ↓' },
 ];
-
-function escapeHtml(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
 
 function dataAttrToDatasetKey(attr) {
   return attr.replace(/^data-/, '').replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
@@ -98,19 +92,31 @@ export function createListPageController(config) {
     titleKey = 'nom',
     subTitleElId = 'list-sub',
     useTodoHeaderSubtitle = true,
+    mapTab: mapTabOptions = null,
+    pageRootClass = 'activities-page',
+    searchKeys = null,
+    renderListGroups = null,
+    listControlsMount = null,
+    filterBadgeExcludeKeys = [],
+    filterByStatus = null,
+    defaultCollapsedGroups = ['done'],
   } = config;
 
   let allItems = [];
   let currentSort = 'alpha';
   let activeFilters = { ...filterDefaults };
+  let searchQuery = '';
   let listHasAnimated = false;
   let addItemModal = null;
   let detailModal = null;
   let filterModal = null;
+  let listControls = null;
+  let collapsedListGroups = new Set(defaultCollapsedGroups);
   let isRolling = false;
   let pageAbort = null;
   let currentUserUid = null;
   let listViewMode = 'list';
+  let categoryMapTab = null;
 
   function getFieldLabel(fieldName, value) {
     return getFieldOptionLabel(categoryId, fieldName, value);
@@ -121,30 +127,12 @@ export function createListPageController(config) {
   }
 
   function getAvailableFilterOptions(fieldName, items = allItems) {
-    const counts = new Map();
-    for (const item of items) {
-      const value = item[fieldName];
-      if (!value) continue;
-      counts.set(value, (counts.get(value) || 0) + 1);
-    }
-
-    const result = [];
-    const seen = new Set();
-
-    for (const opt of getFieldOptions(fieldName)) {
-      if ((counts.get(opt.value) || 0) > 0) {
-        result.push(opt);
-        seen.add(opt.value);
-      }
-    }
-
-    for (const [value, count] of counts) {
-      if (count > 0 && !seen.has(value)) {
-        result.push({ value, label: getFieldLabel(fieldName, value) });
-      }
-    }
-
-    return sortOptionsByLabel(result);
+    return buildFieldFilterOptions({
+      items,
+      fieldName,
+      getFieldLabel,
+      categoryId,
+    });
   }
 
   function pruneActiveFilters() {
@@ -166,8 +154,21 @@ export function createListPageController(config) {
   }
 
   function filtersAreActive() {
+    if (searchQuery.trim()) return true;
     if (activeFilters.status !== 'all') return true;
     return filterFieldKeys.some((key) => (activeFilters[key]?.length || 0) > 0);
+  }
+
+  function matchesSearchQuery(item) {
+    if (!searchKeys?.length || !searchQuery.trim()) return true;
+
+    const query = normalizeSearchText(searchQuery);
+    const haystack = searchKeys
+      .map((key) => normalizeSearchText(item[key]))
+      .filter(Boolean)
+      .join(' ');
+
+    return haystack.includes(query);
   }
 
   function getFilterState() {
@@ -184,13 +185,17 @@ export function createListPageController(config) {
   function applyFilters(items) {
     let result = items;
 
-    if (activeFilters.status === 'todo') {
+    if (filterByStatus) {
+      result = filterByStatus(result, activeFilters.status || 'all', { viewerUid: currentUserUid });
+    } else if (activeFilters.status === 'todo') {
       result = result.filter((item) => !item.done);
     } else if (activeFilters.status === 'done') {
       result = result.filter((item) => item.done);
     }
 
     return result.filter((item) => {
+      if (!matchesSearchQuery(item)) return false;
+
       for (const key of filterFieldKeys) {
         const values = activeFilters[key] || [];
         if (values.length && (!item[key] || !values.includes(item[key]))) {
@@ -235,6 +240,11 @@ export function createListPageController(config) {
     `;
   }
 
+  function syncMapPanelLayout() {
+    if (listViewMode !== 'map' || !mapTabOptions) return;
+    categoryMapTab?.resize?.();
+  }
+
   function setViewMode(mode) {
     listViewMode = mode === 'map' ? 'map' : 'list';
 
@@ -254,6 +264,16 @@ export function createListPageController(config) {
     listBtn.setAttribute('aria-selected', isList ? 'true' : 'false');
     mapBtn.classList.toggle('is-active', !isList);
     mapBtn.setAttribute('aria-selected', !isList ? 'true' : 'false');
+
+    const pageRoot = document.querySelector(`.${pageRootClass}`);
+    pageRoot?.classList.toggle('is-map-view', listViewMode === 'map' && !!mapTabOptions);
+
+    if (listViewMode === 'map') {
+      categoryMapTab?.init(getFilterState());
+      requestAnimationFrame(() => {
+        syncMapPanelLayout();
+      });
+    }
   }
 
   function updateListSub(count, total = allItems.length) {
@@ -274,7 +294,9 @@ export function createListPageController(config) {
     }
 
     if (filtersActive && count !== total) {
-      subEl.textContent = `${count} ${count > 1 ? labels.countPlural : labels.countSingular} sur ${total}`;
+      subEl.textContent = labels.countFiltered
+        ? labels.countFiltered(count, total)
+        : `${count} ${count > 1 ? labels.countPlural : labels.countSingular} sur ${total}`;
       return;
     }
 
@@ -293,9 +315,14 @@ export function createListPageController(config) {
     }
     nextFilters.status = statusFilterOptions.some((opt) => opt.value === settings.status)
       ? settings.status
-      : 'all';
+      : (filterDefaults.status ?? 'all');
 
     activeFilters = nextFilters;
+
+    if (typeof settings.search === 'string') {
+      searchQuery = settings.search;
+    }
+
     refreshListView();
     persistListSettings();
   }
@@ -303,13 +330,50 @@ export function createListPageController(config) {
   function resetListSettings() {
     currentSort = 'alpha';
     activeFilters = { ...filterDefaults };
+    searchQuery = '';
     refreshListView();
     persistListSettings();
   }
 
+  function setSearchQuery(nextQuery) {
+    searchQuery = String(nextQuery || '');
+    refreshListView();
+    persistListSettings();
+  }
+
+  function setStatusFilter(nextStatus) {
+    if (!statusFilterOptions.some((opt) => opt.value === nextStatus)) return;
+    activeFilters = { ...activeFilters, status: nextStatus };
+    refreshListView();
+    persistListSettings();
+  }
+
+  function removePriorityFilter(value) {
+    const values = (activeFilters.priorite || []).filter((entry) => entry !== value);
+    if (values.length === (activeFilters.priorite?.length || 0)) return;
+    activeFilters = { ...activeFilters, priorite: values };
+    refreshListView();
+    persistListSettings();
+  }
+
+  function getListControlsApi() {
+    return {
+      getFilterState,
+      getSearchQuery: () => searchQuery,
+      getViewerUid: () => currentUserUid,
+      setSearchQuery,
+      setStatus: setStatusFilter,
+      removePriority: removePriorityFilter,
+      getPriorityOptions: () => getAvailableFilterOptions('priorite'),
+    };
+  }
+
   function persistListSettings() {
     if (!currentUserUid) return;
-    saveListPreferences(currentUserUid, categoryId, getFilterState());
+    saveListPreferences(currentUserUid, categoryId, {
+      ...getFilterState(),
+      search: searchQuery,
+    });
   }
 
   function loadSavedListSettings(uid) {
@@ -326,15 +390,24 @@ export function createListPageController(config) {
     }
     nextFilters.status = statusFilterOptions.some((opt) => opt.value === saved.status)
       ? saved.status
-      : 'all';
+      : (filterDefaults.status ?? 'all');
 
     activeFilters = nextFilters;
+
+    if (typeof saved.search === 'string') {
+      searchQuery = saved.search;
+    }
   }
 
   function refreshListView() {
     filterModal?.updateTriggerBadge();
+    listControls?.sync?.();
     renderList(sortItems(getFilteredItems()), { animate: !listHasAnimated });
     listHasAnimated = true;
+    if (listViewMode === 'map') {
+      categoryMapTab?.sync(getFilterState());
+      syncMapPanelLayout();
+    }
   }
 
   function findItemById(id) {
@@ -525,6 +598,7 @@ export function createListPageController(config) {
 
     listEl.classList.remove('is-loading');
     listEl.classList.toggle('act-list--instant', !animate);
+    listEl.classList.toggle('act-list--grouped', Boolean(renderListGroups));
     updateListSub(items.length);
 
     if (!items.length) {
@@ -543,6 +617,53 @@ export function createListPageController(config) {
           </div>
         </li>
       `;
+      return;
+    }
+
+    const groups = renderListGroups?.(items, {
+      activeFilters,
+      labels,
+      escapeHtml,
+      viewerUid: currentUserUid,
+    });
+
+    if (groups?.length) {
+      let itemIndex = 0;
+      listEl.innerHTML = groups.map((group) => {
+        const collapsed = group.collapsible && collapsedListGroups.has(group.id);
+        const groupItems = group.items.map((item) => {
+          const markup = renderListItemMarkup(item, itemIndex, { animate });
+          itemIndex += 1;
+          return markup;
+        }).join('');
+
+        if (!groupItems) return '';
+
+        const headMarkup = group.collapsible
+          ? `
+            <button
+              type="button"
+              class="act-list-group-toggle"
+              data-group-toggle="${escapeHtml(group.id)}"
+              aria-expanded="${collapsed ? 'false' : 'true'}"
+            >
+              <span class="act-list-group-label">${escapeHtml(group.label)}</span>
+              <svg class="act-list-group-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="m6 9 6 6 6-6"/>
+              </svg>
+            </button>
+          `
+          : `<div class="act-list-group-head"><span class="act-list-group-label">${escapeHtml(group.label)}</span></div>`;
+
+        return `
+          <li class="act-list-group${collapsed ? ' is-collapsed' : ''}" data-group-id="${escapeHtml(group.id)}">
+            ${headMarkup}
+            <ul class="act-list-group-items"${collapsed ? ' hidden' : ''}>
+              ${groupItems}
+            </ul>
+          </li>
+        `;
+      }).join('');
       return;
     }
 
@@ -611,6 +732,12 @@ export function createListPageController(config) {
 
       updateHeader(allItems);
 
+      if (renderListGroups && activeFilters.status === 'all') {
+        refreshListView();
+        updatePickCard();
+        return;
+      }
+
       if (activeFilters.status !== 'all') {
         refreshListView();
         updatePickCard();
@@ -675,6 +802,23 @@ export function createListPageController(config) {
     }, { signal });
 
     document.getElementById(dom.listId)?.addEventListener('click', (event) => {
+      const groupToggle = event.target.closest('[data-group-toggle]');
+      if (groupToggle) {
+        const groupId = groupToggle.dataset.groupToggle;
+        const groupEl = groupToggle.closest('.act-list-group');
+        const panel = groupEl?.querySelector('.act-list-group-items');
+        if (!groupId || !groupEl || !panel) return;
+
+        const willCollapse = !collapsedListGroups.has(groupId);
+        if (willCollapse) collapsedListGroups.add(groupId);
+        else collapsedListGroups.delete(groupId);
+
+        groupEl.classList.toggle('is-collapsed', willCollapse);
+        groupToggle.setAttribute('aria-expanded', willCollapse ? 'false' : 'true');
+        panel.toggleAttribute('hidden', willCollapse);
+        return;
+      }
+
       if (event.target.closest('#act-filter-reset-inline')) {
         resetListSettings();
         return;
@@ -744,8 +888,14 @@ export function createListPageController(config) {
     cleanupPickRollAnimation();
     listHasAnimated = false;
     listViewMode = 'list';
+    categoryMapTab?.destroy();
+    categoryMapTab = null;
+    document.querySelector(`.${pageRootClass}`)?.classList.remove('is-map-view');
     currentSort = 'alpha';
     activeFilters = { ...filterDefaults };
+    searchQuery = '';
+    collapsedListGroups = new Set(defaultCollapsedGroups);
+    listControls = null;
     pageAbort?.abort();
     pageAbort = null;
     currentUserUid = null;
@@ -789,8 +939,33 @@ export function createListPageController(config) {
       },
     });
 
+    if (mapTabOptions) {
+      const { createCategoryMapTab } = await import('./category-map-tab.js');
+      categoryMapTab = createCategoryMapTab({
+        ...mapTabOptions,
+        categoryId,
+        accent: MAP_ACCENT,
+        itemIdAttr,
+        renderPlaceIcon: renderTypeIcon,
+        getPlaceTitle: (item) => item?.[titleKey] || 'Sans titre',
+        getPlaceLocation: getPickLocation,
+        onMarkerClick: ({ itemId }) => {
+          const item = findCachedItemById(categoryId, itemId);
+          if (item) detailModal.open(item);
+        },
+      });
+    }
+
     mountListToolbar();
     setViewMode('list');
+
+    if (mapTabOptions) {
+      const syncMapLayout = () => syncMapPanelLayout();
+      window.addEventListener('resize', syncMapLayout);
+      pageAbort.signal.addEventListener('abort', () => {
+        window.removeEventListener('resize', syncMapLayout);
+      }, { once: true });
+    }
 
     const filterHelpers = { getAvailableFilterOptions };
 
@@ -802,7 +977,12 @@ export function createListPageController(config) {
       sections: getFilterSections(filterHelpers),
       getState: getFilterState,
       onApply: applyListSettings,
+      badgeExcludeSectionIds: filterBadgeExcludeKeys,
     });
+
+    if (listControlsMount) {
+      listControls = listControlsMount(getListControlsApi(), signal) || null;
+    }
 
     bindEvents(signal);
     loadSavedListSettings(user?.uid);
