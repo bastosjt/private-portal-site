@@ -4,6 +4,7 @@ import { APP_TAGLINE } from '../config.js';
 import { getSpaceTagline, setSpaceTagline } from '../lib/space-settings.js';
 import { renderNavIcon } from '../lib/lucide-icon.js';
 import { lockScroll, unlockScroll } from '../lib/scroll-lock.js';
+import { MODAL_DRAG_HANDLE_HTML, wireModalDragClose } from '../lib/modal-drag-close.js';
 
 function renderFormHtml(tagline) {
   return `
@@ -36,6 +37,7 @@ export function initSpaceTaglinePicker({ onChange, signal } = {}) {
   overlay.id = 'space-tagline-overlay';
   overlay.innerHTML = `
     <div class="add-modal" role="dialog" aria-modal="true" aria-labelledby="space-tagline-title">
+      ${MODAL_DRAG_HANDLE_HTML}
       <div class="add-modal-head">
         <button type="button" class="add-modal-back hidden" tabindex="-1" aria-hidden="true"></button>
         <h2 class="add-modal-title" id="space-tagline-title">Nom de notre espace</h2>
@@ -74,6 +76,7 @@ export function initSpaceTaglinePicker({ onChange, signal } = {}) {
 
   const close = () => {
     if (!isOpen) return;
+    dragClose.reset();
     overlay.classList.remove('is-active');
     isOpen = false;
     window.setTimeout(() => {
@@ -133,7 +136,10 @@ export function initSpaceTaglinePicker({ onChange, signal } = {}) {
   bodyEl.addEventListener('submit', onSubmit, { signal });
   document.addEventListener('keydown', onKeyDown, { signal });
 
+  const dragClose = wireModalDragClose(overlay, close);
+
   const destroy = () => {
+    dragClose.destroy();
     close();
     overlay.remove();
   };

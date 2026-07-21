@@ -24,7 +24,7 @@ import {
   setMapLayerVisible,
   setMapMarkerClickHandler,
 } from './map-markers.js';
-import { getMapLibre } from '../../lib/map-bootstrap.js';
+import { getMapLibre, MAP_TILE_FADE_MS } from '../../lib/map-bootstrap.js';
 
 export { refreshTravelMapZones } from './map-markers.js';
 
@@ -224,16 +224,6 @@ function setLayerToggle(map, root, layerId, visible) {
   const control = MAP_LAYER_CONTROLS.find((entry) => entry.id === layerId);
   if (!control) return;
 
-  if (!visible) {
-    const otherVisible = MAP_LAYER_CONTROLS.some(
-      ({ id }) => id !== layerId && isMapLayerVisible(id),
-    );
-    if (!otherVisible) {
-      showLocateFeedback(root, 'Au moins une couche doit rester visible.', { variant: 'warning' });
-      return;
-    }
-  }
-
   setMapLayerVisible(map, layerId, visible);
   syncMapLayerButtons(root);
   showLocateFeedback(root, formatLayerFeedbackMessage(control.label, visible));
@@ -324,6 +314,7 @@ export function initInteractiveMap({
     zoom: DEFAULT_ZOOM,
     minZoom: 3,
     maxZoom: 19,
+    fadeDuration: MAP_TILE_FADE_MS,
     attributionControl: false,
     pitch: 0,
     bearing: 0,

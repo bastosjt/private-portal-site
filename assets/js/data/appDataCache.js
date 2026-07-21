@@ -2,6 +2,7 @@ import { HOME_CATEGORIES } from '../config.js';
 import { fetchAllItems } from '../firebase/firestore.js';
 import { loadDailyPicks, resetDailyPicksLoadState } from '../firebase/dailyPicks.js';
 import { getStraightLineDistanceKm } from '../lib/geo-utils.js';
+import { hasActivityLimitedDuration } from '../pages/activites/scheduleDisplay.js';
 import { getItemLocationLabel } from '../lib/item-location.js';
 import { Timestamp } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js';
 
@@ -101,27 +102,34 @@ function notifySecondaryPrefetchDone() {
   });
 }
 
+function startSecondaryPrefetch() {
+  if (secondaryPrefetchPromise) return secondaryPrefetchPromise;
+
+  secondaryPrefetchPromise = Promise.all([
+    ...SECONDARY_COLLECTIONS.map((collection) => ensureItems(collection)),
+    ...SECONDARY_PICK_SCOPES.map((scope) => loadDailyPicks(scope)),
+  ])
+    .then(() => {
+      markCacheFresh();
+      notifySecondaryPrefetchDone();
+    })
+    .catch((err) => {
+      secondaryPrefetchPromise = null;
+      console.warn('startSecondaryPrefetch:', err.message);
+      throw err;
+    });
+
+  return secondaryPrefetchPromise;
+}
+
 function scheduleSecondaryPrefetch() {
   if (secondaryPrefetchPromise) return secondaryPrefetchPromise;
 
-  secondaryPrefetchPromise = new Promise((resolve) => {
-    scheduleIdleWork(async () => {
-      try {
-        await Promise.all([
-          ...SECONDARY_COLLECTIONS.map((collection) => ensureItems(collection)),
-          ...SECONDARY_PICK_SCOPES.map((scope) => loadDailyPicks(scope)),
-        ]);
-        markCacheFresh();
-        notifySecondaryPrefetchDone();
-      } catch (err) {
-        console.warn('scheduleSecondaryPrefetch:', err.message);
-      } finally {
-        resolve();
-      }
+  return new Promise((resolve) => {
+    scheduleIdleWork(() => {
+      startSecondaryPrefetch().finally(resolve);
     });
   });
-
-  return secondaryPrefetchPromise;
 }
 
 export function onSecondaryPrefetchDone(listener) {
@@ -198,6 +206,8 @@ export function getMapMarkersFromCache() {
       title: item.nom || 'Sans titre',
       coordinates: [item.longitude, item.latitude],
       done: getItemDoneState(item),
+      limitedDuration: hasActivityLimitedDuration(item),
+      travelId: item.travelId || '',
       activityType: item.categorie || '',
       restaurantType: '',
       restaurantCuisine: '',
@@ -213,6 +223,8 @@ export function getMapMarkersFromCache() {
       title: item.nom || 'Sans titre',
       coordinates: [item.longitude, item.latitude],
       done: getItemDoneState(item),
+      limitedDuration: false,
+      travelId: item.travelId || '',
       activityType: '',
       restaurantType: item.type || '',
       restaurantCuisine: item.cuisine || '',
@@ -228,6 +240,7 @@ export function getMapMarkersFromCache() {
       title: item.destination || 'Sans titre',
       coordinates: [item.longitude, item.latitude],
       done: getItemDoneState(item),
+      limitedDuration: false,
       activityType: '',
       restaurantType: '',
       restaurantCuisine: '',
@@ -378,6 +391,12 @@ export function prefetchAppData() {
 
 export function ensurePrefetch() {
   return prefetchAppData();
+}
+
+/** Toutes les collections géolocalisables (dont voyages) avant la carte. */
+export async function ensureMapDataReady() {
+  await ensurePrefetch();
+  await startSecondaryPrefetch();
 }
 
 export function isPrefetchComplete() {

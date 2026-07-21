@@ -76,7 +76,13 @@ export function createCategoryMapTab({
   let selectedItemId = null;
 
   function getVisibleMarkers() {
-    return getDisplayedMarkers().filter((marker) => marker.categoryId === categoryId);
+    return getDisplayedMarkers().filter((marker) => {
+      if (marker.categoryId !== categoryId) return false;
+      if ((categoryId === 'activities' || categoryId === 'restaurants') && marker.travelId) {
+        return false;
+      }
+      return true;
+    });
   }
 
   function getDistanceOrigin() {

@@ -10,8 +10,45 @@ import {
   slugifyLabel,
 } from '../lib/custom-types.js';
 import { formatOptionLabel, sortOptionsByLabel } from '../lib/options-labels.js';
+import { ensureItems, getCachedItems } from '../data/appDataCache.js';
 
 export const PLACEHOLDER_OPTION_VALUE = '';
+
+function getTravelSelectOptions() {
+  const travels = getCachedItems('travels') ?? [];
+  return sortOptionsByLabel(travels.map((travel) => ({
+    value: travel.id,
+    label: travel.destination || 'Sans titre',
+  })));
+}
+
+function getDynamicFieldOptions(field) {
+  if (field.optionsFrom === 'travels') return getTravelSelectOptions();
+  return [];
+}
+
+function renderTravelSelectOptions(options, selectedValue) {
+  const html = [`<option value="${PLACEHOLDER_OPTION_VALUE}"${!selectedValue ? ' selected' : ''}>-</option>`];
+
+  for (const opt of options) {
+    const selected = opt.value === selectedValue ? ' selected' : '';
+    html.push(`<option value="${escapeHtml(opt.value)}"${selected}>${escapeHtml(opt.label)}</option>`);
+  }
+
+  return html.join('');
+}
+
+function rebuildTravelSelect(select, field, selectedValue, extra = []) {
+  const options = sortOptionsByLabel([...getDynamicFieldOptions(field), ...extra].filter((opt, index, list) => {
+    return opt?.value && list.findIndex((entry) => entry.value === opt.value) === index;
+  }));
+  const resolved = selectedValue && options.some((opt) => opt.value === selectedValue)
+    ? selectedValue
+    : PLACEHOLDER_OPTION_VALUE;
+  select.innerHTML = renderTravelSelectOptions(options, resolved);
+  select.value = resolved;
+  return resolved;
+}
 
 function getMergedFieldOptions(field, categoryId, extra = []) {
   const options = field.allowCustom
@@ -58,6 +95,10 @@ function rebuildSelect(select, field, categoryId, selectedValue, extra = []) {
 }
 
 function buildOptionsHtml(field, categoryId) {
+  if (field.optionsFrom === 'travels') {
+    return renderTravelSelectOptions(getDynamicFieldOptions(field), PLACEHOLDER_OPTION_VALUE);
+  }
+
   if (field.allowCustom) {
     const options = getMergedFieldOptions(field, categoryId);
     return renderSelectOptions(field, options, PLACEHOLDER_OPTION_VALUE);
@@ -183,10 +224,18 @@ export async function initFormSelectFields(form, category) {
   const cleanups = [];
 
   for (const field of category.fields) {
-    if (field.type !== 'select' || !field.allowCustom) continue;
+    if (field.type !== 'select') continue;
 
     const select = form.elements[field.name];
     if (!select) continue;
+
+    if (field.optionsFrom === 'travels') {
+      await ensureItems('travels');
+      rebuildTravelSelect(select, field, select.value || PLACEHOLDER_OPTION_VALUE);
+      continue;
+    }
+
+    if (!field.allowCustom) continue;
 
     rebuildSelect(select, field, category.id, select.value || PLACEHOLDER_OPTION_VALUE);
     cleanups.push(initCustomSelect(select, field, category.id));
@@ -213,7 +262,17 @@ function ensureSelectOption(select, value, label) {
 
 export function setSelectFieldValue(form, field, value, label, categoryId) {
   const select = form.elements[field.name];
-  if (!select || !value) return;
+  if (!select) return;
+
+  if (field.optionsFrom === 'travels') {
+    const extra = value
+      ? [{ value, label: label || formatOptionLabel(value.replace(/_/g, ' ')) }]
+      : [];
+    rebuildTravelSelect(select, field, value || PLACEHOLDER_OPTION_VALUE, extra);
+    return;
+  }
+
+  if (!value) return;
 
   if (field.allowCustom && categoryId) {
     const extra = [{ value, label: label || formatOptionLabel(value.replace(/_/g, ' ')) }];

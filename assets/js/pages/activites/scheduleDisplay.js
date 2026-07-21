@@ -1,8 +1,9 @@
-import { CalendarClock } from '../../vendor/lucide.mjs';
+import { CalendarClock, Clock4 } from '../../vendor/lucide.mjs';
 import { renderLucideIcon } from '../../lib/lucide-icon.js';
 import { formatItemPrice } from '../../lib/price-format.js';
 
 const SCHEDULE_ICON = renderLucideIcon(CalendarClock, { strokeWidth: 2, width: 16, height: 16 });
+const LIMITED_DURATION_ICON = renderLucideIcon(Clock4, { strokeWidth: 2, width: 16, height: 16 });
 
 export function formatActivityPeriod(item) {
   const debut = item.periode_debut?.trim() || '';
@@ -16,6 +17,10 @@ export function formatActivityPeriod(item) {
 
 export function hasActivitySchedule(item) {
   return (item.disponibilite && item.disponibilite !== 'permanent') || Boolean(formatActivityPeriod(item));
+}
+
+export function hasActivityLimitedDuration(item) {
+  return item?.disponibilite === 'duree_limitee';
 }
 
 export function getActivityListMetaParts(item, { getCategorieLabel, formatItemPrice: formatPriceFn = formatItemPrice }) {
@@ -38,10 +43,11 @@ export function renderActivityScheduleNote(item, { getDisponibiliteLabel, escape
 
   const modifier = item.disponibilite === 'permanent' ? 'periode' : item.disponibilite;
   const ariaLabel = [tag, periode].filter(Boolean).join(' · ');
+  const scheduleIcon = hasActivityLimitedDuration(item) ? LIMITED_DURATION_ICON : SCHEDULE_ICON;
 
   return `
     <div class="act-schedule-note act-schedule-note--${modifier}" role="note"${ariaLabel ? ` aria-label="${escapeHtml(ariaLabel)}"` : ''}>
-      <span class="act-schedule-note-icon" aria-hidden="true">${SCHEDULE_ICON}</span>
+      <span class="act-schedule-note-icon" aria-hidden="true">${scheduleIcon}</span>
       <span class="act-schedule-note-copy">
         ${tag ? `<span class="act-schedule-note-tag">${escapeHtml(tag)}</span>` : ''}
         ${periode ? `<span class="act-schedule-note-period">${escapeHtml(periode)}</span>` : ''}

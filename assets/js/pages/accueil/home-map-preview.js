@@ -1,6 +1,6 @@
 import { MAP_ACCENT } from '../../config.js';
 import { getLngLatDeltaForRadiusKm } from '../../lib/geo-utils.js';
-import { getMapLibre, waitForContainerSize } from '../../lib/map-bootstrap.js';
+import { getMapLibre, MAP_TILE_FADE_MS, waitForContainerSize } from '../../lib/map-bootstrap.js';
 import { OUR_SPACE_MAP_STYLE } from '../carte/map-style.js';
 import { bindMapMarkerImageFallback } from '../carte/map-marker-images.js';
 import {
@@ -8,6 +8,7 @@ import {
   destroyMapUserLocationLayer,
   syncMapUserLocationLayer,
 } from '../carte/map-user-location.js';
+import { warmMapForApp } from '../carte/map-warmup.js';
 import {
   MAP_FALLBACK_CENTER,
   MAP_LOCAL_RADIUS_KM,
@@ -95,6 +96,7 @@ async function mountHomeMapPreview(token) {
     zoom: PREVIEW_ZOOM,
     minZoom: 3,
     maxZoom: 16,
+    fadeDuration: MAP_TILE_FADE_MS,
     interactive: false,
     attributionControl: false,
     pitch: 0,
@@ -119,6 +121,7 @@ async function mountHomeMapPreview(token) {
     refreshMapMarkers(previewMap, {
       onUpdated: () => syncPreviewUserLocation(previewMap),
     });
+    void warmMapForApp();
   });
 
   previewMap.once('idle', () => {

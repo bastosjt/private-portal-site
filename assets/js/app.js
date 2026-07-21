@@ -9,7 +9,9 @@ import { renderSidebar, initSidebar, updateSidebarActive } from './ui/sidebar.js
 import { initAddItem } from './ui/add-item.js';
 import { waitForTransition, nextFrame } from './lib/transitions.js';
 import { initSplash, dismissSplash } from './ui/splash.js';
-import { prefetchAppData, clearAppDataCache, scheduleBackgroundRefreshIfNeeded, onSecondaryPrefetchDone } from './data/appDataCache.js';
+import { prefetchAppData, clearAppDataCache, scheduleBackgroundRefreshIfNeeded, onSecondaryPrefetchDone, getMapMarkersFromCache } from './data/appDataCache.js';
+import { preloadMapMarkerImages } from './pages/carte/map-marker-images.js';
+import { resetMapWarmup } from './pages/carte/map-warmup.js';
 import { initUserProfiles, clearUserProfilesCache } from './lib/user-profile.js';
 import { initSpaceSettings, clearSpaceSettingsCache } from './lib/space-settings.js';
 import { initUserLocationAtLaunch, clearUserLocationState } from './lib/user-location.js';
@@ -118,6 +120,7 @@ function syncStaleDataIfNeeded({ hiddenDurationMs = 0 } = {}) {
 }
 
 onSecondaryPrefetchDone(() => {
+  void preloadMapMarkerImages(getMapMarkersFromCache());
   if (currentUser && !splashActive) refreshCurrentView();
 });
 
@@ -241,6 +244,7 @@ async function mountRoute(routeId) {
 
 function showAuthView({ reveal = true } = {}) {
   clearAppDataCache();
+  resetMapWarmup();
   clearUserProfilesCache();
   clearSpaceSettingsCache();
   clearUserLocationState();

@@ -6,6 +6,7 @@ import {
   COUPLE_START_DATE,
   getUserDisplayName,
 } from '../../config.js';
+import { resetMapWarmup } from '../carte/map-warmup.js';
 import {
   getCacheAgeMs,
   getCollectionCountFromCache,
@@ -321,6 +322,7 @@ async function handleClearCacheClick(button) {
 
   try {
     clearAppDataCache();
+    resetMapWarmup();
     await refreshAppData();
     renderDataStatus();
     onDataSynced?.();

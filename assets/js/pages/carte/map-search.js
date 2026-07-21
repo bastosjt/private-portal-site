@@ -1,8 +1,9 @@
 import { getCategoryById } from '../../config.js';
-import { findCachedItemById, getMapMarkersFromCache } from '../../data/appDataCache.js';
+import { findCachedItemById } from '../../data/appDataCache.js';
 import { escapeHtml } from '../../lib/escape-html.js';
 import { getItemLocationLabel } from '../../lib/item-location.js';
 import { normalizeSearchText } from '../../lib/normalize-search.js';
+import { getDisplayedMarkers } from './map-markers.js';
 import { renderMapMarkerTypeIcon } from './map-marker-images.js';
 
 const MAX_RESULTS = 8;
@@ -20,7 +21,7 @@ let cachedSearchEntries = null;
 let cachedSearchEntriesSignature = '';
 
 function buildSearchEntries() {
-  const markers = getMapMarkersFromCache();
+  const markers = getDisplayedMarkers();
   const signature = getSearchEntriesSignature(markers);
   if (cachedSearchEntries && cachedSearchEntriesSignature === signature) {
     return cachedSearchEntries;

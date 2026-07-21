@@ -141,7 +141,7 @@
   border-radius: 50%;
   background: var(--bg);
   box-shadow: var(--neu-up-sm);
-  color: var(--accent);
+  color: var(--logo-heart);
 }
 
 .sidebar-brand-icon svg {
@@ -324,7 +324,7 @@ body.modal-open {
   min-width: 0;
   width: calc(100% - var(--sidebar-width));
   margin-left: var(--sidebar-width);
-  padding: 24px clamp(20px, 2.5vw, 48px) 64px;
+  padding: var(--page-inset-top) var(--page-inset-x) var(--page-inset-bottom);
   box-sizing: border-box;
   transition: filter var(--duration-sidebar) var(--ease-premium);
 }
@@ -514,7 +514,10 @@ body.modal-open {
   .app-main {
     width: 100%;
     margin-left: 0;
-    padding: 20px 18px 48px;
+    --page-inset-x: 18px;
+    --page-inset-top: 20px;
+    --page-inset-bottom: 48px;
+    padding: var(--page-inset-top) var(--page-inset-x) var(--page-inset-bottom);
   }
 
   .btn-menu {

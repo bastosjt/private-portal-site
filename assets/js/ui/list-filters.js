@@ -1,6 +1,7 @@
 import { escapeHtml } from '../lib/escape-html.js';
 import { nextFrame, waitForTransition } from '../lib/transitions.js';
 import { lockScroll, unlockScroll } from '../lib/scroll-lock.js';
+import { MODAL_DRAG_HANDLE_HTML, wireModalDragClose } from '../lib/modal-drag-close.js';
 
 const MODAL_MS = 420;
 
@@ -30,6 +31,7 @@ export function initListFilters({
   overlay.id = 'list-filter-overlay';
   overlay.innerHTML = `
     <div class="add-modal filter-modal" data-theme="${theme}" role="dialog" aria-modal="true" aria-labelledby="list-filter-title">
+      ${MODAL_DRAG_HANDLE_HTML}
       <div class="add-modal-head">
         <button type="button" class="add-modal-back hidden" tabindex="-1" aria-hidden="true"></button>
         <h2 class="add-modal-title" id="list-filter-title">${escapeHtml(title)}</h2>
@@ -265,6 +267,8 @@ export function initListFilters({
     modalToken += 1;
     const token = modalToken;
 
+    dragClose.reset();
+
     overlay.classList.remove('is-active');
     document.body.classList.remove('modal-open');
     unlockScroll();
@@ -367,8 +371,11 @@ export function initListFilters({
     }
   });
 
+  const dragClose = wireModalDragClose(overlay, close);
+
   function destroy() {
     modalToken += 1;
+    dragClose.destroy();
     overlay.classList.remove('is-active');
     overlay.classList.add('hidden');
     document.body.classList.remove('modal-open');

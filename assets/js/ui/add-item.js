@@ -2,7 +2,7 @@ import { escapeHtml } from '../lib/escape-html.js';
 import { devWarn, devError } from '../lib/dev-log.js';
 import { HOME_CATEGORIES, getCategoryById } from '../config.js';
 import { addItem, updateItem } from '../firebase/firestore.js';
-import { patchCachedItem, upsertCachedItem } from '../data/appDataCache.js';
+import { patchCachedItem, upsertCachedItem, ensureItems, findCachedItemById } from '../data/appDataCache.js';
 import { Timestamp } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js';
 import { sidebarIcon } from './sidebar.js';
 import { initFormAddressFields } from './address-autocomplete.js';
@@ -37,6 +37,7 @@ import {
 } from '../auth/ensure-auth.js';
 import { lockScroll, unlockScroll } from '../lib/scroll-lock.js';
 import { sanitizeHttpsUrl } from '../lib/safe-url.js';
+import { MODAL_DRAG_HANDLE_HTML, wireModalDragClose } from '../lib/modal-drag-close.js';
 
 function renderField(field, categoryId) {
   const id = `add-field-${field.name}`;
@@ -108,27 +109,31 @@ function renderCategoryPicker() {
 function renderForm(category) {
   return `
     <form class="add-form" id="add-form" data-theme="${category.theme}" novalidate>
-      <div class="add-form-draft hidden" id="add-form-draft" role="status" aria-live="polite">
-        <span class="add-form-draft-icon" aria-hidden="true">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/>
-            <path d="M14 2v4a2 2 0 0 0 2 2h4"/>
-            <path d="M10 12h4"/><path d="M10 16h4"/>
-          </svg>
-        </span>
-        <div class="add-form-draft-content">
-          <p class="add-form-draft-title">Brouillon enregistré</p>
-          <p class="add-form-draft-meta" id="add-form-draft-meta">Sauvegardé localement sur cet appareil</p>
+      <div class="add-form-scroll">
+        <div class="add-form-draft hidden" id="add-form-draft" role="status" aria-live="polite">
+          <span class="add-form-draft-icon" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/>
+              <path d="M14 2v4a2 2 0 0 0 2 2h4"/>
+              <path d="M10 12h4"/><path d="M10 16h4"/>
+            </svg>
+          </span>
+          <div class="add-form-draft-content">
+            <p class="add-form-draft-title">Brouillon enregistré</p>
+            <p class="add-form-draft-meta" id="add-form-draft-meta">Sauvegardé localement sur cet appareil</p>
+          </div>
+          <button type="button" class="add-form-draft-clear" id="add-form-draft-clear" aria-label="Effacer le brouillon">
+            Effacer
+          </button>
         </div>
-        <button type="button" class="add-form-draft-clear" id="add-form-draft-clear" aria-label="Effacer le brouillon">
-          Effacer
+        ${category.fields.map((field) => renderField(field, category.id)).join('')}
+      </div>
+      <div class="add-form-footer">
+        <p class="add-form-error hidden" id="add-form-error" role="alert"></p>
+        <button type="submit" class="add-form-submit" id="add-form-submit">
+          Enregistrer
         </button>
       </div>
-      ${category.fields.map((field) => renderField(field, category.id)).join('')}
-      <p class="add-form-error hidden" id="add-form-error" role="alert"></p>
-      <button type="submit" class="add-form-submit" id="add-form-submit">
-        Enregistrer
-      </button>
     </form>
   `;
 }
@@ -167,6 +172,7 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
   overlay.id = 'add-modal-overlay';
   overlay.innerHTML = `
     <div class="add-modal" role="dialog" aria-modal="true" aria-labelledby="add-modal-title">
+      ${MODAL_DRAG_HANDLE_HTML}
       <div class="add-modal-head">
         <button type="button" class="add-modal-back hidden" id="add-modal-back" aria-label="Retour">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -206,11 +212,15 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
       if (value == null || value === '') continue;
 
       if (field.type === 'select') {
+        let displayLabel = getFieldDisplayLabel(category.id, field.name, value);
+        if (field.optionsFrom === 'travels') {
+          displayLabel = findCachedItemById('travels', value)?.destination || displayLabel;
+        }
         setSelectFieldValue(
           form,
           field,
           value,
-          getFieldDisplayLabel(category.id, field.name, value),
+          displayLabel,
           category.id,
         );
         continue;
@@ -424,6 +434,10 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
     const form = panel.querySelector('#add-form');
     if (!form) return false;
 
+    if (category.fields.some((field) => field.optionsFrom === 'travels')) {
+      await ensureItems('travels');
+    }
+
     if (item) {
       populateForm(form, category, item);
       const submitBtn = form.querySelector('#add-form-submit');
@@ -440,11 +454,15 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
         if (field.type !== 'select') continue;
         const value = draft.fields[field.name];
         if (!value || value === PLACEHOLDER_OPTION_VALUE) continue;
+        let displayLabel = getFieldDisplayLabel(categoryId, field.name, value);
+        if (field.optionsFrom === 'travels') {
+          displayLabel = findCachedItemById('travels', value)?.destination || displayLabel;
+        }
         setSelectFieldValue(
           form,
           field,
           value,
-          getFieldDisplayLabel(categoryId, field.name, value),
+          displayLabel,
           categoryId,
         );
       }
@@ -581,10 +599,13 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
     open(categoryId, item);
   }
 
-  async function close() {
+  async function close({ preserveDraft = true } = {}) {
     if (isBodyTransitioning) return;
+    if (overlay.classList.contains('hidden')) return;
 
-    saveDraftNow();
+    dragClose.reset();
+
+    if (preserveDraft) saveDraftNow();
 
     const token = ++modalTransitionToken;
     bodyTransitionToken += 1;
@@ -667,6 +688,15 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
         value = sanitizeHttpsUrl(value);
       }
 
+      if (field.type === 'select' && field.optionsFrom) {
+        if (value && value !== ADD_OPTION_VALUE && value !== PLACEHOLDER_OPTION_VALUE) {
+          data[field.name] = value;
+        } else if (editingItemId) {
+          data[field.name] = null;
+        }
+        continue;
+      }
+
       if (value && value !== ADD_OPTION_VALUE) {
         data[field.name] = isMoneyField(field.name) ? formatPrice(value) : value;
       }
@@ -744,7 +774,6 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
 
     try {
       const data = await collectFormData(form, category);
-      saveDraftNow();
 
       try {
         await persistFormData(category, data);
@@ -755,8 +784,10 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
       }
 
       clearFormDraft(activeCategoryId, editingItemId);
+      draftCleanup?.();
+      draftCleanup = null;
       const itemId = editingItemId;
-      close();
+      await close({ preserveDraft: false });
       if (itemId) onUpdated?.(category.id, itemId);
       else onAdded?.(category.id);
     } catch (err) {
@@ -801,8 +832,11 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
     }
   }, { signal });
 
+  const dragClose = wireModalDragClose(overlay, close);
+
   function destroy() {
     abort.abort();
+    dragClose.destroy();
     modalTransitionToken += 1;
     bodyTransitionToken += 1;
     isBodyTransitioning = false;

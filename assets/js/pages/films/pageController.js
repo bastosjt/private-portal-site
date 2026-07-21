@@ -1,14 +1,18 @@
 import { getCategoryById } from '../../config.js';
 import { renderMovieTypeIcon } from './IconsType.js';
 import { initMovieDetail } from '../../ui/movie-detail.js';
+import {
+  createCategoryStatusFilterOptions,
+  getCategoryStatusLabels,
+} from '../../lib/category-status-labels.js';
 import { createListPageController, DEFAULT_SORT_OPTIONS } from '../shared/listPageController.js';
 import {
   createListFilterSections,
   createListPageLabels,
-  createTodoStatusFilterOptions,
 } from '../shared/listPageBoilerplate.js';
 
-const STATUS_FILTER_OPTIONS = createTodoStatusFilterOptions('À voir', 'Terminé');
+const MOVIE_STATUS = getCategoryStatusLabels('movies');
+const STATUS_FILTER_OPTIONS = createCategoryStatusFilterOptions('movies');
 
 // Les films/séries n'ont ni prix ni adresse : le tri se limite à alpha/récent.
 const SORT_OPTIONS = DEFAULT_SORT_OPTIONS.filter((opt) => opt.id === 'alpha' || opt.id === 'recent');
@@ -51,18 +55,18 @@ const { init, destroy, refresh } = createListPageController({
     filterToolbarAria: 'Filtrer et trier les films et séries',
     countSingular: 'titre',
     countPlural: 'titres',
-    statusDone: 'Terminé',
-    statusTodo: 'À voir',
+    statusDone: MOVIE_STATUS.done,
+    statusTodo: MOVIE_STATUS.todo,
     headerEmpty: 'Ajoutez vos premiers films et séries',
-    headerAllDone: 'Vous avez tout terminé',
+    headerAllDone: 'Tous vos titres sont vus',
     headerOneTodo: '1 titre à voir',
     headerManyTodo: (n) => `${n} titres à voir`,
     emptyNone: 'Aucun film ou série enregistré',
     emptyFiltered: 'Aucun titre ne correspond à ces filtres',
-    addCta: 'Ajouter un film',
+    addCta: 'Ajouter un film ou une série',
     pickEmptyText: 'Ajoutez des films ou séries pour commencer.',
-    pickAllDoneText: 'Vous avez tout terminé.',
-    pickIdleText: 'Lancez le dé pour piocher un titre',
+    pickAllDoneText: 'Tous vos titres sont vus.',
+    pickIdleText: 'Lancez le dé pour piocher un film ou une série',
     pickQuotaExhaustedText: 'Vous avez pioché tous vos titres disponibles. Revenez demain !',
   }),
   sidebarIconKey: 'film',

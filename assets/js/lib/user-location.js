@@ -1,6 +1,7 @@
 import { MAP_THEME } from '../config.js';
 import { lockScroll, unlockScroll } from './scroll-lock.js';
 import { nextFrame, waitForTransition } from './transitions.js';
+import { MODAL_DRAG_HANDLE_HTML, wireModalDragClose } from './modal-drag-close.js';
 
 const LOCATE_CACHE_KEY = 'our-space-map-user-location';
 const CONSENT_KEY = 'our-space-location-consent';
@@ -199,6 +200,7 @@ function showLocationConsentPrompt() {
     overlay.id = 'location-consent-overlay';
     overlay.innerHTML = `
       <div class="add-modal location-consent-modal" data-theme="${MAP_THEME}" role="dialog" aria-modal="true" aria-labelledby="location-consent-title">
+        ${MODAL_DRAG_HANDLE_HTML}
         <div class="add-modal-head">
           <button type="button" class="add-modal-back hidden" tabindex="-1" aria-hidden="true"></button>
           <h2 class="add-modal-title" id="location-consent-title">Localisation</h2>
@@ -226,7 +228,10 @@ function showLocationConsentPrompt() {
 
     document.body.appendChild(overlay);
 
+    let dragClose = { reset() {}, destroy() {} };
+
     const finish = async (consent) => {
+      dragClose.reset();
       acceptBtn.disabled = true;
       declineBtn.disabled = true;
       closeBtn.disabled = true;
@@ -235,6 +240,7 @@ function showLocationConsentPrompt() {
       document.body.classList.remove('modal-open');
       unlockScroll();
       await waitForTransition(overlay.querySelector('.add-modal') || overlay, MODAL_MS);
+      dragClose.destroy();
       overlay.remove();
       consentPromptPromise = null;
       resolve(consent);
@@ -243,6 +249,8 @@ function showLocationConsentPrompt() {
     const acceptBtn = overlay.querySelector('#location-consent-accept');
     const declineBtn = overlay.querySelector('#location-consent-decline');
     const closeBtn = overlay.querySelector('#location-consent-close');
+
+    dragClose = wireModalDragClose(overlay, () => finish('declined'));
 
     acceptBtn.addEventListener('click', () => finish('granted'));
     declineBtn.addEventListener('click', () => finish('declined'));
