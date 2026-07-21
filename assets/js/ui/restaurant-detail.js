@@ -8,16 +8,19 @@ import { waitForTransition, nextFrame } from '../lib/transitions.js';
 import { lockScroll, unlockScroll } from '../lib/scroll-lock.js';
 import { escapeHtml } from '../lib/escape-html.js';
 import { renderGeoCategoryLocation } from '../pages/shared/listLocation.js';
+import { getCategoryDoneToggleLabels } from '../lib/category-status-labels.js';
 import {
   createDetailModalOverlay,
   DETAIL_MODAL_MS,
   renderDoneToggle,
   updateDoneToggleUI,
+  wireModalDragClose,
+  renderLinkedTravelChip,
 } from './item-detail-shared.js';
 import { paintItemAuthors, renderItemAuthorMarkup } from './item-author.js';
 
 const COLLECTION = 'restaurants';
-const DONE_LABELS = { done: 'Déjà testé', todo: 'Pas encore testé' };
+const DONE_LABELS = getCategoryDoneToggleLabels('restaurants');
 
 function getFieldLabel(category, fieldName, value) {
   return getFieldOptionLabel(category.id, fieldName, value);
@@ -45,6 +48,8 @@ export function initRestaurantDetail({ onChanged, onEdit, onClose, theme = 'rose
     if (item.cuisine) {
       chips.push(`<span class="act-chip">${escapeHtml(getFieldLabel(category, 'cuisine', item.cuisine))}</span>`);
     }
+    const travelChip = renderLinkedTravelChip(item, { escapeHtml });
+    if (travelChip) chips.push(travelChip);
     if (hasItemPrice(item)) {
       chips.push(`<span class="act-chip act-chip--muted">${escapeHtml(formatItemPrice(item))}</span>`);
     }
@@ -94,7 +99,7 @@ export function initRestaurantDetail({ onChanged, onEdit, onClose, theme = 'rose
       close();
     } catch (err) {
       devError('toggle done:', err);
-      updateDoneToggleUI(bodyEl, !done, false);
+      updateDoneToggleUI(bodyEl, !done, false, DONE_LABELS);
       content?.classList.toggle('act-detail-content--done', !done);
       isBusy = false;
       updateDoneToggleUI(bodyEl, currentItem.done, false, DONE_LABELS);
@@ -149,6 +154,7 @@ export function initRestaurantDetail({ onChanged, onEdit, onClose, theme = 'rose
   async function close() {
     if (overlay.classList.contains('hidden')) return;
 
+    dragClose.reset();
     onClose?.();
 
     overlay.classList.remove('is-active');
@@ -181,8 +187,11 @@ export function initRestaurantDetail({ onChanged, onEdit, onClose, theme = 'rose
     }
   }, { signal });
 
+  const dragClose = wireModalDragClose(overlay, close);
+
   function destroy() {
     abort.abort();
+    dragClose.destroy();
     overlay.classList.remove('is-active');
     overlay.classList.add('hidden');
     document.body.classList.remove('modal-open');

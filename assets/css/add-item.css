@@ -1,8 +1,8 @@
 /* ── FAB ── */
 .fab {
   position: fixed;
-  right: max(20px, env(safe-area-inset-right, 0px));
-  bottom: max(24px, env(safe-area-inset-bottom, 0px));
+  right: max(var(--fab-inset-x), env(safe-area-inset-right, 0px));
+  bottom: max(var(--fab-inset-bottom), env(safe-area-inset-bottom, 0px));
   z-index: 140;
   width: 56px;
   height: 56px;
@@ -116,6 +116,10 @@ body.route-no-fab .fab {
   opacity: 1;
 }
 
+.add-modal-drag {
+  display: none;
+}
+
 .add-modal-head {
   display: flex;
   align-items: center;
@@ -171,15 +175,28 @@ body.route-no-fab .fab {
 }
 
 .add-modal-body {
-  overflow-y: auto;
-  padding: 4px 18px 22px;
-  -webkit-overflow-scrolling: touch;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 4px 18px 0;
 }
 
 .add-modal-content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
   transition:
     opacity var(--duration-step) var(--ease-premium),
     transform var(--duration-step) var(--ease-premium);
+}
+
+.add-modal-content:not(:has(.add-form)) {
+  overflow-y: auto;
+  padding-bottom: 22px;
+  -webkit-overflow-scrolling: touch;
 }
 
 .add-modal-content.is-leaving {
@@ -284,9 +301,35 @@ body.route-no-fab .fab {
 
 /* ── Form ── */
 .add-form {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.add-form-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   display: flex;
   flex-direction: column;
   gap: 14px;
+  padding-bottom: 4px;
+}
+
+.add-form-scroll .form-field[data-select-field="travelId"] {
+  margin-bottom: 10px;
+}
+
+.add-form-footer {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 0 max(18px, env(safe-area-inset-bottom, 0px));
+  background: var(--surface);
+  border-top: 1px solid color-mix(in srgb, var(--text-secondary) 10%, transparent);
 }
 
 .form-field {
@@ -666,7 +709,6 @@ body.route-no-fab .fab {
 }
 
 .add-form-submit {
-  margin-top: 4px;
   height: 50px;
   border-radius: var(--radius-pill);
   background: linear-gradient(135deg, var(--cat-color) 0%, color-mix(in srgb, var(--cat-color) 75%, #000) 100%);
@@ -710,6 +752,45 @@ body.route-no-fab .fab {
 
   .add-modal-overlay.is-active .add-modal {
     transform: translateY(0);
+  }
+
+  .add-modal-drag {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    padding: 10px 16px 4px;
+    touch-action: none;
+    cursor: grab;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  .add-modal-drag:active {
+    cursor: grabbing;
+  }
+
+  .add-modal-drag-pill {
+    width: 40px;
+    height: 5px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.2);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    transition: background 0.2s var(--ease-premium), transform 0.2s var(--ease-premium);
+  }
+
+  .add-modal.is-dragging .add-modal-drag-pill {
+    background: rgba(255, 255, 255, 0.34);
+    transform: scaleX(1.08);
+  }
+
+  .add-modal.is-dragging,
+  .add-modal-overlay.is-dragging {
+    transition: none !important;
+  }
+
+  .add-modal-head {
+    padding-top: 8px;
   }
 }
 

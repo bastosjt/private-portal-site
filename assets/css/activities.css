@@ -628,6 +628,11 @@
   background: var(--bg);
 }
 
+.act-chip--travel {
+  color: #0ea5e9;
+  background: color-mix(in srgb, #0ea5e9 14%, var(--bg));
+}
+
 .act-schedule-note {
   display: flex;
   align-items: flex-start;
@@ -1199,75 +1204,45 @@
   margin: 0;
 }
 
-/* ── Mode carte : bloc filtres → carte/liste = 100dvh (page scrollable) ── */
-.app-main:has(.activities-page.is-map-view) {
+/* ── Liste / Carte embarquée : scroll page, marges cohérentes ── */
+.app-main:has(.activities-page .act-map-block) {
   padding-bottom: 0;
 }
 
-.activities-page.is-map-view .act-list-section {
+.activities-page:has(.act-map-block) .act-list-section {
   margin-bottom: 0;
 }
 
-.activities-page.is-map-view .act-map-block {
-  height: 100dvh;
-  min-height: 100dvh;
-  max-height: 100dvh;
-  overflow: hidden;
-}
-
-.activities-page.is-map-view .act-view-panel {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  margin: 0;
-}
-
-.activities-page.is-map-view #activities-map-panel,
-.activities-page.is-map-view #restaurants-map-panel,
-.activities-page.is-map-view #voyages-map-panel {
-  flex: 1;
-  min-height: 0;
+.activities-page .act-map-viewport .act-cat-panel:not(.act-cat-panel--map) {
+  padding: 14px;
 }
 
 .activities-page.is-map-view .act-map-viewport .act-cat-panel--map {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
   padding: 14px;
-  overflow: hidden;
 }
 
 .activities-page.is-map-view .act-category-map {
-  flex: 1;
-  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
 .activities-page.is-map-view .act-category-map-body {
-  flex: 0 0 42%;
-  min-height: 180px;
-  max-height: 46%;
-  height: auto;
+  flex: none;
+  min-height: min(42vh, 360px);
 }
 
 .activities-page.is-map-view .act-category-map-canvas {
-  height: 100%;
-  min-height: 0;
+  height: min(42vh, 360px);
+  min-height: 280px;
 }
 
 .activities-page.is-map-view .act-category-map-places-scroll {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
+  flex: none;
+  overflow: visible;
   padding: 0 2px 6px;
   margin: 0;
-  mask-image: linear-gradient(to bottom, #000 calc(100% - 16px), transparent 100%);
+  mask-image: none;
 }
 
 .activities-page.is-map-view .act-category-map-places-scroll.hidden {
@@ -2489,12 +2464,17 @@
     --act-map-section-gap: 12px;
   }
 
+  .activities-page .act-map-viewport .act-cat-panel:not(.act-cat-panel--map),
   .activities-page.is-map-view .act-map-viewport .act-cat-panel--map {
     padding: 12px;
   }
 
   .activities-page.is-map-view .act-category-map-places-scroll {
     padding: 8px 1px 10px;
+  }
+
+  .activities-page.is-map-view .act-category-map-canvas {
+    min-height: 240px;
   }
 
   .act-list-item-inner {

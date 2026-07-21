@@ -2,9 +2,9 @@ import { MAP_THEME } from '../../config.js';
 import { initListFilters } from '../../ui/list-filters.js';
 import { initCustomOptions } from '../../lib/custom-types.js';
 import { getCachedItems } from '../../data/appDataCache.js';
+import { getMapStatusFilterOptions } from '../../lib/category-status-labels.js';
 import {
   createMapFilterSections,
-  createTodoStatusFilterOptions,
 } from '../shared/listPageBoilerplate.js';
 import { buildMapFieldFilterOptions } from '../shared/filterOptions.js';
 import {
@@ -14,7 +14,7 @@ import {
   setMapMarkerFilters,
 } from './map-markers.js';
 
-const STATUS_FILTER_OPTIONS = createTodoStatusFilterOptions('Non fait', 'Fait');
+const STATUS_FILTER_OPTIONS = getMapStatusFilterOptions();
 
 const CATEGORY_OPTIONS = [
   { value: 'activities', label: 'Activités' },
@@ -57,6 +57,7 @@ function getMapFieldOptions(categoryId, fieldName) {
 function getFilterSections() {
   return createMapFilterSections({
     statusOptions: STATUS_FILTER_OPTIONS,
+    statusLabel: 'Avancement',
     categoryOptions: CATEGORY_OPTIONS,
     getMapFieldOptions,
     typeFields: [

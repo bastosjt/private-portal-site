@@ -5,7 +5,9 @@ import {
   ensureMapMarkerImages,
   getMarkerIconImageId,
   bindMapMarkerImageFallback,
-  resetMapMarkerImages,
+  MAP_MARKER_DONE_BADGE_ID,
+  MAP_MARKER_LIMITED_BADGE_ID,
+  MAP_MARKER_TRAVEL_LINKED_BADGE_ID,
 } from './map-marker-images.js';
 import {
   ensureTravelZoneLayers,
@@ -47,13 +49,30 @@ let selectedMarker = null;
 let initialFitDone = false;
 
 const MARKERS_SYMBOL_LAYER_ID = 'map-markers-symbols';
+const MARKERS_DONE_BADGE_LAYER_ID = 'map-markers-done-badge';
+const MARKERS_LIMITED_BADGE_LAYER_ID = 'map-markers-limited-badge';
+const MARKERS_TRAVEL_LINKED_BADGE_LAYER_ID = 'map-markers-travel-linked-badge';
 const MARKER_SORT_KEY = ['-', 0, ['get', 'lat']];
-const MARKER_LAYER_IDS = [MARKERS_SYMBOL_LAYER_ID];
+const MARKER_LAYER_IDS = [
+  MARKERS_SYMBOL_LAYER_ID,
+  MARKERS_DONE_BADGE_LAYER_ID,
+  MARKERS_LIMITED_BADGE_LAYER_ID,
+  MARKERS_TRAVEL_LINKED_BADGE_LAYER_ID,
+];
 const INTERACTIVE_MARKER_LAYER_IDS = [...MARKER_LAYER_IDS, 'map-marker-selected'];
 
 const BASE_ICON_SIZE = ['interpolate', ['linear'], ['zoom'], 9, 0.7, 12, 0.88, 15, 1.05, 18, 1.25];
 const SELECTED_ICON_SIZE = ['interpolate', ['linear'], ['zoom'], 9, 0.84, 12, 1.05, 15, 1.26, 18, 1.5];
-const DONE_ICON_OPACITY = ['case', ['get', 'done'], 0.42, 1];
+const DONE_PIN_OPACITY = 0.6;
+const MARKER_ICON_OPACITY = ['case', ['==', ['get', 'done'], 1], DONE_PIN_OPACITY, 1];
+const DONE_BADGE_FILTER = ['==', ['get', 'done'], 1];
+const LIMITED_BADGE_FILTER = [
+  'all',
+  ['==', ['get', 'limitedDuration'], 1],
+  ['==', ['get', 'done'], 0],
+];
+const TRAVEL_LINKED_BADGE_FILTER = ['==', ['get', 'travelLinked'], 1];
+const SHOW_UNSELECTED_FILTER = ['==', ['get', 'isSelected'], 0];
 
 export function setMapMarkerClickHandler(handler) {
   markerClickHandler = handler ?? null;
@@ -109,7 +128,21 @@ function markerMatchesFilters(marker) {
   return true;
 }
 
+function isTravelLinkedMarker(marker) {
+  return Boolean(marker.travelId);
+}
+
 function isMarkerDisplayed(marker) {
+  if (isTravelLinkedMarker(marker)) {
+    if (!layerVisibility.travels) return false;
+    return markerMatchesFilters(marker);
+  }
+
+  if (marker.categoryId === 'travels') {
+    if (!layerVisibility.travels) return false;
+    return markerMatchesFilters(marker);
+  }
+
   if (!layerVisibility[marker.categoryId]) return false;
   return markerMatchesFilters(marker);
 }
@@ -147,18 +180,7 @@ function isMarkerSelected(marker) {
 }
 
 function getMarkersSymbolLayerFilter() {
-  const visibleIds = MARKER_LAYERS.filter(({ id }) => layerVisibility[id]).map(({ id }) => id);
-  const hideSelected = ['==', ['get', 'isSelected'], false];
-
-  if (visibleIds.length === 0) {
-    return ['all', ['==', ['get', 'categoryId'], '__none__'], hideSelected];
-  }
-
-  if (visibleIds.length === MARKER_LAYERS.length) {
-    return hideSelected;
-  }
-
-  return ['all', ['in', ['get', 'categoryId'], ['literal', visibleIds]], hideSelected];
+  return SHOW_UNSELECTED_FILTER;
 }
 
 function buildFeatureCollection() {
@@ -174,8 +196,10 @@ function buildFeatureCollection() {
         itemId: marker.id,
         title: marker.title,
         iconImage: getMarkerIconImageId(marker),
-        done: marker.done,
-        isSelected: isMarkerSelected(marker),
+        done: marker.done ? 1 : 0,
+        limitedDuration: marker.limitedDuration ? 1 : 0,
+        travelLinked: marker.travelId ? 1 : 0,
+        isSelected: isMarkerSelected(marker) ? 1 : 0,
         lat: marker.coordinates[1],
       },
     })),
@@ -339,7 +363,91 @@ function ensureMarkersSymbolLayer(map) {
       'symbol-z-order': 'auto',
     },
     paint: {
-      'icon-opacity': DONE_ICON_OPACITY,
+      'icon-opacity': MARKER_ICON_OPACITY,
+    },
+  });
+}
+
+function ensureDoneBadgeLayer(map) {
+  if (map.getLayer(MARKERS_DONE_BADGE_LAYER_ID)) {
+    map.setFilter(MARKERS_DONE_BADGE_LAYER_ID, DONE_BADGE_FILTER);
+    map.setLayoutProperty(MARKERS_DONE_BADGE_LAYER_ID, 'symbol-sort-key', MARKER_SORT_KEY);
+    map.setLayoutProperty(MARKERS_DONE_BADGE_LAYER_ID, 'symbol-z-order', 'auto');
+    return;
+  }
+
+  map.addLayer({
+    id: MARKERS_DONE_BADGE_LAYER_ID,
+    type: 'symbol',
+    source: 'map-markers',
+    filter: DONE_BADGE_FILTER,
+    layout: {
+      'icon-image': MAP_MARKER_DONE_BADGE_ID,
+      'icon-size': BASE_ICON_SIZE,
+      'icon-anchor': 'bottom',
+      'icon-allow-overlap': true,
+      'icon-ignore-placement': true,
+      'symbol-sort-key': MARKER_SORT_KEY,
+      'symbol-z-order': 'auto',
+    },
+    paint: {
+      'icon-opacity': 1,
+    },
+  });
+}
+
+function ensureLimitedBadgeLayer(map) {
+  if (map.getLayer(MARKERS_LIMITED_BADGE_LAYER_ID)) {
+    map.setFilter(MARKERS_LIMITED_BADGE_LAYER_ID, LIMITED_BADGE_FILTER);
+    map.setLayoutProperty(MARKERS_LIMITED_BADGE_LAYER_ID, 'symbol-sort-key', MARKER_SORT_KEY);
+    map.setLayoutProperty(MARKERS_LIMITED_BADGE_LAYER_ID, 'symbol-z-order', 'auto');
+    return;
+  }
+
+  map.addLayer({
+    id: MARKERS_LIMITED_BADGE_LAYER_ID,
+    type: 'symbol',
+    source: 'map-markers',
+    filter: LIMITED_BADGE_FILTER,
+    layout: {
+      'icon-image': MAP_MARKER_LIMITED_BADGE_ID,
+      'icon-size': BASE_ICON_SIZE,
+      'icon-anchor': 'bottom',
+      'icon-allow-overlap': true,
+      'icon-ignore-placement': true,
+      'symbol-sort-key': MARKER_SORT_KEY,
+      'symbol-z-order': 'auto',
+    },
+    paint: {
+      'icon-opacity': 1,
+    },
+  });
+}
+
+function ensureTravelLinkedBadgeLayer(map) {
+  if (map.getLayer(MARKERS_TRAVEL_LINKED_BADGE_LAYER_ID)) {
+    map.setFilter(MARKERS_TRAVEL_LINKED_BADGE_LAYER_ID, TRAVEL_LINKED_BADGE_FILTER);
+    map.setLayoutProperty(MARKERS_TRAVEL_LINKED_BADGE_LAYER_ID, 'symbol-sort-key', MARKER_SORT_KEY);
+    map.setLayoutProperty(MARKERS_TRAVEL_LINKED_BADGE_LAYER_ID, 'symbol-z-order', 'auto');
+    return;
+  }
+
+  map.addLayer({
+    id: MARKERS_TRAVEL_LINKED_BADGE_LAYER_ID,
+    type: 'symbol',
+    source: 'map-markers',
+    filter: TRAVEL_LINKED_BADGE_FILTER,
+    layout: {
+      'icon-image': MAP_MARKER_TRAVEL_LINKED_BADGE_ID,
+      'icon-size': BASE_ICON_SIZE,
+      'icon-anchor': 'bottom',
+      'icon-allow-overlap': true,
+      'icon-ignore-placement': true,
+      'symbol-sort-key': MARKER_SORT_KEY,
+      'symbol-z-order': 'auto',
+    },
+    paint: {
+      'icon-opacity': 1,
     },
   });
 }
@@ -355,7 +463,7 @@ function ensureSelectedMarkerLayer(map) {
     id: 'map-marker-selected',
     type: 'symbol',
     source: 'map-markers',
-    filter: ['==', ['get', 'isSelected'], true],
+    filter: ['==', ['get', 'isSelected'], 1],
     layout: {
       'icon-image': ['get', 'iconImage'],
       'icon-size': SELECTED_ICON_SIZE,
@@ -366,7 +474,7 @@ function ensureSelectedMarkerLayer(map) {
       'symbol-z-order': 'auto',
     },
     paint: {
-      'icon-opacity': DONE_ICON_OPACITY,
+      'icon-opacity': MARKER_ICON_OPACITY,
     },
   });
 }
@@ -384,6 +492,9 @@ export async function ensureMapMarkerLayers(map) {
   if (markersAreMounted(map)) {
     markersSourceReady = true;
     ensureMarkersSymbolLayer(map);
+    ensureDoneBadgeLayer(map);
+    ensureLimitedBadgeLayer(map);
+    ensureTravelLinkedBadgeLayer(map);
     ensureSelectedMarkerLayer(map);
     syncLayerVisibility(map);
     bindMapMarkerInteractions(map);
@@ -407,6 +518,9 @@ export async function ensureMapMarkerLayers(map) {
       }
 
       ensureMarkersSymbolLayer(map);
+      ensureDoneBadgeLayer(map);
+      ensureLimitedBadgeLayer(map);
+      ensureTravelLinkedBadgeLayer(map);
       ensureSelectedMarkerLayer(map);
 
       markersSourceReady = true;
@@ -433,7 +547,11 @@ export function refreshMapMarkers(map, { onUpdated } = {}) {
         }
         await ensureMapMarkerImages(map, getMapMarkersFromCache());
         syncMarkerSource(map);
-        await syncTravelMapZones(map);
+        try {
+          await syncTravelMapZones(map);
+        } catch (err) {
+          devWarn('syncTravelMapZones:', err.message);
+        }
         onUpdated?.();
       })
       .catch((err) => {
@@ -493,7 +611,6 @@ export function resetMapMarkersState() {
   selectedMarker = null;
   onSelectionPruned = null;
   initialFitDone = false;
-  resetMapMarkerImages();
   resetTravelZonesState();
   layerVisibility.activities = true;
   layerVisibility.restaurants = true;

@@ -9,16 +9,21 @@ import {
   hasActivitySchedule,
   renderActivityScheduleNote,
 } from './scheduleDisplay.js';
+import {
+  createCategoryStatusFilterOptions,
+  getCategoryDoneToggleLabels,
+  getCategoryStatusLabels,
+} from '../../lib/category-status-labels.js';
 import { createListPageController, DEFAULT_SORT_OPTIONS } from '../shared/listPageController.js';
 import {
   createListFilterSections,
   createListPageLabels,
-  createTodoStatusFilterOptions,
 } from '../shared/listPageBoilerplate.js';
 import { renderGeoCategoryLocation } from '../shared/listLocation.js';
 import { createMapTabOptions } from '../shared/listMapSection.js';
 
-const STATUS_FILTER_OPTIONS = createTodoStatusFilterOptions('Non fait', 'Fait');
+const ACTIVITY_STATUS = getCategoryStatusLabels('activities');
+const STATUS_FILTER_OPTIONS = createCategoryStatusFilterOptions('activities');
 
 const scheduleNoteOptions = {
   getDisponibiliteLabel: (value) => getFieldOptionLabel('activities', 'disponibilite', value),
@@ -61,21 +66,22 @@ const { init, destroy, refresh } = createListPageController({
     filterToolbarAria: 'Filtrer et trier les activités',
     countSingular: 'activité',
     countPlural: 'activités',
-    statusDone: 'Fait',
-    statusTodo: 'Non fait',
+    statusDone: ACTIVITY_STATUS.done,
+    statusTodo: ACTIVITY_STATUS.todo,
     headerEmpty: 'Ajoutez vos premières sorties',
-    headerAllDone: 'Toutes vos idées sont faites',
+    headerAllDone: 'Toutes vos idées sont réalisées',
     headerOneTodo: '1 idée à explorer',
     headerManyTodo: (n) => `${n} idées à explorer`,
     emptyNone: 'Aucune activité enregistrée',
     emptyFiltered: 'Aucune activité ne correspond à ces filtres',
     addCta: 'Ajouter une activité',
     pickEmptyText: 'Ajoutez des activités pour commencer.',
-    pickAllDoneText: 'Toutes vos idées sont faites.',
+    pickAllDoneText: 'Toutes vos idées sont réalisées.',
     pickIdleText: 'Lancez le dé pour piocher une activité',
     pickQuotaExhaustedText: 'Vous avez pioché toutes vos idées disponibles. Revenez demain !',
   }),
   sidebarIconKey: 'activity',
+  excludeTravelLinkedFromList: true,
   initDetail: initActivityDetail,
   renderTypeIcon: (item) => renderActivityTypeIcon(item.categorie),
   renderListMeta: (item, ctx) =>

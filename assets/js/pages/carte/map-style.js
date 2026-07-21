@@ -1,8 +1,9 @@
 /** Style vectoriel minimal — fond plat, sans relief, labels FR. */
 export const FRENCH_NAME = ['coalesce', ['get', 'name:fr'], ['get', 'name:latin'], ['get', 'name']];
 
-/** Fenêtre de fondu entre niveaux de détail (en incréments de zoom). */
-const FADE = 2.2;
+/** Ramp d’apparition (~1 niveau de zoom), puis plateau — pas de transparence au dézoom. */
+const APPEAR_SPAN = 1.05;
+const ZOOM_CEIL = 24;
 
 /** Interpolation douce pour tailles / épaisseurs (croissance progressive). */
 const ZOOM_EASE = ['exponential', 1.45];
@@ -11,22 +12,26 @@ function zoomEase(...stops) {
   return ['interpolate', ZOOM_EASE, ['zoom'], ...stops];
 }
 
-/** Fondu entrant ease-in-out (courbe en S). */
-function fadeIn(start, end = start + FADE, peak = 1) {
-  const span = end - start;
+/** Fondu entrant court puis opacité stable (ne redescend pas en dézoomant). */
+export function appear(peak, tileZoom) {
+  const end = tileZoom + APPEAR_SPAN;
   return [
     'interpolate', ['linear'], ['zoom'],
-    start, 0,
-    start + span * 0.16, peak * 0.05,
-    start + span * 0.4, peak * 0.32,
-    start + span * 0.68, peak * 0.78,
-    start + span * 0.9, peak * 0.96,
+    tileZoom, 0,
+    tileZoom + APPEAR_SPAN * 0.28, peak * 0.42,
+    tileZoom + APPEAR_SPAN * 0.62, peak * 0.88,
     end, peak,
+    ZOOM_CEIL, peak,
   ];
 }
 
-/** Fondu entrant + sortant avec plateau et transitions croisées. */
-function fadeInOut(start, inEnd, outStart, end, peak = 1) {
+/** Alias : même comportement qu’appear (compat). */
+export function fadeIn(start, end, peak = 1) {
+  return appear(peak, start);
+}
+
+/** Fondu entrant + sortant (labels hiérarchiques uniquement). */
+export function fadeInOut(start, inEnd, outStart, end, peak = 1) {
   const inSpan = inEnd - start;
   const outSpan = end - outStart;
   return [
@@ -44,9 +49,14 @@ function fadeInOut(start, inEnd, outStart, end, peak = 1) {
   ];
 }
 
-/** Opacité progressive par paliers de zoom (hiérarchie routes). */
-function roadOpacity(...stops) {
-  return ['interpolate', ['linear'], ['zoom'], ...stops];
+/** @deprecated Préférer appear(). */
+export function fadeInScaled(peak, start) {
+  return appear(peak, start);
+}
+
+/** Fondu entrant puis sortant vers une opacité cible. */
+export function fadeInOutScaled(peak, start, inEnd, outStart, end) {
+  return fadeInOut(start, inEnd, outStart, end, peak);
 }
 
 /** Couleurs routes — du plus visible (autoroutes) au plus discret (rues). */
@@ -98,14 +108,6 @@ function greenForest() {
     8, '#528a68',
     14, GREEN.soft,
   ];
-}
-
-function greenOpacity() {
-  return GREEN_OPACITY;
-}
-
-function forestOpacity() {
-  return FOREST_OPACITY;
 }
 
 /** Campagne & relief — champs, roche, neige, zones humides. */
@@ -172,6 +174,7 @@ export const OUR_SPACE_MAP_STYLE = {
           14, '#283840',
         ],
         'fill-antialias': true,
+        'fill-opacity': appear(1, 1.5),
       },
     },
     {
@@ -190,7 +193,7 @@ export const OUR_SPACE_MAP_STYLE = {
           14, '#3a5868',
         ],
         'line-width': zoomEase(3, 0.5, 6, 0.8, 10, 1.2, 14, 2, 17, 3.2),
-        'line-opacity': fadeIn(2.4, 5.0),
+        'line-opacity': appear(1, 2.4),
       },
     },
     {
@@ -200,15 +203,7 @@ export const OUR_SPACE_MAP_STYLE = {
       'source-layer': 'landcover',
       paint: {
         'fill-color': greenMeadow(),
-        'fill-opacity': [
-          'interpolate',
-          ['linear'],
-          ['zoom'],
-          0, 0.4,
-          5, 0.32,
-          9, 0.18,
-          12, 0.08,
-        ],
+        'fill-opacity': appear(0.35, 0),
         'fill-antialias': true,
       },
     },
@@ -230,7 +225,7 @@ export const OUR_SPACE_MAP_STYLE = {
           13, NATURE.farmland,
           15, '#645838',
         ],
-        'fill-opacity': roadOpacity(0, 0.5, 4, 0.62, 7, 0.7, 10, 0.72, 13, 0.68, 15, 0.62),
+        'fill-opacity': appear(0.72, 0),
         'fill-antialias': true,
       },
     },
@@ -242,7 +237,7 @@ export const OUR_SPACE_MAP_STYLE = {
       filter: ['==', ['get', 'class'], 'grass'],
       paint: {
         'fill-color': greenMeadow(),
-        'fill-opacity': greenOpacity(),
+        'fill-opacity': appear(GREEN_OPACITY, 3),
         'fill-antialias': true,
       },
     },
@@ -251,7 +246,6 @@ export const OUR_SPACE_MAP_STYLE = {
       type: 'fill',
       source: 'carto',
       'source-layer': 'landcover',
-      minzoom: 8,
       filter: [
         'all',
         ['==', ['get', 'class'], 'grass'],
@@ -259,7 +253,7 @@ export const OUR_SPACE_MAP_STYLE = {
       ],
       paint: {
         'fill-color': greenMeadow(),
-        'fill-opacity': greenOpacity(),
+        'fill-opacity': appear(GREEN_OPACITY, 8),
         'fill-antialias': true,
       },
     },
@@ -271,7 +265,7 @@ export const OUR_SPACE_MAP_STYLE = {
       filter: ['==', ['get', 'class'], 'wood'],
       paint: {
         'fill-color': greenForest(),
-        'fill-opacity': forestOpacity(),
+        'fill-opacity': appear(FOREST_OPACITY, 4),
         'fill-antialias': true,
       },
     },
@@ -291,7 +285,7 @@ export const OUR_SPACE_MAP_STYLE = {
           12, NATURE.wetlandLight,
           14, '#447068',
         ],
-        'fill-opacity': roadOpacity(0, 0.4, 3, 0.58, 5, 0.68, 7.5, 0.72, 10, 0.65, 14, 0.55),
+        'fill-opacity': appear(0.72, 0),
         'fill-antialias': true,
       },
     },
@@ -311,7 +305,7 @@ export const OUR_SPACE_MAP_STYLE = {
           11, '#7a6c60',
           15, '#8a7a6c',
         ],
-        'fill-opacity': roadOpacity(4, 0.28, 5, 0.5, 6.5, 0.65, 8, 0.72, 10, 0.68, 13, 0.62),
+        'fill-opacity': appear(0.72, 4),
         'fill-antialias': true,
       },
     },
@@ -330,7 +324,7 @@ export const OUR_SPACE_MAP_STYLE = {
           8, NATURE.ice,
           12, '#b0ccd8',
         ],
-        'fill-opacity': roadOpacity(3, 0.35, 4.5, 0.58, 6, 0.72, 9, 0.75, 12, 0.7),
+        'fill-opacity': appear(0.75, 3),
         'fill-antialias': true,
       },
     },
@@ -342,7 +336,7 @@ export const OUR_SPACE_MAP_STYLE = {
       filter: ['==', ['get', 'class'], 'sand'],
       paint: {
         'fill-color': NATURE.sand,
-        'fill-opacity': roadOpacity(8, 0, 9, 0.35, 11, 0.5, 13, 0.55),
+        'fill-opacity': appear(0.55, 9),
         'fill-antialias': true,
       },
     },
@@ -358,7 +352,7 @@ export const OUR_SPACE_MAP_STYLE = {
       ],
       paint: {
         'fill-color': greenMeadow(),
-        'fill-opacity': greenOpacity(),
+        'fill-opacity': appear(GREEN_OPACITY, 5),
         'fill-antialias': true,
       },
     },
@@ -370,7 +364,7 @@ export const OUR_SPACE_MAP_STYLE = {
       filter: ['in', ['get', 'class'], ['literal', ['forest', 'wood']]],
       paint: {
         'fill-color': greenForest(),
-        'fill-opacity': forestOpacity(),
+        'fill-opacity': appear(FOREST_OPACITY, 5),
         'fill-antialias': true,
       },
     },
@@ -382,7 +376,7 @@ export const OUR_SPACE_MAP_STYLE = {
       filter: ['in', ['get', 'class'], ['literal', ['scrub', 'orchard', 'vineyard']]],
       paint: {
         'fill-color': greenMeadow(),
-        'fill-opacity': greenOpacity(),
+        'fill-opacity': appear(GREEN_OPACITY, 6),
         'fill-antialias': true,
       },
     },
@@ -394,7 +388,7 @@ export const OUR_SPACE_MAP_STYLE = {
       filter: ['in', ['get', 'class'], ['literal', ['park', 'grass', 'cemetery', 'allotments']]],
       paint: {
         'fill-color': greenMeadow(),
-        'fill-opacity': greenOpacity(),
+        'fill-opacity': appear(GREEN_OPACITY, 6),
         'fill-antialias': true,
       },
     },
@@ -417,7 +411,7 @@ export const OUR_SPACE_MAP_STYLE = {
           9, URBAN.main,
           13, URBAN.light,
         ],
-        'fill-opacity': roadOpacity(5, 0.3, 8, 0.48, 10, 0.58, 12, 0.62, 14, 0.55),
+        'fill-opacity': appear(0.62, 6),
         'fill-antialias': true,
       },
     },
@@ -445,7 +439,7 @@ export const OUR_SPACE_MAP_STYLE = {
           13, '#56546e',
           16, '#626078',
         ],
-        'fill-opacity': fadeInOut(10.0, 12.0, 14.5, 16.5),
+        'fill-opacity': appear(0.88, 13),
         'fill-antialias': true,
       },
     },
@@ -457,7 +451,7 @@ export const OUR_SPACE_MAP_STYLE = {
       paint: {
         'fill-color': '#524e66',
         'fill-outline-color': '#68647c',
-        'fill-opacity': fadeIn(13.0, 15.0),
+        'fill-opacity': appear(0.72, 14.5),
         'fill-translate': zoomEase(12, ['literal', [0, 0]], 15, ['literal', [-1.5, -1.5]], 17, ['literal', [-2, -2]]),
         'fill-antialias': true,
       },
@@ -475,9 +469,9 @@ export const OUR_SPACE_MAP_STYLE = {
       layout: { 'line-cap': 'round', 'line-join': 'round' },
       paint: {
         'line-color': ROAD.path,
-        'line-width': zoomEase(14, 0.25, 16, 0.5, 18, 1.0),
+        'line-width': zoomEase(14, 0, 14.7, 0.2, 15.5, 0.45, 18, 1.0),
         'line-dasharray': [2, 2],
-        'line-opacity': roadOpacity(13.5, 0, 14.5, 0.18, 15.5, 0.35, 16.5, 0.5, 17.5, 0.62),
+        'line-opacity': appear(0.65, 14),
       },
     },
     {
@@ -493,8 +487,8 @@ export const OUR_SPACE_MAP_STYLE = {
       layout: { 'line-cap': 'round', 'line-join': 'round' },
       paint: {
         'line-color': ROAD.minor,
-        'line-width': zoomEase(12, 0.25, 14, 0.45, 16, 0.9, 18, 1.6),
-        'line-opacity': roadOpacity(11.5, 0, 12.5, 0.12, 13.5, 0.28, 14.5, 0.45, 15.5, 0.58, 16.5, 0.68, 17.5, 0.75),
+        'line-width': zoomEase(12, 0, 12.7, 0.2, 14, 0.45, 16, 0.9, 18, 1.6),
+        'line-opacity': appear(0.88, 12),
       },
     },
     {
@@ -510,8 +504,8 @@ export const OUR_SPACE_MAP_STYLE = {
       layout: { 'line-cap': 'round', 'line-join': 'round' },
       paint: {
         'line-color': ROAD.major,
-        'line-width': zoomEase(7, 0.35, 10, 0.75, 13, 1.4, 16, 2.4, 18, 3.2),
-        'line-opacity': roadOpacity(5.5, 0, 6.5, 0.22, 7.5, 0.42, 8.5, 0.58, 9.5, 0.68, 11, 0.76, 13, 0.82),
+        'line-width': zoomEase(8, 0, 8.8, 0.12, 10, 0.45, 13, 1.4, 16, 2.4, 18, 3.2),
+        'line-opacity': appear(0.85, 8),
       },
     },
     {
@@ -528,7 +522,7 @@ export const OUR_SPACE_MAP_STYLE = {
       paint: {
         'line-color': ROAD.highway,
         'line-width': zoomEase(4, 0.45, 7, 0.9, 10, 1.6, 13, 2.6, 16, 4.0, 18, 5.0),
-        'line-opacity': roadOpacity(3, 0.3, 4, 0.5, 5, 0.65, 6.5, 0.78, 8, 0.88, 10, 0.94, 12, 0.97),
+        'line-opacity': appear(0.97, 4),
       },
     },
     {
@@ -540,9 +534,9 @@ export const OUR_SPACE_MAP_STYLE = {
       layout: { 'line-cap': 'round', 'line-join': 'round' },
       paint: {
         'line-color': ROAD.tunnel,
-        'line-width': zoomEase(12, 0.35, 14, 0.8, 17, 1.6),
+        'line-width': zoomEase(13, 0, 13.8, 0.1, 14.5, 0.28, 16, 0.8, 17, 1.6),
         'line-dasharray': [3, 3],
-        'line-opacity': roadOpacity(12.5, 0, 13.5, 0.2, 14.5, 0.38, 15.5, 0.5, 16.5, 0.58),
+        'line-opacity': appear(0.58, 13),
       },
     },
     {
@@ -555,7 +549,7 @@ export const OUR_SPACE_MAP_STYLE = {
       paint: {
         'line-color': '#9aa3b0',
         'line-width': zoomEase(2, 1, 5, 1.4, 8, 1.8, 12, 2.2),
-        'line-opacity': fadeIn(0.8, 3.5, 0.75),
+        'line-opacity': appear(0.75, 0.8),
       },
     },
     {
@@ -569,7 +563,7 @@ export const OUR_SPACE_MAP_STYLE = {
         'line-color': '#787f8c',
         'line-width': zoomEase(4, 0.7, 8, 1, 12, 1.3),
         'line-dasharray': [5, 3],
-        'line-opacity': fadeIn(2.8, 5.5, 0.65),
+        'line-opacity': appear(0.65, 2.8),
       },
     },
     {
@@ -583,7 +577,7 @@ export const OUR_SPACE_MAP_STYLE = {
         'line-color': '#636a78',
         'line-width': zoomEase(5, 0.55, 9, 0.85, 13, 1.3),
         'line-dasharray': [3, 2],
-        'line-opacity': fadeIn(4.5, 7.0, 0.5),
+        'line-opacity': appear(0.5, 4.5),
       },
     },
     {
@@ -596,14 +590,14 @@ export const OUR_SPACE_MAP_STYLE = {
         'symbol-placement': 'line',
         'text-field': FRENCH_NAME,
         'text-font': ['Montserrat Regular', 'Open Sans Regular', 'Noto Sans Regular'],
-        'text-size': zoomEase(9, 10, 14, 12),
+        'text-size': zoomEase(9, 7, 11, 9, 14, 11, 16, 12),
         'text-max-angle': 30,
       },
       paint: {
         'text-color': '#b8c0cc',
         'text-halo-color': '#282c35',
         'text-halo-width': 1.2,
-        'text-opacity': roadOpacity(8.5, 0, 9.5, 0.35, 10.5, 0.6, 12, 0.78, 14, 0.88),
+        'text-opacity': appear(0.88, 9),
       },
     },
     {
@@ -616,14 +610,14 @@ export const OUR_SPACE_MAP_STYLE = {
         'symbol-placement': 'line',
         'text-field': FRENCH_NAME,
         'text-font': ['Montserrat Regular', 'Open Sans Regular', 'Noto Sans Regular'],
-        'text-size': zoomEase(11, 10, 16, 12),
+        'text-size': zoomEase(11, 7, 13, 9, 16, 12),
         'text-max-angle': 30,
       },
       paint: {
         'text-color': '#a8b0bc',
         'text-halo-color': '#282c35',
         'text-halo-width': 1.2,
-        'text-opacity': roadOpacity(10.5, 0, 11.5, 0.25, 12.5, 0.48, 13.5, 0.65, 15, 0.78),
+        'text-opacity': appear(0.78, 11),
       },
     },
     {
@@ -636,14 +630,14 @@ export const OUR_SPACE_MAP_STYLE = {
         'symbol-placement': 'line',
         'text-field': FRENCH_NAME,
         'text-font': ['Montserrat Regular', 'Open Sans Regular', 'Noto Sans Regular'],
-        'text-size': zoomEase(13, 9, 16, 11, 18, 12),
+        'text-size': zoomEase(14, 6, 15, 8, 16, 10, 18, 12),
         'text-max-angle': 30,
       },
       paint: {
         'text-color': '#8a919c',
         'text-halo-color': '#282c35',
         'text-halo-width': 1.1,
-        'text-opacity': roadOpacity(13.5, 0, 14.5, 0.2, 15.5, 0.4, 16.5, 0.55, 17.5, 0.68),
+        'text-opacity': appear(0.72, 14),
       },
     },
     {
@@ -651,6 +645,7 @@ export const OUR_SPACE_MAP_STYLE = {
       type: 'symbol',
       source: 'carto',
       'source-layer': 'water_name',
+      maxzoom: 13,
       filter: ['in', ['get', 'class'], ['literal', ['ocean', 'sea', 'lake', 'bay', 'strait']]],
       layout: {
         'text-field': FRENCH_NAME,
@@ -662,7 +657,7 @@ export const OUR_SPACE_MAP_STYLE = {
         'text-color': '#8eb0c8',
         'text-halo-color': '#1a2838',
         'text-halo-width': 1.4,
-        'text-opacity': fadeInOut(0, 1.8, 11.0, 13.8),
+        'text-opacity': appear(1, 0.5),
       },
     },
     {
@@ -682,7 +677,7 @@ export const OUR_SPACE_MAP_STYLE = {
         'text-color': '#7a9bb0',
         'text-halo-color': '#1a2838',
         'text-halo-width': 1.2,
-        'text-opacity': fadeIn(3.8, 6.5),
+        'text-opacity': appear(1, 3.8),
       },
     },
     {
@@ -690,6 +685,8 @@ export const OUR_SPACE_MAP_STYLE = {
       type: 'symbol',
       source: 'carto',
       'source-layer': 'place',
+      minzoom: 9,
+      maxzoom: 17,
       filter: ['in', ['get', 'class'], ['literal', ['suburb', 'neighbourhood', 'quarter']]],
       layout: {
         'text-field': FRENCH_NAME,
@@ -701,7 +698,7 @@ export const OUR_SPACE_MAP_STYLE = {
         'text-color': '#e4e8ee',
         'text-halo-color': '#282c35',
         'text-halo-width': 1.3,
-        'text-opacity': fadeInOut(8.5, 11.0, 14.5, 17.0),
+        'text-opacity': appear(1, 10),
       },
     },
     {
@@ -709,6 +706,8 @@ export const OUR_SPACE_MAP_STYLE = {
       type: 'symbol',
       source: 'carto',
       'source-layer': 'place',
+      minzoom: 6,
+      maxzoom: 16,
       filter: ['in', ['get', 'class'], ['literal', ['town', 'village']]],
       layout: {
         'text-field': FRENCH_NAME,
@@ -720,7 +719,7 @@ export const OUR_SPACE_MAP_STYLE = {
         'text-color': '#f0f2f5',
         'text-halo-color': '#282c35',
         'text-halo-width': 1.4,
-        'text-opacity': fadeInOut(5.8, 8.5, 13.8, 16.5),
+        'text-opacity': appear(1, 7),
       },
     },
     {
@@ -739,7 +738,7 @@ export const OUR_SPACE_MAP_STYLE = {
         'text-color': '#f0f2f5',
         'text-halo-color': '#282c35',
         'text-halo-width': 1.6,
-        'text-opacity': fadeIn(2.8, 5.5),
+        'text-opacity': appear(1, 2.8),
       },
     },
     {
@@ -747,6 +746,7 @@ export const OUR_SPACE_MAP_STYLE = {
       type: 'symbol',
       source: 'carto',
       'source-layer': 'place',
+      maxzoom: 9,
       filter: ['in', ['get', 'class'], ['literal', ['state', 'region']]],
       layout: {
         'text-field': FRENCH_NAME,
@@ -759,7 +759,7 @@ export const OUR_SPACE_MAP_STYLE = {
         'text-color': '#e8ebf0',
         'text-halo-color': '#282c35',
         'text-halo-width': 1.4,
-        'text-opacity': fadeInOut(2.0, 5.0, 8.2, 10.8),
+        'text-opacity': appear(1, 2),
       },
     },
     {
@@ -767,6 +767,7 @@ export const OUR_SPACE_MAP_STYLE = {
       type: 'symbol',
       source: 'carto',
       'source-layer': 'place',
+      maxzoom: 7,
       filter: ['==', ['get', 'class'], 'country'],
       layout: {
         'text-field': FRENCH_NAME,
@@ -779,7 +780,7 @@ export const OUR_SPACE_MAP_STYLE = {
         'text-color': '#f0f2f5',
         'text-halo-color': '#282c35',
         'text-halo-width': 1.5,
-        'text-opacity': fadeInOut(0.5, 2.8, 6.5, 9.2),
+        'text-opacity': appear(1, 0.5),
       },
     },
     {
@@ -789,7 +790,7 @@ export const OUR_SPACE_MAP_STYLE = {
       'source-layer': 'mountain_peak',
       filter: ['in', ['get', 'class'], ['literal', ['peak', 'volcano']]],
       paint: {
-        'circle-radius': zoomEase(8, 2, 11, 3, 14, 4),
+        'circle-radius': zoomEase(8, 0, 9, 1.5, 11, 3, 14, 4),
         'circle-color': [
           'match',
           ['get', 'class'],
@@ -798,7 +799,7 @@ export const OUR_SPACE_MAP_STYLE = {
         ],
         'circle-stroke-width': 1.2,
         'circle-stroke-color': NATURE.peak,
-        'circle-opacity': roadOpacity(7.5, 0, 8.5, 0.45, 10, 0.65, 12, 0.78),
+        'circle-opacity': appear(0.78, 8),
       },
     },
     {
@@ -810,7 +811,7 @@ export const OUR_SPACE_MAP_STYLE = {
       layout: {
         'text-field': FRENCH_NAME,
         'text-font': ['Montserrat Medium', 'Open Sans Bold', 'Noto Sans Regular'],
-        'text-size': zoomEase(8, 9, 11, 10, 14, 12),
+        'text-size': zoomEase(8, 7, 10, 8, 14, 12),
         'text-anchor': 'top',
         'text-offset': [0, 0.55],
         'text-max-width': 8,
@@ -825,7 +826,7 @@ export const OUR_SPACE_MAP_STYLE = {
         ],
         'text-halo-color': '#282c35',
         'text-halo-width': 1.4,
-        'text-opacity': roadOpacity(7.5, 0, 8.5, 0.4, 9.5, 0.65, 11, 0.82, 13, 0.9),
+        'text-opacity': appear(0.9, 8),
       },
     },
   ],

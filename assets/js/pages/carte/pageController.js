@@ -1,6 +1,6 @@
 import { clearMapPlaceHash, getMapPlaceFromHash } from '../../navigation/router.js';
 import { devWarn } from '../../lib/dev-log.js';
-import { countGeolocatedPlacesFromCache, findCachedItemById } from '../../data/appDataCache.js';
+import { countGeolocatedPlacesFromCache, ensureMapDataReady, findCachedItemById } from '../../data/appDataCache.js';
 import { initCustomOptions } from '../../lib/custom-types.js';
 import { destroyCategoryDetailModals, initCategoryDetailModals } from '../../ui/category-detail-registry.js';
 import { initAddItem } from '../../ui/add-item.js';
@@ -10,7 +10,6 @@ import {
   getLastUserLocation,
   initInteractiveMap,
   refreshInteractiveMap,
-  refreshTravelMapZones,
   syncMapLayerButtons,
 } from './interactive-map.js';
 import { destroyMapFilters, initMapFilters, onMapLayerToggled, updateMapFilterBadge } from './map-filters.js';
@@ -111,10 +110,6 @@ function handleMarkersReady(map) {
   const hasHashFocus = Boolean(getMapPlaceFromHash());
   tryInitialMapFit(map, { skip: hasHashFocus, userLocation: getLastUserLocation() });
 
-  refreshTravelMapZones(map).catch((err) => {
-    devWarn('refreshTravelMapZones:', err.message);
-  });
-
   if (hasHashFocus && !mapReadyHandled) {
     openMapFocusFromHash(map);
   }
@@ -146,6 +141,7 @@ export async function initMapPage(user, { addItemModal: sharedModal } = {}) {
   resetMapPageFit();
 
   await initCustomOptions();
+  await ensureMapDataReady();
 
   addItemModal = sharedModal ?? initAddItem({
     user,

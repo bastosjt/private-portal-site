@@ -7,16 +7,18 @@ import { waitForTransition, nextFrame } from '../lib/transitions.js';
 import { lockScroll, unlockScroll } from '../lib/scroll-lock.js';
 import { escapeHtml } from '../lib/escape-html.js';
 import { renderGeoCategoryLocation, renderGlobeLocation } from '../pages/shared/listLocation.js';
+import { getCategoryDoneToggleLabels } from '../lib/category-status-labels.js';
 import {
   createDetailModalOverlay,
   DETAIL_MODAL_MS,
   renderDoneToggle,
   updateDoneToggleUI,
+  wireModalDragClose,
 } from './item-detail-shared.js';
 import { paintItemAuthors, renderItemAuthorMarkup } from './item-author.js';
 
 const COLLECTION = 'travels';
-const DONE_LABELS = { done: 'Voyage réalisé', todo: 'Pas encore fait' };
+const DONE_LABELS = getCategoryDoneToggleLabels('travels');
 
 function getFieldLabel(category, fieldName, value) {
   return getFieldOptionLabel(category.id, fieldName, value);
@@ -154,6 +156,7 @@ export function initTravelDetail({ onChanged, onEdit, onClose, theme = 'blue' } 
   async function close() {
     if (overlay.classList.contains('hidden')) return;
 
+    dragClose.reset();
     onClose?.();
 
     overlay.classList.remove('is-active');
@@ -186,8 +189,11 @@ export function initTravelDetail({ onChanged, onEdit, onClose, theme = 'blue' } 
     }
   }, { signal });
 
+  const dragClose = wireModalDragClose(overlay, close);
+
   function destroy() {
     abort.abort();
+    dragClose.destroy();
     overlay.classList.remove('is-active');
     overlay.classList.add('hidden');
     document.body.classList.remove('modal-open');

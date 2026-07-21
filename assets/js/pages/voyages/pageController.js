@@ -3,16 +3,20 @@ import { getCategoryById } from '../../config.js';
 import { renderLucideIcon } from '../../lib/lucide-icon.js';
 import { renderTravelTypeIcon } from './IconsType.js';
 import { initTravelDetail } from '../../ui/travel-detail.js';
+import {
+  createCategoryStatusFilterOptions,
+  getCategoryStatusLabels,
+} from '../../lib/category-status-labels.js';
 import { createListPageController, DEFAULT_SORT_OPTIONS } from '../shared/listPageController.js';
 import {
   createListFilterSections,
   createListPageLabels,
-  createTodoStatusFilterOptions,
 } from '../shared/listPageBoilerplate.js';
 import { renderPinLocation, renderGlobeLocation } from '../shared/listLocation.js';
 import { createMapTabOptions } from '../shared/listMapSection.js';
 
-const STATUS_FILTER_OPTIONS = createTodoStatusFilterOptions('À faire', 'Fait');
+const TRAVEL_STATUS = getCategoryStatusLabels('travels');
+const STATUS_FILTER_OPTIONS = createCategoryStatusFilterOptions('travels');
 
 const SORT_OPTIONS = DEFAULT_SORT_OPTIONS.filter((opt) => opt.id === 'alpha' || opt.id === 'recent');
 
@@ -89,17 +93,17 @@ const { init, destroy, refresh } = createListPageController({
     filterToolbarAria: 'Filtrer et trier les voyages',
     countSingular: 'destination',
     countPlural: 'destinations',
-    statusDone: 'Fait',
-    statusTodo: 'À faire',
+    statusDone: TRAVEL_STATUS.done,
+    statusTodo: TRAVEL_STATUS.todo,
     headerEmpty: 'Ajoutez vos premières destinations',
-    headerAllDone: 'Tous vos voyages sont faits',
+    headerAllDone: 'Tous vos voyages sont réalisés',
     headerOneTodo: '1 destination à explorer',
     headerManyTodo: (n) => `${n} destinations à explorer`,
     emptyNone: 'Aucun voyage enregistré',
     emptyFiltered: 'Aucun voyage ne correspond à ces filtres',
     addCta: 'Ajouter un voyage',
     pickEmptyText: 'Ajoutez des destinations pour commencer.',
-    pickAllDoneText: 'Toutes vos destinations sont faites.',
+    pickAllDoneText: 'Toutes vos destinations sont réalisées.',
     pickIdleText: 'Lancez le dé pour piocher une destination',
     pickQuotaExhaustedText: 'Vous avez pioché toutes vos destinations disponibles. Revenez demain !',
   }),

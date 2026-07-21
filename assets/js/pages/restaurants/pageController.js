@@ -2,16 +2,20 @@ import { getCategoryById } from '../../config.js';
 import { formatItemPrice, hasItemPrice } from '../../lib/price-format.js';
 import { renderRestaurantTypeIcon } from './IconsType.js';
 import { initRestaurantDetail } from '../../ui/restaurant-detail.js';
+import {
+  createCategoryStatusFilterOptions,
+  getCategoryStatusLabels,
+} from '../../lib/category-status-labels.js';
 import { createListPageController, DEFAULT_SORT_OPTIONS } from '../shared/listPageController.js';
 import {
   createListFilterSections,
   createListPageLabels,
-  createTodoStatusFilterOptions,
 } from '../shared/listPageBoilerplate.js';
 import { renderGeoCategoryLocation } from '../shared/listLocation.js';
 import { createMapTabOptions } from '../shared/listMapSection.js';
 
-const STATUS_FILTER_OPTIONS = createTodoStatusFilterOptions('À tester', 'Testé');
+const RESTAURANT_STATUS = getCategoryStatusLabels('restaurants');
+const STATUS_FILTER_OPTIONS = createCategoryStatusFilterOptions('restaurants');
 
 function renderRestaurantListMeta(item, { escapeHtml, getFieldLabel }) {
   const type = item.type ? escapeHtml(getFieldLabel('type', item.type)) : 'Restaurant';
@@ -62,21 +66,22 @@ const { init, destroy, refresh } = createListPageController({
     filterToolbarAria: 'Filtrer et trier les restaurants',
     countSingular: 'adresse',
     countPlural: 'adresses',
-    statusDone: 'Testé',
-    statusTodo: 'À tester',
+    statusDone: RESTAURANT_STATUS.done,
+    statusTodo: RESTAURANT_STATUS.todo,
     headerEmpty: 'Ajoutez vos premières adresses',
-    headerAllDone: 'Toutes vos adresses sont testées',
-    headerOneTodo: '1 adresse à tester',
-    headerManyTodo: (n) => `${n} adresses à tester`,
+    headerAllDone: 'Toutes vos adresses sont visitées',
+    headerOneTodo: '1 adresse à essayer',
+    headerManyTodo: (n) => `${n} adresses à essayer`,
     emptyNone: 'Aucun restaurant enregistré',
     emptyFiltered: 'Aucun restaurant ne correspond à ces filtres',
     addCta: 'Ajouter un restaurant',
     pickEmptyText: 'Ajoutez des adresses pour commencer.',
-    pickAllDoneText: 'Toutes vos adresses sont testées.',
+    pickAllDoneText: 'Toutes vos adresses sont visitées.',
     pickIdleText: 'Lancez le dé pour piocher une adresse',
     pickQuotaExhaustedText: 'Vous avez pioché toutes vos adresses disponibles. Revenez demain !',
   }),
   sidebarIconKey: 'restaurant',
+  excludeTravelLinkedFromList: true,
   initDetail: initRestaurantDetail,
   renderTypeIcon: (item) => renderRestaurantTypeIcon(item.type),
   renderListMeta: renderRestaurantListMeta,

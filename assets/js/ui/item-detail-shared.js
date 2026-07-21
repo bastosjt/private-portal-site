@@ -1,14 +1,33 @@
+import { MODAL_DRAG_HANDLE_HTML } from '../lib/modal-drag-close.js';
+
+export { wireModalDragClose } from '../lib/modal-drag-close.js';
+
 const MODAL_CLOSE_ICON = `
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
     <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
   </svg>
 `;
 
+import { getCategoryStatusLabels } from '../lib/category-status-labels.js';
+import { findCachedItemById } from '../data/appDataCache.js';
+
 export const DETAIL_MODAL_MS = 420;
+
+const DEFAULT_STATUS = getCategoryStatusLabels('activities');
+
+function resolveDoneLabels(labels = {}) {
+  return {
+    doneLabel: labels.doneLabel ?? labels.done ?? DEFAULT_STATUS.doneDetail,
+    todoLabel: labels.todoLabel ?? labels.todo ?? DEFAULT_STATUS.todoDetail,
+    doneHint: labels.doneHint ?? DEFAULT_STATUS.doneHint,
+    todoHint: labels.todoHint ?? DEFAULT_STATUS.todoHint,
+  };
+}
 
 export function renderDetailModalShellHtml({ title, theme }) {
   return `
     <div class="add-modal act-detail-modal" data-theme="${theme}" role="dialog" aria-modal="true" aria-labelledby="act-detail-title">
+      ${MODAL_DRAG_HANDLE_HTML}
       <div class="add-modal-head">
         <button type="button" class="add-modal-back hidden" tabindex="-1" aria-hidden="true"></button>
         <h2 class="add-modal-title" id="act-detail-title">${title}</h2>
@@ -35,7 +54,8 @@ export function createDetailModalOverlay({ overlayId, title, theme }) {
   };
 }
 
-export function renderDoneToggle(done, busy = false, { doneLabel, todoLabel }) {
+export function renderDoneToggle(done, busy = false, labels = {}) {
+  const { doneLabel, todoLabel, doneHint, todoHint } = resolveDoneLabels(labels);
   return `
     <div class="act-done-card${done ? ' is-done' : ''}${busy ? ' is-busy' : ''}" id="act-done-card">
       <button
@@ -55,7 +75,7 @@ export function renderDoneToggle(done, busy = false, { doneLabel, todoLabel }) {
         </span>
         <span class="act-done-toggle-copy">
           <span class="act-done-toggle-label" id="act-done-label">${done ? doneLabel : todoLabel}</span>
-          <span class="act-done-toggle-hint" id="act-done-hint">${done ? 'C\'est dans la poche' : 'Appuyez pour cocher'}</span>
+          <span class="act-done-toggle-hint" id="act-done-hint">${done ? doneHint : todoHint}</span>
         </span>
         <span class="act-done-switch" aria-hidden="true">
           <span class="act-done-switch-track">
@@ -67,7 +87,8 @@ export function renderDoneToggle(done, busy = false, { doneLabel, todoLabel }) {
   `;
 }
 
-export function updateDoneToggleUI(root, done, busy = false, { doneLabel, todoLabel }) {
+export function updateDoneToggleUI(root, done, busy = false, labels = {}) {
+  const { doneLabel, todoLabel, doneHint, todoHint } = resolveDoneLabels(labels);
   const card = root.querySelector('#act-done-card');
   const btn = root.querySelector('#act-detail-done');
   const label = root.querySelector('#act-done-label');
@@ -81,5 +102,12 @@ export function updateDoneToggleUI(root, done, busy = false, { doneLabel, todoLa
     btn.disabled = busy;
   }
   if (label) label.textContent = done ? doneLabel : todoLabel;
-  if (hint) hint.textContent = done ? 'C\'est dans la poche' : 'Appuyez pour cocher';
+  if (hint) hint.textContent = done ? doneHint : todoHint;
+}
+
+export function renderLinkedTravelChip(item, { escapeHtml }) {
+  if (!item?.travelId) return '';
+  const travel = findCachedItemById('travels', item.travelId);
+  if (!travel) return '';
+  return `<span class="act-chip act-chip--travel">${escapeHtml(travel.destination || 'Voyage')}</span>`;
 }

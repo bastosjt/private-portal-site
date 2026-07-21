@@ -4,7 +4,10 @@ export const COUPLE_START_DATE = '2026-06-27';
 /** Nom de l'espace et version */
 export const APP_NAME = 'Our Space';
 export const APP_TAGLINE = 'À nous deux';
-export const APP_VERSION = '2.0.1';
+export const APP_VERSION = '2.0.9';
+
+/** Durée minimale du splash (ms). 0 = comportement normal. */
+export const SPLASH_MIN_DURATION_MS = 0;
 
 export function renderVersionBadgeHtml(version = APP_VERSION) {
   return `<span class="version-badge"><span class="version-badge-text">${version}</span></span>`;
@@ -104,6 +107,7 @@ export const HOME_CATEGORIES = [
       { name: 'periode_fin', label: 'Jusqu\'au', type: 'text', placeholder: 'Ex. 28 fév. 2027' },
       { name: 'localisation', label: 'Adresse ou lieu', type: 'address', placeholder: 'Commencez à taper une adresse…' },
       { name: 'prix', label: 'Prix estimé', type: 'priceRange', placeholderMin: 'Min', placeholderMax: 'Max' },
+      { name: 'travelId', label: 'Voyage associé', type: 'select', optionsFrom: 'travels' },
     ],
   },
   {
@@ -122,6 +126,7 @@ export const HOME_CATEGORIES = [
       { name: 'adresse', label: 'Adresse', type: 'address', placeholder: 'Numéro, rue, ville…', fills: { lienMaps: 'mapsUrl' } },
       { name: 'prix', label: 'Prix estimé', type: 'priceRange', placeholderMin: 'Min', placeholderMax: 'Max' },
       { name: 'lienMaps', label: 'Lien Google Maps', type: 'url', placeholder: 'Rempli automatiquement' },
+      { name: 'travelId', label: 'Voyage associé', type: 'select', optionsFrom: 'travels' },
     ],
   },
   {

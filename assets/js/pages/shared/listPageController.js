@@ -99,6 +99,7 @@ export function createListPageController(config) {
     listControlsMount = null,
     filterBadgeExcludeKeys = [],
     filterByStatus = null,
+    excludeTravelLinkedFromList = false,
     defaultCollapsedGroups = ['done'],
   } = config;
 
@@ -117,6 +118,11 @@ export function createListPageController(config) {
   let currentUserUid = null;
   let listViewMode = 'list';
   let categoryMapTab = null;
+
+  function normalizeListItems(items) {
+    if (!excludeTravelLinkedFromList) return items;
+    return items.filter((item) => !item.travelId);
+  }
 
   function getFieldLabel(fieldName, value) {
     return getFieldOptionLabel(categoryId, fieldName, value);
@@ -693,7 +699,7 @@ export function createListPageController(config) {
 
   function syncAllItemsFromCache() {
     const cached = getCachedItems(collection);
-    if (cached) allItems = cached;
+    if (cached) allItems = normalizeListItems(cached);
   }
 
   function handleItemChange(changedCollection, itemId, meta = {}) {
@@ -876,7 +882,7 @@ export function createListPageController(config) {
       loadDailyPicks(pickScope),
     ]);
 
-    allItems = items;
+    allItems = normalizeListItems(items);
     pruneActiveFilters();
     updateHeader(allItems);
     updatePickCard();

@@ -6,15 +6,27 @@
   --text-secondary: #a8b0bd;
   --text-placeholder: #727b8a;
 
-  /* Our Space — rose cœur chaud (splash & icône), distinct des catégories */
+  /* Our Space — rose cœur chaud (UI générale) */
   --accent: #f6a0b5;
   --accent-mid: #fbc4d0;
   --accent-deep: #e87896;
   --accent-soft: #ffd6e3;
   --accent-glow: rgba(246, 160, 181, 0.38);
 
+  /* Rose logo cœur — splash, chargement, sidebar (identité Our Space) */
+  --logo-heart: #f472b6;
+  --logo-heart-glow: rgba(244, 114, 182, 0.42);
+  --logo-heart-soft: rgba(244, 114, 182, 0.22);
+
   --sidebar-width: 272px;
   --sidebar-island-gap: 14px;
+
+  /* Marges page — le FAB reprend inset-x (droite) et inset-bottom (bas) */
+  --page-inset-x: clamp(20px, 2.5vw, 48px);
+  --page-inset-top: 24px;
+  --page-inset-bottom: 64px;
+  --fab-inset-x: var(--page-inset-x);
+  --fab-inset-bottom: 18px;
 
   --error: #f87171;
 

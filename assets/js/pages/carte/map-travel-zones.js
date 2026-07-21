@@ -2,9 +2,11 @@ import { findCachedItemById } from '../../data/appDataCache.js';
 import { getPlaceBoundary, resetPlaceBoundaryCache } from '../../lib/place-boundary.js';
 
 const TRAVEL_ZONE_COLOR = '#0ea5e9';
+const TRAVEL_ZONE_FILL_OPACITY = ['case', ['==', ['get', 'done'], 1], 0.1, 0.2];
+const TRAVEL_ZONE_LINE_OPACITY = ['case', ['==', ['get', 'done'], 1], 0.28, 0.5];
 const EMPTY_COLLECTION = { type: 'FeatureCollection', features: [] };
 
-let travelZonesReady = false;
+const travelZonesReadyByMap = new WeakMap();
 let syncTravelZonesGeneration = 0;
 
 function getTravelLabel(marker) {
@@ -12,12 +14,24 @@ function getTravelLabel(marker) {
   return item?.localisation?.trim() || item?.destination?.trim() || marker.title;
 }
 
+function syncTravelZonePaint(map) {
+  if (map.getLayer('map-travel-zones-fill')) {
+    map.setPaintProperty('map-travel-zones-fill', 'fill-opacity', TRAVEL_ZONE_FILL_OPACITY);
+  }
+  if (map.getLayer('map-travel-zones-outline')) {
+    map.setPaintProperty('map-travel-zones-outline', 'line-opacity', TRAVEL_ZONE_LINE_OPACITY);
+  }
+}
+
 export function ensureTravelZoneLayers(map) {
   if (!map) return;
 
-  if (travelZonesReady && map.getSource('map-travel-zones')) return;
+  if (travelZonesReadyByMap.get(map) && map.getSource('map-travel-zones')) {
+    syncTravelZonePaint(map);
+    return;
+  }
 
-  travelZonesReady = false;
+  travelZonesReadyByMap.delete(map);
 
   if (!map.getSource('map-travel-zones')) {
     map.addSource('map-travel-zones', {
@@ -35,9 +49,11 @@ export function ensureTravelZoneLayers(map) {
       source: 'map-travel-zones',
       paint: {
         'fill-color': TRAVEL_ZONE_COLOR,
-        'fill-opacity': ['case', ['get', 'done'], 0.1, 0.2],
+        'fill-opacity': TRAVEL_ZONE_FILL_OPACITY,
       },
     }, beforeId);
+  } else {
+    map.setPaintProperty('map-travel-zones-fill', 'fill-opacity', TRAVEL_ZONE_FILL_OPACITY);
   }
 
   if (!map.getLayer('map-travel-zones-outline')) {
@@ -47,10 +63,12 @@ export function ensureTravelZoneLayers(map) {
       source: 'map-travel-zones',
       paint: {
         'line-color': TRAVEL_ZONE_COLOR,
-        'line-opacity': ['case', ['get', 'done'], 0.28, 0.5],
+        'line-opacity': TRAVEL_ZONE_LINE_OPACITY,
         'line-width': 1.5,
       },
     }, beforeId);
+  } else {
+    map.setPaintProperty('map-travel-zones-outline', 'line-opacity', TRAVEL_ZONE_LINE_OPACITY);
   }
 
   if (beforeId) {
@@ -65,7 +83,7 @@ export function ensureTravelZoneLayers(map) {
     }
   }
 
-  travelZonesReady = true;
+  travelZonesReadyByMap.set(map, true);
 }
 
 export function syncTravelZoneVisibility(map, visible) {
@@ -104,7 +122,7 @@ export async function syncTravelZones(map, { markers = [], visible = true } = {}
       properties: {
         itemId: marker.id,
         title: marker.title,
-        done: marker.done,
+        done: marker.done ? 1 : 0,
       },
     };
   }));
@@ -120,7 +138,6 @@ export async function syncTravelZones(map, { markers = [], visible = true } = {}
 }
 
 export function resetTravelZonesState() {
-  travelZonesReady = false;
   syncTravelZonesGeneration = 0;
   resetPlaceBoundaryCache();
 }

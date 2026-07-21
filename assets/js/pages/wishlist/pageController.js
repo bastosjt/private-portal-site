@@ -6,8 +6,11 @@ import { getItemAuthorUid } from '../../ui/item-author.js';
 import { renderWishlistPriorityIcon } from './IconsType.js';
 import { initWishlistDetail } from '../../ui/wishlist-detail.js';
 import { initWishlistControls } from './wishlist-controls.js';
+import { getCategoryStatusLabels } from '../../lib/category-status-labels.js';
 import { createListPageController, DEFAULT_SORT_OPTIONS } from '../shared/listPageController.js';
 import { createListPageLabels, createSortOnlyFilterSections } from '../shared/listPageBoilerplate.js';
+
+const WISHLIST_STATUS = getCategoryStatusLabels('wishlist');
 
 const AUTHOR_FILTER_OPTIONS = [
   { value: 'all', label: 'Tout', ariaLabel: 'Toutes les envies' },
@@ -207,8 +210,8 @@ const { init, destroy, refresh } = createListPageController({
     filterToolbarAria: 'Trier et filtrer par priorité',
     countSingular: 'envie',
     countPlural: 'envies',
-    statusDone: 'Obtenu',
-    statusTodo: 'À obtenir',
+    statusDone: WISHLIST_STATUS.done,
+    statusTodo: WISHLIST_STATUS.todo,
     headerEmpty: 'Ajoutez vos premières envies',
     headerAllDone: 'Tout est dans la poche',
     headerOneTodo: '1 envie en attente',

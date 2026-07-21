@@ -11,6 +11,7 @@ import {
 } from '../lib/profile-animal.js';
 import { renderNavIcon } from '../lib/lucide-icon.js';
 import { lockScroll, unlockScroll } from '../lib/scroll-lock.js';
+import { MODAL_DRAG_HANDLE_HTML, wireModalDragClose } from '../lib/modal-drag-close.js';
 import { nextFrame, waitForTransition } from '../lib/transitions.js';
 
 const STEP_MS = 260;
@@ -90,6 +91,7 @@ export function initProfileAnimalPicker({ user, onChange, signal } = {}) {
   overlay.id = 'profile-animal-overlay';
   overlay.innerHTML = `
     <div class="add-modal" role="dialog" aria-modal="true" aria-labelledby="profile-animal-title">
+      ${MODAL_DRAG_HANDLE_HTML}
       <div class="add-modal-head">
         <button type="button" class="add-modal-back hidden" id="profile-animal-back" aria-label="Retour">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -228,6 +230,7 @@ export function initProfileAnimalPicker({ user, onChange, signal } = {}) {
 
   const close = () => {
     if (!isOpen) return;
+    dragClose.reset();
     overlay.classList.remove('is-active');
     isOpen = false;
     pendingAnimalId = null;
@@ -299,7 +302,10 @@ export function initProfileAnimalPicker({ user, onChange, signal } = {}) {
   bodyEl.addEventListener('submit', onSubmit, { signal });
   document.addEventListener('keydown', onKeyDown, { signal });
 
+  const dragClose = wireModalDragClose(overlay, close);
+
   const destroy = () => {
+    dragClose.destroy();
     close();
     overlay.remove();
   };

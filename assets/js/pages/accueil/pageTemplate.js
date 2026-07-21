@@ -1,4 +1,5 @@
 import { BASE_THEME } from '../../config.js';
+import { renderNavIcon } from '../../lib/lucide-icon.js';
 
 export const HOME_VIEW_HTML = `
   <header class="page-header page-header--home" data-theme="${BASE_THEME}">
@@ -10,9 +11,7 @@ export const HOME_VIEW_HTML = `
       </svg>
     </button>
     <div class="page-header-mobile-icon" data-theme="${BASE_THEME}" aria-hidden="true">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
-      </svg>
+      ${renderNavIcon('home')}
     </div>
     <div class="page-header-content">
       <h1 class="page-header-title" id="page-greeting">Bonjour</h1>
@@ -24,6 +23,7 @@ export const HOME_VIEW_HTML = `
     <section class="home-hero">
       <article class="days-card hero-days" data-theme="love" aria-labelledby="days-heading">
         <div class="days-card-inner">
+          <div class="love-hearts-field love-hearts-field--card days-story-love-hearts" id="days-story-love-hearts" aria-hidden="true"></div>
           <div class="days-card-body">
             <div class="days-card-content">
               <p class="days-story-eyebrow" id="days-heading">
@@ -62,19 +62,21 @@ export const HOME_VIEW_HTML = `
               </div>
             </div>
 
-            <div class="hero-scene" aria-hidden="true">
+            <div class="hero-scene">
               <div class="scene-stage">
                 <div class="scene-ring scene-ring--1"></div>
                 <div class="scene-ring scene-ring--2"></div>
                 <div class="scene-ring scene-ring--3"></div>
                 <div class="scene-heart-ripples" aria-hidden="true">
-                  <span class="scene-heart-ripple"></span>
+                  <span class="scene-heart-ripple love-ripple"></span>
+                  <span class="scene-heart-ripple love-ripple"></span>
+                  <span class="scene-heart-ripple love-ripple"></span>
                 </div>
-                <div class="scene-core">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <button type="button" class="scene-core" id="days-story-heart-trigger" aria-label="Réveiller les cœurs">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
                   </svg>
-                </div>
+                </button>
                 <div class="scene-orb scene-orb--1"></div>
                 <div class="scene-orb scene-orb--2"></div>
                 <div class="scene-orb scene-orb--3"></div>

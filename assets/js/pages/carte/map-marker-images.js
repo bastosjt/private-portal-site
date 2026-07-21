@@ -1,4 +1,4 @@
-import { createElement } from '../../vendor/lucide.mjs';
+import { createElement, Check, Clock, Plane } from '../../vendor/lucide.mjs';
 import { renderLucideIcon } from '../../lib/lucide-icon.js';
 import { getActivityTypeLucideIcon } from '../activites/IconsType.js';
 import { getRestaurantTypeLucideIcon } from '../restaurants/IconsType.js';
@@ -10,11 +10,33 @@ const PIN_PATH = 'M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.5
 const ICON_DISC = { cx: 12, cy: 10, r: 6 };
 const PIN_STROKE = 0.75;
 
+export const MAP_MARKER_DONE_BADGE_ID = 'map-pin-done-badge-v2';
+export const MAP_MARKER_LIMITED_BADGE_ID = 'map-pin-limited-badge-v2';
+export const MAP_MARKER_TRAVEL_LINKED_BADGE_ID = 'map-pin-travel-plane-badge-v3';
+/** Vert « réalisé » (aligné sur .act-done-card) */
+const DONE_BADGE_GREEN = '#4ade80';
+/** Coin supérieur droit de la tête du pin (viewBox 24×24, ancrage bas). */
+const MAP_MARKER_OVERLAY_ANCHOR = { cx: 17.2, cy: 5.2 };
+const OVERLAY_BADGE_SCALE = 0.44;
+const OVERLAY_BADGE_CIRCLE_R = 11;
+const OVERLAY_BADGE_ICON_SCALE = 0.56;
+const OVERLAY_BADGE_ICON_STROKE = 2.15;
+const OVERLAY_BADGE_BORDER_OPACITY = 0.28;
+const OVERLAY_BADGE_SHADOW = {
+  dy: 1.35,
+  blur: 0.7,
+  opacity: 0.55,
+};
+
 const CATEGORY_COLORS = {
   activities: '#f97316',
   restaurants: '#f43f5e',
   travels: '#0ea5e9',
 };
+
+export function isMarkerTravelLinked(marker) {
+  return Boolean(marker?.travelId);
+}
 
 function normalizeTypeKey(typeValue) {
   const raw = String(typeValue || '').trim();
@@ -39,6 +61,14 @@ export function getMapMarkerCategoryColor(categoryId) {
   return CATEGORY_COLORS[categoryId] || CATEGORY_COLORS.activities;
 }
 
+export function getMarkerPinColor(marker) {
+  return CATEGORY_COLORS[marker.categoryId] || CATEGORY_COLORS.activities;
+}
+
+function getMarkerIconColor(marker) {
+  return getMarkerPinColor(marker);
+}
+
 export function renderMapMarkerTypeIcon(marker, options = {}) {
   const Icon = getMarkerLucideIcon(marker);
   return renderLucideIcon(Icon, { strokeWidth: 2, width: 16, height: 16, ...options });
@@ -46,10 +76,24 @@ export function renderMapMarkerTypeIcon(marker, options = {}) {
 
 export function getMarkerIconImageId(marker) {
   const typeKey = normalizeTypeKey(getMarkerTypeValue(marker));
+  if (marker.categoryId === 'travels') {
+    return `map-pin-travels-${typeKey}-blue`;
+  }
   return `map-pin-${marker.categoryId}-${typeKey}`;
 }
 
 function markerFromImageId(imageId) {
+  const travelMatch = /^map-pin-travels-(.+)-blue$/.exec(imageId);
+  if (travelMatch) {
+    const typeValue = travelMatch[1] === 'default' ? '' : travelMatch[1];
+    return {
+      categoryId: 'travels',
+      activityType: '',
+      restaurantType: '',
+      travelType: typeValue,
+    };
+  }
+
   const match = /^map-pin-(activities|restaurants|travels)-(.+)$/.exec(imageId);
   if (!match) return null;
 
@@ -110,7 +154,8 @@ export function collectMarkerImageDescriptors(markers) {
 
     descriptors.push({
       imageId,
-      color: CATEGORY_COLORS[marker.categoryId],
+      color: getMarkerPinColor(marker),
+      iconColor: getMarkerIconColor(marker),
       Icon: getMarkerLucideIcon(marker),
     });
   }
@@ -129,7 +174,7 @@ function getIconMarkup(Icon) {
   return svg.innerHTML;
 }
 
-function buildMarkerSvg({ color, Icon }) {
+function buildMarkerSvg({ color, iconColor = color, Icon }) {
   const iconMarkup = getIconMarkup(Icon);
 
   return `
@@ -153,7 +198,7 @@ function buildMarkerSvg({ color, Icon }) {
   <g
     transform="translate(${ICON_DISC.cx} ${ICON_DISC.cy}) scale(0.32) translate(-12 -12)"
     fill="none"
-    stroke="${color}"
+    stroke="${iconColor}"
     stroke-width="2"
     stroke-linecap="round"
     stroke-linejoin="round"
@@ -161,6 +206,66 @@ function buildMarkerSvg({ color, Icon }) {
     ${iconMarkup}
   </g>
 </svg>`.trim();
+}
+
+function buildOverlayBadgeSvg({ filterId, color, iconMarkup }) {
+  const { cx, cy } = MAP_MARKER_OVERLAY_ANCHOR;
+  const transform = `translate(${cx} ${cy}) scale(${OVERLAY_BADGE_SCALE}) translate(-12 -12)`;
+  const { dy, blur, opacity } = OVERLAY_BADGE_SHADOW;
+
+  return `
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 24 24">
+  <defs>
+    <filter id="${filterId}" x="-35%" y="-15%" width="170%" height="185%">
+      <feDropShadow dx="0" dy="${dy}" stdDeviation="${blur}" flood-color="${color}" flood-opacity="${opacity}"/>
+    </filter>
+  </defs>
+  <g transform="${transform}" filter="url(#${filterId})">
+    <circle
+      cx="12"
+      cy="12"
+      r="${OVERLAY_BADGE_CIRCLE_R}"
+      fill="${MARKER_FILL}"
+      stroke="${color}"
+      stroke-width="0.5"
+      stroke-opacity="${OVERLAY_BADGE_BORDER_OPACITY}"
+    />
+    <g
+      transform="translate(12 12) scale(${OVERLAY_BADGE_ICON_SCALE}) translate(-12 -12)"
+      fill="none"
+      stroke="${color}"
+      stroke-width="${OVERLAY_BADGE_ICON_STROKE}"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      ${iconMarkup}
+    </g>
+  </g>
+</svg>`.trim();
+}
+
+function buildDoneBadgeSvg() {
+  return buildOverlayBadgeSvg({
+    filterId: 'map-pin-done-shadow',
+    color: DONE_BADGE_GREEN,
+    iconMarkup: getIconMarkup(Check),
+  });
+}
+
+function buildLimitedBadgeSvg() {
+  return buildOverlayBadgeSvg({
+    filterId: 'map-pin-limited-shadow',
+    color: CATEGORY_COLORS.activities,
+    iconMarkup: getIconMarkup(Clock),
+  });
+}
+
+function buildTravelLinkedBadgeSvg() {
+  return buildOverlayBadgeSvg({
+    filterId: 'travel-plane-shadow',
+    color: CATEGORY_COLORS.travels,
+    iconMarkup: getIconMarkup(Plane),
+  });
 }
 
 function svgToImage(svgString) {
@@ -174,8 +279,81 @@ function svgToImage(svgString) {
   });
 }
 
+const globalImageCache = new Map();
+const imageBuildPromises = new Map();
+
+function getOrBuildCachedImage(imageId, buildSvg) {
+  const cached = globalImageCache.get(imageId);
+  if (cached) return Promise.resolve(cached);
+
+  const pending = imageBuildPromises.get(imageId);
+  if (pending) return pending;
+
+  const promise = svgToImage(buildSvg())
+    .then((image) => {
+      globalImageCache.set(imageId, image);
+      imageBuildPromises.delete(imageId);
+      return image;
+    })
+    .catch((err) => {
+      imageBuildPromises.delete(imageId);
+      throw err;
+    });
+
+  imageBuildPromises.set(imageId, promise);
+  return promise;
+}
+
+async function addCachedImageToMap(map, imageId, buildSvg) {
+  if (!map || map.hasImage(imageId)) return;
+
+  try {
+    const image = await getOrBuildCachedImage(imageId, buildSvg);
+    if (!map.hasImage(imageId)) {
+      map.addImage(imageId, image, { pixelRatio: 2 });
+    }
+  } catch (err) {
+    console.warn('addCachedImageToMap:', imageId, err.message);
+  }
+}
+
+export async function preloadMapMarkerImages(markers = []) {
+  const descriptors = collectMarkerImageDescriptors(markers);
+  await Promise.all([
+    getOrBuildCachedImage(MAP_MARKER_DONE_BADGE_ID, buildDoneBadgeSvg),
+    getOrBuildCachedImage(MAP_MARKER_LIMITED_BADGE_ID, buildLimitedBadgeSvg),
+    getOrBuildCachedImage(MAP_MARKER_TRAVEL_LINKED_BADGE_ID, buildTravelLinkedBadgeSvg),
+    ...descriptors.map((descriptor) => getOrBuildCachedImage(
+      descriptor.imageId,
+      () => buildMarkerSvg(descriptor),
+    )),
+  ]);
+}
+
+export async function ensureMapMarkerDoneBadge(map) {
+  await addCachedImageToMap(map, MAP_MARKER_DONE_BADGE_ID, buildDoneBadgeSvg);
+}
+
+export async function ensureMapMarkerLimitedBadge(map) {
+  await addCachedImageToMap(map, MAP_MARKER_LIMITED_BADGE_ID, buildLimitedBadgeSvg);
+}
+
+export async function ensureMapMarkerTravelLinkedBadge(map) {
+  await addCachedImageToMap(map, MAP_MARKER_TRAVEL_LINKED_BADGE_ID, buildTravelLinkedBadgeSvg);
+}
+
+export async function ensureMapMarkerOverlayBadges(map) {
+  await Promise.all([
+    ensureMapMarkerDoneBadge(map),
+    ensureMapMarkerLimitedBadge(map),
+    ensureMapMarkerTravelLinkedBadge(map),
+  ]);
+}
+
 export async function ensureMapMarkerImages(map, markers = []) {
   if (!map) return;
+
+  await ensureMapMarkerOverlayBadges(map);
 
   const descriptors = collectMarkerImageDescriptors(markers);
   const missing = descriptors.filter((descriptor) => !map.hasImage(descriptor.imageId));
@@ -183,18 +361,15 @@ export async function ensureMapMarkerImages(map, markers = []) {
 
   await Promise.all(missing.map(async (descriptor) => {
     if (map.hasImage(descriptor.imageId)) return;
-
-    try {
-      const image = await svgToImage(buildMarkerSvg(descriptor));
-      if (!map.hasImage(descriptor.imageId)) {
-        map.addImage(descriptor.imageId, image, { pixelRatio: 2 });
-      }
-    } catch (err) {
-      console.warn('ensureMapMarkerImages:', descriptor.imageId, err.message);
-    }
+    await addCachedImageToMap(
+      map,
+      descriptor.imageId,
+      () => buildMarkerSvg(descriptor),
+    );
   }));
 }
 
 export function resetMapMarkerImages() {
-  // Les images MapLibre sont recréées au prochain chargement de style.
+  globalImageCache.clear();
+  imageBuildPromises.clear();
 }

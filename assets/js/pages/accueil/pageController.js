@@ -22,7 +22,12 @@ import { mapPlaceHref } from '../../navigation/router.js';
 import { destroyCategoryDetailModals, initCategoryDetailModals } from '../../ui/category-detail-registry.js';
 import { initAddItem } from '../../ui/add-item.js';
 import { sidebarIcon } from '../../ui/sidebar.js';
+import { warmMapForApp } from '../carte/map-warmup.js';
 import { destroyHomeMapPreview, initHomeMapPreview } from './home-map-preview.js';
+import { destroyDaysStoryLoveHearts, initDaysStoryLoveHearts } from './days-story-love.js';
+import { renderActivityTypeIcon } from '../activites/IconsType.js';
+import { renderRestaurantTypeIcon } from '../restaurants/IconsType.js';
+import { renderTravelTypeIcon } from '../voyages/IconsType.js';
 
 const COLLECTION_IDS = ITEM_COLLECTIONS;
 const PICK_SCOPES = ['activities', 'restaurants', 'movies'];
@@ -247,6 +252,21 @@ function getNearbyOriginLngLat() {
   return getUserLocationLngLat() || MAP_FALLBACK_CENTER;
 }
 
+function renderNearbyPlaceIcon(categoryId, item) {
+  const iconOpts = { strokeWidth: 2, width: 16, height: 16 };
+
+  switch (categoryId) {
+    case 'activities':
+      return renderActivityTypeIcon(item?.categorie, iconOpts);
+    case 'restaurants':
+      return renderRestaurantTypeIcon(item?.type, iconOpts);
+    case 'travels':
+      return renderTravelTypeIcon(item?.type, iconOpts);
+    default:
+      return sidebarIcon(getCategoryById(categoryId)?.icon || 'activity');
+  }
+}
+
 function renderNearbyDistanceBadge(distanceLabel) {
   return `
     <span class="act-list-status home-nearby-place-distance-badge">
@@ -339,7 +359,7 @@ function renderNearbySection() {
         data-theme="${theme}"
         aria-label="Voir ${escapeHtml(title)} sur la carte"
       >
-        <span class="home-nearby-place-icon" aria-hidden="true">${sidebarIcon(cat?.icon || 'activity')}</span>
+        <span class="home-nearby-place-icon" aria-hidden="true">${renderNearbyPlaceIcon(categoryId, item)}</span>
         <span class="home-nearby-place-copy">
           <span class="home-nearby-place-tag">${escapeHtml(tag)}</span>
           <span class="home-nearby-place-title">${escapeHtml(title)}</span>
@@ -471,6 +491,7 @@ export function destroyHomePage() {
   stopNearbyLocationListener?.();
   stopNearbyLocationListener = null;
   destroyHomeMapPreview();
+  destroyDaysStoryLoveHearts();
   destroyDetailModals();
 }
 
@@ -485,6 +506,7 @@ export async function initHomePage(user, { addItemModal: sharedModal } = {}) {
   initDetailModals();
   initPageHeader();
   renderDaysCounter();
+  initDaysStoryLoveHearts();
 
   const todayInner = document.getElementById('home-today-inner');
   const nearbyInner = document.getElementById('home-nearby-inner');
@@ -557,6 +579,7 @@ async function loadHomeData() {
   renderNearbySection();
   renderShortcutsSection();
   renderExplorerSection();
+  void warmMapForApp();
 }
 
 export function refreshHomePage() {

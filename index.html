@@ -31,31 +31,37 @@
   <meta name="apple-mobile-web-app-title" content="Our Space">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="assets/css/variables.css?v=13">
+  <link rel="stylesheet" href="assets/css/variables.css?v=17">
   <link rel="stylesheet" href="assets/css/base.css?v=19">
-  <link rel="stylesheet" href="assets/css/splash.css?v=2">
-  <link rel="stylesheet" href="assets/css/auth.css?v=8">
-  <link rel="stylesheet" href="assets/css/layout.css?v=18">
-  <link rel="stylesheet" href="assets/css/home.css?v=55">
-  <link rel="stylesheet" href="assets/css/activities.css?v=67">
+  <link rel="stylesheet" href="assets/css/love-hearts.css?v=2">
+  <link rel="stylesheet" href="assets/css/splash.css?v=14">
+  <link rel="stylesheet" href="assets/css/auth.css?v=9">
+  <link rel="stylesheet" href="assets/css/layout.css?v=20">
+  <link rel="stylesheet" href="assets/css/home.css?v=60">
+  <link rel="stylesheet" href="assets/css/activities.css?v=72">
   <link rel="stylesheet" href="assets/css/maplibre-gl.css?v=1">
   <link rel="stylesheet" href="assets/css/map.css?v=9">
   <link rel="stylesheet" href="assets/css/item-author.css?v=8">
-  <link rel="stylesheet" href="assets/css/add-item.css?v=16">
+  <link rel="stylesheet" href="assets/css/add-item.css?v=20">
   <link rel="stylesheet" href="assets/css/settings.css?v=15">
 </head>
 <body class="splash-page">
   <div id="splash-view" class="splash-view" role="status" aria-live="polite" aria-label="Chargement">
+    <div class="love-hearts-field love-hearts-field--splash splash-corner-hearts" id="splash-corner-hearts" aria-hidden="true"></div>
     <div class="splash-content">
-      <div class="splash-icon-wrap">
+      <button type="button" class="splash-icon-wrap splash-heart-trigger" id="splash-heart-trigger" aria-label="Réveiller les cœurs">
         <span class="splash-loader-ring" aria-hidden="true"></span>
         <div class="splash-heart-ripples" aria-hidden="true">
-          <span class="splash-heart-ripple"></span>
-          <span class="splash-heart-ripple"></span>
-          <span class="splash-heart-ripple"></span>
+          <span class="splash-heart-ripple love-ripple"></span>
+          <span class="splash-heart-ripple love-ripple"></span>
+          <span class="splash-heart-ripple love-ripple"></span>
         </div>
-        <div class="splash-icon" id="splash-heart-icon"></div>
-      </div>
+        <div class="splash-icon" id="splash-heart-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
+          </svg>
+        </div>
+      </button>
       <p class="splash-title">Our Space</p>
     </div>
   </div>

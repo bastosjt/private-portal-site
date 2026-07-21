@@ -8,16 +8,18 @@ import { waitForTransition, nextFrame } from '../lib/transitions.js';
 import { lockScroll, unlockScroll } from '../lib/scroll-lock.js';
 import { sanitizeHttpsUrl } from '../lib/safe-url.js';
 import { escapeHtml } from '../lib/escape-html.js';
+import { getCategoryDoneToggleLabels } from '../lib/category-status-labels.js';
 import {
   createDetailModalOverlay,
   DETAIL_MODAL_MS,
   renderDoneToggle,
   updateDoneToggleUI,
+  wireModalDragClose,
 } from './item-detail-shared.js';
 import { paintItemAuthors, renderItemAuthorMarkup } from './item-author.js';
 
 const COLLECTION = 'wishlist';
-const DONE_LABELS = { done: 'Déjà obtenu', todo: 'Pas encore obtenu' };
+const DONE_LABELS = getCategoryDoneToggleLabels('wishlist');
 
 function getFieldLabel(category, fieldName, value) {
   return getFieldOptionLabel(category.id, fieldName, value);
@@ -200,6 +202,8 @@ export function initWishlistDetail({ onChanged, onEdit, theme = 'pink' } = {}) {
   async function close() {
     if (overlay.classList.contains('hidden')) return;
 
+    dragClose.reset();
+
     const rowToReveal = selectedRow;
 
     overlay.classList.remove('is-active');
@@ -234,8 +238,11 @@ export function initWishlistDetail({ onChanged, onEdit, theme = 'pink' } = {}) {
     }
   }, { signal });
 
+  const dragClose = wireModalDragClose(overlay, close);
+
   function destroy() {
     abort.abort();
+    dragClose.destroy();
     overlay.classList.remove('is-active');
     overlay.classList.add('hidden');
     document.body.classList.remove('modal-open');

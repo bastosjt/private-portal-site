@@ -6,16 +6,18 @@ import { getFieldOptionLabel, initCustomOptions } from '../lib/custom-types.js';
 import { waitForTransition, nextFrame } from '../lib/transitions.js';
 import { lockScroll, unlockScroll } from '../lib/scroll-lock.js';
 import { escapeHtml } from '../lib/escape-html.js';
+import { getCategoryDoneToggleLabels } from '../lib/category-status-labels.js';
 import {
   createDetailModalOverlay,
   DETAIL_MODAL_MS,
   renderDoneToggle,
   updateDoneToggleUI,
+  wireModalDragClose,
 } from './item-detail-shared.js';
 import { paintItemAuthors, renderItemAuthorMarkup } from './item-author.js';
 
 const COLLECTION = 'movies';
-const DONE_LABELS = { done: 'Déjà vu', todo: 'Pas encore vu' };
+const DONE_LABELS = getCategoryDoneToggleLabels('movies');
 
 function getFieldLabel(category, fieldName, value) {
   return getFieldOptionLabel(category.id, fieldName, value);
@@ -29,7 +31,7 @@ export function initMovieDetail({ onChanged, onEdit, theme = 'violet' } = {}) {
 
   const { overlay, bodyEl, closeBtn } = createDetailModalOverlay({
     overlayId: 'movie-detail-overlay',
-    title: 'Film',
+    title: 'Film & série',
     theme,
   });
   const abort = new AbortController();
@@ -143,6 +145,8 @@ export function initMovieDetail({ onChanged, onEdit, theme = 'violet' } = {}) {
   async function close() {
     if (overlay.classList.contains('hidden')) return;
 
+    dragClose.reset();
+
     overlay.classList.remove('is-active');
     document.body.classList.remove('modal-open');
     unlockScroll();
@@ -173,8 +177,11 @@ export function initMovieDetail({ onChanged, onEdit, theme = 'violet' } = {}) {
     }
   }, { signal });
 
+  const dragClose = wireModalDragClose(overlay, close);
+
   function destroy() {
     abort.abort();
+    dragClose.destroy();
     overlay.classList.remove('is-active');
     overlay.classList.add('hidden');
     document.body.classList.remove('modal-open');

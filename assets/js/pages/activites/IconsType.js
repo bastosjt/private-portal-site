@@ -9,6 +9,7 @@ import {
   Castle,
   Footprints,
   Landmark,
+  Mountain,
   Music,
   Popcorn,
   Puzzle,
@@ -28,6 +29,7 @@ const ICON_REGISTRY = {
   popcorn: Popcorn,
   sparkles: Sparkles,
   'biceps-flexed': BicepsFlexed,
+  mountain: Mountain,
   activity: RollerCoaster,
 };
 
@@ -42,6 +44,7 @@ const ACTIVITY_TYPE_ICONS = {
   cinema: 'popcorn',
   feux_d_artifice: 'sparkles',
   sport: 'biceps-flexed',
+  sommet: 'mountain',
 };
 
 export function getActivityTypeLucideIcon(categoryValue) {

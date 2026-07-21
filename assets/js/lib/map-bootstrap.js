@@ -1,4 +1,6 @@
 export const MAPLIBRE_WORKER_URL = 'assets/js/vendor/maplibre-gl-csp-worker.js';
+/** Crossfade tuiles vectorielles au chargement (ms). */
+export const MAP_TILE_FADE_MS = 400;
 
 export function getMapLibre() {
   const maplibregl = window.maplibregl;

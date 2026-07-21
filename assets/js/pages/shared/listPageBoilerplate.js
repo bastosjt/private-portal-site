@@ -97,6 +97,7 @@ export function createSortOnlyFilterSections(sortOptions, fields = []) {
 
 export function createMapFilterSections({
   statusOptions,
+  statusLabel = 'Statut',
   categoryOptions,
   getMapFieldOptions,
   typeFields = [],
@@ -104,7 +105,7 @@ export function createMapFilterSections({
   return [
     {
       id: 'status',
-      label: 'Statut',
+      label: statusLabel,
       mode: 'single',
       collapsible: false,
       options: statusOptions,

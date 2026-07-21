@@ -3,6 +3,7 @@ import { SETTINGS_THEME, getUserDisplayName } from '../config.js';
 import { setUserDisplayName } from '../lib/user-profile.js';
 import { renderNavIcon } from '../lib/lucide-icon.js';
 import { lockScroll, unlockScroll } from '../lib/scroll-lock.js';
+import { MODAL_DRAG_HANDLE_HTML, wireModalDragClose } from '../lib/modal-drag-close.js';
 
 function getInitialsFromName(name) {
   const parts = name.split(/\s+/).filter(Boolean);
@@ -44,6 +45,7 @@ export function initProfileDisplayNamePicker({ user, onChange, signal } = {}) {
   overlay.id = 'profile-display-name-overlay';
   overlay.innerHTML = `
     <div class="add-modal" role="dialog" aria-modal="true" aria-labelledby="profile-display-name-title">
+      ${MODAL_DRAG_HANDLE_HTML}
       <div class="add-modal-head">
         <button type="button" class="add-modal-back hidden" tabindex="-1" aria-hidden="true"></button>
         <h2 class="add-modal-title" id="profile-display-name-title">Pseudo</h2>
@@ -82,6 +84,7 @@ export function initProfileDisplayNamePicker({ user, onChange, signal } = {}) {
 
   const close = () => {
     if (!isOpen) return;
+    dragClose.reset();
     overlay.classList.remove('is-active');
     isOpen = false;
     window.setTimeout(() => {
@@ -141,7 +144,10 @@ export function initProfileDisplayNamePicker({ user, onChange, signal } = {}) {
   bodyEl.addEventListener('submit', onSubmit, { signal });
   document.addEventListener('keydown', onKeyDown, { signal });
 
+  const dragClose = wireModalDragClose(overlay, close);
+
   const destroy = () => {
+    dragClose.destroy();
     close();
     overlay.remove();
   };
