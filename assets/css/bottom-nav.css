@@ -4,10 +4,22 @@
   position: fixed;
   left: 0;
   right: 0;
-  bottom: 0;
+  bottom: var(--bottom-nav-bottom-gap);
   z-index: 180;
   pointer-events: none;
   overflow: visible;
+}
+
+/* Remplit l’espace sous la barre pour ne pas laisser voir le contenu */
+.bottom-nav::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(-1 * var(--bottom-nav-bottom-gap));
+  height: var(--bottom-nav-bottom-gap);
+  background: var(--surface);
+  pointer-events: none;
 }
 
 .bottom-nav-shell {

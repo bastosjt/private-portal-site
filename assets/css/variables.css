@@ -34,7 +34,14 @@
   --bottom-nav-fab-size: 58px;
   --bottom-nav-fab-drop: 10px;
   --bottom-nav-shape-lift: 15px;
-  --bottom-nav-offset: calc(var(--bottom-nav-bar-height) + 40px + var(--bottom-nav-shape-lift));
+  /* Remonte toute la barre (iPhone / home indicator) */
+  --bottom-nav-bottom-gap: 25px;
+  --bottom-nav-offset: calc(
+    var(--bottom-nav-bar-height)
+    + 40px
+    + var(--bottom-nav-shape-lift)
+    + var(--bottom-nav-bottom-gap)
+  );
   --page-mobile-bottom: calc(var(--bottom-nav-offset) + env(safe-area-inset-bottom, 0px));
   --bottom-nav-active: var(--accent);
 
