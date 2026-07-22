@@ -1,7 +1,6 @@
-import { COUPLE_START_DATE, HOME_CATEGORIES, MAP_THEME, getCategoryById, getUserDisplayName } from '../../config.js';
+import { COUPLE_START_DATE, MAP_THEME, getCategoryById, getUserDisplayName } from '../../config.js';
 import {
   ensurePrefetch,
-  findCachedItemById,
   getNearestMapPlacesFromCache,
   countGeolocatedPlacesFromCache,
   getCachedItems,
@@ -11,10 +10,6 @@ import {
 } from '../../data/appDataCache.js';
 import { getUserLocationLngLat, onUserLocationChange } from '../../lib/user-location.js';
 import { MAP_FALLBACK_CENTER } from '../carte/map-markers.js';
-import {
-  loadDailyPicks,
-  getDisplayedLatestPick,
-} from '../../firebase/dailyPicks.js';
 import { initCustomOptions } from '../../lib/custom-types.js';
 import { escapeHtml } from '../../lib/escape-html.js';
 import { renderNavIcon } from '../../lib/lucide-icon.js';
@@ -25,23 +20,17 @@ import { sidebarIcon } from '../../ui/sidebar.js';
 import { warmMapForApp } from '../carte/map-warmup.js';
 import { destroyHomeMapPreview, initHomeMapPreview } from './home-map-preview.js';
 import { destroyDaysStoryLoveHearts, initDaysStoryLoveHearts } from './days-story-love.js';
+import { renderExplorerSection } from '../../ui/explorer-section.js';
 import { renderActivityTypeIcon } from '../activites/IconsType.js';
 import { renderRestaurantTypeIcon } from '../restaurants/IconsType.js';
 import { renderTravelTypeIcon } from '../voyages/IconsType.js';
 
 const COLLECTION_IDS = ITEM_COLLECTIONS;
-const PICK_SCOPES = ['activities', 'restaurants', 'movies'];
-const PICK_CATEGORIES = [
-  { scope: 'activities', categoryId: 'activities' },
-  { scope: 'restaurants', categoryId: 'restaurants' },
-  { scope: 'movies', categoryId: 'movies' },
-];
 
 const HOME_DETAIL_CATEGORIES = ['activities', 'restaurants', 'movies', 'travels', 'wishlist'];
 
 let currentUserName = '';
 let addItemModal = null;
-let homeAbort = null;
 let stopNearbyLocationListener = null;
 let detailModals = {};
 
@@ -100,6 +89,8 @@ const SHORTCUT_CATEGORIES = [
   { categoryId: 'activities', getLabel: () => 'On fait quoi aujourd\'hui ?' },
   { categoryId: 'restaurants', getLabel: getMealCtaLabel },
   { categoryId: 'movies', getLabel: getMovieCtaLabel },
+  { categoryId: 'travels', getLabel: () => 'Où on part ensuite ?' },
+  { categoryId: 'wishlist', getLabel: () => 'Qu\'est-ce qu\'on rêve d\'avoir ?' },
 ];
 
 function getMealCtaLabel() {
@@ -116,31 +107,6 @@ function getMovieCtaLabel() {
   return 'On regarde quoi ce soir ?';
 }
 
-function getPickListEntries() {
-  const entries = [];
-
-  for (const { scope, categoryId } of PICK_CATEGORIES) {
-    const cat = getCategoryById(categoryId);
-    if (!cat) continue;
-
-    const displayed = getDisplayedLatestPick(scope);
-    if (!displayed?.id) continue;
-
-    const item = findCachedItemById(categoryId, displayed.id);
-    if (item) {
-      entries.push({ categoryId, category: cat, item });
-    }
-  }
-
-  return entries;
-}
-
-function buildPicksSubtitle(count) {
-  if (count === 0) return 'Aucune pioche enregistrée';
-  if (count === 1) return '1 pioche';
-  return `${count} pioches`;
-}
-
 function countTodoItems(categoryId) {
   return (getCachedItems(categoryId) ?? []).filter((item) => !item.done).length;
 }
@@ -150,19 +116,6 @@ function buildShortcutsSubtitle() {
   if (total === 0) return 'Ajoutez vos premières idées';
   if (total === 1) return '1 idée à explorer';
   return `${total} idées à explorer`;
-}
-
-function renderTodaySkeleton() {
-  return Array.from({ length: 2 }, () => `
-    <li class="home-pick-item home-pick-item--skeleton" aria-hidden="true">
-      <div class="skel-block skel-block--pick-icon skel-shimmer"></div>
-      <div class="home-pick-copy">
-        <div class="skel-block skel-block--pick-cat skel-shimmer"></div>
-        <div class="skel-block skel-block--pick-title skel-shimmer"></div>
-      </div>
-      <div class="skel-block skel-block--pick-detail skel-shimmer"></div>
-    </li>
-  `).join('');
 }
 
 function renderNearbySkeleton() {
@@ -179,72 +132,6 @@ function renderNearbySkeleton() {
         </div>
       `).join('')}
     </div>
-  `;
-}
-
-function renderPickItem({ categoryId, category, item }, index) {
-  const title = getItemTitle(item, category.titleKey);
-  const shortLabel = category.label.replace(' & Séries', '');
-
-  return `
-    <li
-      class="home-pick-item"
-      data-theme="${category.theme}"
-      style="animation-delay: ${index * 40}ms"
-    >
-      <span class="home-pick-icon" aria-hidden="true">${sidebarIcon(category.icon)}</span>
-      <div class="home-pick-copy">
-        <span class="home-pick-cat">${escapeHtml(shortLabel)}</span>
-        <span class="home-pick-title">${escapeHtml(title)}</span>
-      </div>
-      <button
-        type="button"
-        class="home-pick-detail"
-        data-category-id="${categoryId}"
-        data-item-id="${escapeHtml(item.id)}"
-        aria-label="Voir le détail de ${escapeHtml(title)}"
-      >
-        Détail
-      </button>
-    </li>
-  `;
-}
-
-function renderTodaySection() {
-  const inner = document.getElementById('home-today-inner');
-  const subEl = document.getElementById('home-today-sub');
-  if (!inner) return;
-
-  if (inner.classList.contains('is-loading')) {
-    inner.innerHTML = `<ul class="home-picks-list">${renderTodaySkeleton()}</ul>`;
-    return;
-  }
-
-  const entries = getPickListEntries();
-
-  if (subEl) {
-    subEl.textContent = buildPicksSubtitle(entries.length);
-  }
-
-  if (!entries.length) {
-    inner.innerHTML = `
-      <div class="home-picks-empty">
-        <p>Aucune pioche pour l'instant</p>
-        <span class="home-picks-empty-hint">Tirez le dé depuis Activités, Restaurants ou Films</span>
-        <div class="home-picks-empty-links">
-          <a href="#activites" class="home-picks-empty-link" data-theme="cyan">Activités</a>
-          <a href="#restaurants" class="home-picks-empty-link" data-theme="rose">Restaurants</a>
-          <a href="#films" class="home-picks-empty-link" data-theme="violet">Films</a>
-        </div>
-      </div>
-    `;
-    return;
-  }
-
-  inner.innerHTML = `
-    <ul class="home-picks-list" role="list">
-      ${entries.map((entry, index) => renderPickItem(entry, index)).join('')}
-    </ul>
   `;
 }
 
@@ -425,40 +312,6 @@ function renderShortcutsSection() {
   }).join('');
 }
 
-function renderExplorerMapCard() {
-  const totalPlaces = countGeolocatedPlacesFromCache();
-
-  return `
-    <a href="#carte" class="cat-card cat-card--stat" data-theme="${MAP_THEME}" aria-label="Ouvrir la carte interactive">
-      <div class="cat-card-inner">
-        <span class="cat-card-glow" aria-hidden="true"></span>
-        <span class="cat-card-icon" aria-hidden="true">${sidebarIcon('map')}</span>
-        <span class="cat-card-value">${totalPlaces}</span>
-        <span class="cat-card-label">Carte interactive</span>
-      </div>
-    </a>
-  `;
-}
-
-function renderExplorerSection() {
-  const explorerEl = document.getElementById('home-explorer');
-  if (!explorerEl) return;
-
-  explorerEl.innerHTML = renderExplorerMapCard() + HOME_CATEGORIES.map((cat) => {
-    const count = getCollectionCountFromCache(cat.id);
-    return `
-      <a href="${cat.href}" class="cat-card cat-card--stat" data-theme="${cat.theme}">
-        <div class="cat-card-inner">
-          <span class="cat-card-glow" aria-hidden="true"></span>
-          <span class="cat-card-icon" aria-hidden="true">${sidebarIcon(cat.icon)}</span>
-          <span class="cat-card-value">${count}</span>
-          <span class="cat-card-label">${escapeHtml(cat.label)}</span>
-        </div>
-      </a>
-    `;
-  }).join('');
-}
-
 function initDetailModals() {
   destroyCategoryDetailModals(detailModals);
   detailModals = initCategoryDetailModals(HOME_DETAIL_CATEGORIES, {
@@ -471,23 +324,7 @@ function destroyDetailModals() {
   detailModals = {};
 }
 
-function openItemDetail(categoryId, itemId) {
-  const item = findCachedItemById(categoryId, itemId);
-  const modal = detailModals[categoryId];
-  if (!item || !modal) return;
-  modal.open(item);
-}
-
-function onHomeClick(event) {
-  const detailBtn = event.target.closest('.home-pick-detail[data-item-id]');
-  if (!detailBtn) return;
-  event.preventDefault();
-  openItemDetail(detailBtn.dataset.categoryId, detailBtn.dataset.itemId);
-}
-
 export function destroyHomePage() {
-  homeAbort?.abort();
-  homeAbort = null;
   stopNearbyLocationListener?.();
   stopNearbyLocationListener = null;
   destroyHomeMapPreview();
@@ -498,8 +335,6 @@ export function destroyHomePage() {
 export async function initHomePage(user, { addItemModal: sharedModal } = {}) {
   destroyHomePage();
   await initCustomOptions();
-  homeAbort = new AbortController();
-  const { signal } = homeAbort;
 
   currentUserName = getUserDisplayName(user);
   addItemModal = sharedModal ?? initAddItem({ user, onAdded: () => loadHomeData() });
@@ -508,15 +343,10 @@ export async function initHomePage(user, { addItemModal: sharedModal } = {}) {
   renderDaysCounter();
   initDaysStoryLoveHearts();
 
-  const todayInner = document.getElementById('home-today-inner');
   const nearbyInner = document.getElementById('home-nearby-inner');
 
-  if (todayInner && !todayInner.innerHTML) {
-    todayInner.innerHTML = `<ul class="home-picks-list">${renderTodaySkeleton()}</ul>`;
-  }
   if (nearbyInner && !nearbyInner.innerHTML) nearbyInner.innerHTML = renderNearbySkeleton();
 
-  document.addEventListener('click', onHomeClick, { signal });
   stopNearbyLocationListener = onUserLocationChange(() => {
     const nearbyInner = document.getElementById('home-nearby-inner');
     if (nearbyInner && !nearbyInner.classList.contains('is-loading')) {
@@ -563,22 +393,19 @@ async function loadHomeData() {
   await initCustomOptions();
   await ensurePrefetch();
 
-  await Promise.all(PICK_SCOPES.map((scope) => loadDailyPicks(scope)));
-
   const total = COLLECTION_IDS.reduce((sum, id) => sum + getCollectionCountFromCache(id), 0);
   const weekCount = getWeekItemsCountFromCache(COLLECTION_IDS);
   initPageHeader(total, weekCount);
 
-  const todayInner = document.getElementById('home-today-inner');
   const nearbyInner = document.getElementById('home-nearby-inner');
 
-  todayInner?.classList.remove('is-loading');
   nearbyInner?.classList.remove('is-loading');
 
-  renderTodaySection();
   renderNearbySection();
   renderShortcutsSection();
-  renderExplorerSection();
+  if (window.matchMedia('(min-width: 640px)').matches) {
+    renderExplorerSection();
+  }
   void warmMapForApp();
 }
 

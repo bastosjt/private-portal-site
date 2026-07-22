@@ -28,6 +28,16 @@
   --fab-inset-x: var(--page-inset-x);
   --fab-inset-bottom: 18px;
 
+  /* Bottom navigation (mobile) */
+  --bottom-nav-bar-height: 64px;
+  --bottom-nav-icon-size: 46px;
+  --bottom-nav-fab-size: 58px;
+  --bottom-nav-fab-drop: 10px;
+  --bottom-nav-shape-lift: 15px;
+  --bottom-nav-offset: calc(var(--bottom-nav-bar-height) + 40px + var(--bottom-nav-shape-lift));
+  --page-mobile-bottom: calc(var(--bottom-nav-offset) + env(safe-area-inset-bottom, 0px));
+  --bottom-nav-active: var(--accent);
+
   --error: #f87171;
 
   --radius-sm: 14px;

@@ -26,6 +26,7 @@ import {
 import { buildFieldFilterOptions } from './filterOptions.js';
 import { normalizeSearchText } from '../../lib/normalize-search.js';
 import { escapeHtml } from '../../lib/escape-html.js';
+import { navigate } from '../../navigation/router.js';
 
 export const DEFAULT_SORT_OPTIONS = [
   { id: 'alpha', label: 'Ordre alphabétique', shortLabel: 'A → Z' },
@@ -96,11 +97,17 @@ export function createListPageController(config) {
     pageRootClass = 'activities-page',
     searchKeys = null,
     renderListGroups = null,
+    renderGroupListItem = null,
+    renderGroupHead = null,
+    resolveListItemFromRow = null,
+    preloadCollections = [],
+    watchCollections = [],
     listControlsMount = null,
     filterBadgeExcludeKeys = [],
     filterByStatus = null,
     excludeTravelLinkedFromList = false,
     defaultCollapsedGroups = ['done'],
+    enablePick = true,
   } = config;
 
   let allItems = [];
@@ -113,6 +120,7 @@ export function createListPageController(config) {
   let filterModal = null;
   let listControls = null;
   let collapsedListGroups = new Set(defaultCollapsedGroups);
+  let seededCollapsedGroups = new Set();
   let isRolling = false;
   let pageAbort = null;
   let currentUserUid = null;
@@ -474,6 +482,7 @@ export function createListPageController(config) {
   }
 
   function updatePickCard() {
+    if (!enablePick) return;
     const wrap = document.getElementById('act-pick-wrap');
     const inner = document.getElementById('act-pick-inner');
     const body = document.getElementById('act-pick-body');
@@ -636,17 +645,25 @@ export function createListPageController(config) {
     if (groups?.length) {
       let itemIndex = 0;
       listEl.innerHTML = groups.map((group) => {
+        if (group.defaultCollapsed && !seededCollapsedGroups.has(group.id)) {
+          collapsedListGroups.add(group.id);
+          seededCollapsedGroups.add(group.id);
+        }
+
         const collapsed = group.collapsible && collapsedListGroups.has(group.id);
         const groupItems = group.items.map((item) => {
-          const markup = renderListItemMarkup(item, itemIndex, { animate });
+          const renderItem = renderGroupListItem || renderListItemMarkup;
+          const markup = renderItem(item, itemIndex, { animate, escapeHtml });
           itemIndex += 1;
           return markup;
         }).join('');
 
-        if (!groupItems) return '';
+        if (!groupItems && !renderGroupHead) return '';
 
-        const headMarkup = group.collapsible
-          ? `
+        const headMarkup = renderGroupHead
+          ? renderGroupHead(group, { collapsed, escapeHtml })
+          : group.collapsible
+            ? `
             <button
               type="button"
               class="act-list-group-toggle"
@@ -659,10 +676,12 @@ export function createListPageController(config) {
               </svg>
             </button>
           `
-          : `<div class="act-list-group-head"><span class="act-list-group-label">${escapeHtml(group.label)}</span></div>`;
+            : `<div class="act-list-group-head"><span class="act-list-group-label">${escapeHtml(group.label)}</span></div>`;
+
+        const groupClass = group.groupClass ? ` ${group.groupClass}` : '';
 
         return `
-          <li class="act-list-group${collapsed ? ' is-collapsed' : ''}" data-group-id="${escapeHtml(group.id)}">
+          <li class="act-list-group${groupClass}${collapsed ? ' is-collapsed' : ''}" data-group-id="${escapeHtml(group.id)}">
             ${headMarkup}
             <ul class="act-list-group-items"${collapsed ? ' hidden' : ''}>
               ${groupItems}
@@ -704,6 +723,11 @@ export function createListPageController(config) {
 
   function handleItemChange(changedCollection, itemId, meta = {}) {
     if (changedCollection !== collection) {
+      if (watchCollections.includes(changedCollection)) {
+        refreshListView();
+        updatePickCard();
+        return;
+      }
       loadPageData();
       return;
     }
@@ -787,6 +811,14 @@ export function createListPageController(config) {
   const itemIdDatasetKey = dataAttrToDatasetKey(itemIdAttr);
 
   function bindEvents(signal) {
+    document.getElementById('page-header-back')?.addEventListener('click', () => {
+      if (window.history.length > 1) {
+        window.history.back();
+      } else {
+        navigate('explorer');
+      }
+    }, { signal });
+
     document.getElementById('dice-roll-btn')?.addEventListener('click', rollDice, { signal });
 
     document.getElementById('act-pick-wrap')?.addEventListener('click', (event) => {
@@ -822,6 +854,16 @@ export function createListPageController(config) {
         groupEl.classList.toggle('is-collapsed', willCollapse);
         groupToggle.setAttribute('aria-expanded', willCollapse ? 'false' : 'true');
         panel.toggleAttribute('hidden', willCollapse);
+        groupEl.querySelectorAll('[data-group-toggle]').forEach((btn) => {
+          btn.setAttribute('aria-expanded', willCollapse ? 'false' : 'true');
+        });
+        return;
+      }
+
+      const travelEmbed = event.target.closest('.travel-group-body');
+      if (travelEmbed) {
+        const item = resolveListItemFromRow?.(travelEmbed);
+        if (item) detailModal.open(item);
         return;
       }
 
@@ -830,18 +872,18 @@ export function createListPageController(config) {
         return;
       }
       if (event.target.closest('.act-location')) return;
-      const row = event.target.closest(`[${itemIdAttr}]`);
+      const row = event.target.closest(`[${itemIdAttr}], [data-activity-id], [data-restaurant-id]`);
       if (!row || !detailModal) return;
-      const item = findItemById(row.dataset[itemIdDatasetKey]);
+      const item = resolveListItemFromRow?.(row) ?? findItemById(row.dataset[itemIdDatasetKey]);
       if (item) detailModal.open(item);
     }, { signal });
 
     document.getElementById(dom.listId)?.addEventListener('keydown', (event) => {
       if (event.key !== 'Enter' && event.key !== ' ') return;
-      const row = event.target.closest(`[${itemIdAttr}]`);
+      const row = event.target.closest(`[${itemIdAttr}], [data-activity-id], [data-restaurant-id]`);
       if (!row || !detailModal) return;
       event.preventDefault();
-      const item = findItemById(row.dataset[itemIdDatasetKey]);
+      const item = resolveListItemFromRow?.(row) ?? findItemById(row.dataset[itemIdDatasetKey]);
       if (item) detailModal.open(item);
     }, { signal });
 
@@ -879,13 +921,14 @@ export function createListPageController(config) {
 
     const [items] = await Promise.all([
       ensureItems(collection, { force }),
-      loadDailyPicks(pickScope),
+      ...preloadCollections.map((name) => ensureItems(name, { force: false })),
+      ...(enablePick ? [loadDailyPicks(pickScope)] : []),
     ]);
 
     allItems = normalizeListItems(items);
     pruneActiveFilters();
     updateHeader(allItems);
-    updatePickCard();
+    if (enablePick) updatePickCard();
     refreshListView();
   }
 
@@ -901,6 +944,7 @@ export function createListPageController(config) {
     activeFilters = { ...filterDefaults };
     searchQuery = '';
     collapsedListGroups = new Set(defaultCollapsedGroups);
+    seededCollapsedGroups = new Set();
     listControls = null;
     pageAbort?.abort();
     pageAbort = null;
@@ -921,7 +965,7 @@ export function createListPageController(config) {
 
     getUserDisplayName(user);
 
-    if (new URLSearchParams(window.location.search).get('reset-pioche') === '1') {
+    if (enablePick && new URLSearchParams(window.location.search).get('reset-pioche') === '1') {
       await resetTodayPicks(pickScope);
       const url = new URL(window.location.href);
       url.searchParams.delete('reset-pioche');
@@ -941,7 +985,7 @@ export function createListPageController(config) {
       onChanged: (changedCollection, itemId, meta) => handleItemChange(changedCollection, itemId, meta),
       onEdit: async (item) => {
         await detailModal.close();
-        addItemModal.openEdit(categoryId, item);
+        addItemModal.openEdit(item._editCategory || categoryId, item);
       },
     });
 

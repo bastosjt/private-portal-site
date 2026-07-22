@@ -1213,6 +1213,13 @@
   margin-bottom: 0;
 }
 
+/* En liste, ne pas laisser le viewport carte étirer la page */
+.activities-page:not(.is-map-view) .act-map-block,
+.activities-page:not(.is-map-view) .act-map-viewport {
+  flex: none;
+  min-height: 0;
+}
+
 .activities-page .act-map-viewport .act-cat-panel:not(.act-cat-panel--map) {
   padding: 14px;
 }
@@ -2460,8 +2467,10 @@
   }
 
   .act-map-block {
-    --act-map-section-inset: 16px;
-    --act-map-section-gap: 12px;
+    margin-top: 12px;
+    padding-top: 0;
+    padding-bottom: 0;
+    gap: 0;
   }
 
   .activities-page .act-map-viewport .act-cat-panel:not(.act-cat-panel--map),
@@ -2750,6 +2759,165 @@
   list-style: none;
   margin: 0;
   padding: 0;
+}
+
+/* ── Voyages : chaque destination = un encadré ── */
+.act-cat-panel:has(.act-list-group--travel) {
+  padding: 0 !important;
+  background: none;
+  border: none;
+  box-shadow: none;
+  overflow: visible;
+}
+
+.act-cat-panel:has(.act-list-group--travel)::before,
+.act-cat-panel:has(.act-list-group--travel) > .cat-panel-accent {
+  display: none;
+}
+
+.act-cat-panel:has(.act-list-group--travel) > .act-list-toolbar {
+  margin-bottom: 14px;
+  padding: 0 2px;
+}
+
+.act-list.act-list--grouped:has(.act-list-group--travel) {
+  gap: 16px;
+}
+
+.act-list-group--travel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 18px 18px 14px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(160deg, var(--cat-bg) 0%, var(--surface) 55%);
+  border: 1px solid var(--cat-border);
+  box-shadow: var(--neu-up-sm);
+  overflow: hidden;
+  list-style: none;
+}
+
+.act-list-group--travel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(160deg, var(--cat-soft) 0%, transparent 42%);
+  pointer-events: none;
+}
+
+.act-list-group--travel > * {
+  position: relative;
+  z-index: 1;
+}
+
+.travel-group-head {
+  margin: 0;
+}
+
+.travel-group-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.travel-group-body {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  overflow: visible;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: var(--text-primary);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.travel-group-body:hover {
+  opacity: 0.96;
+}
+
+.travel-group-body:active {
+  opacity: 0.92;
+}
+
+.travel-group-body .act-list-item-head h3 {
+  color: var(--text-primary);
+}
+
+.travel-group-body .act-schedule-note {
+  width: 100%;
+  margin-top: 0;
+  background: color-mix(in srgb, var(--cat-color) 14%, transparent);
+  border-color: color-mix(in srgb, var(--cat-color) 28%, transparent);
+}
+
+.travel-group-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  margin: 2px 0 0;
+  padding: 10px 2px 0;
+  border: none;
+  border-top: 1px solid color-mix(in srgb, var(--cat-border) 70%, transparent);
+  border-radius: 0;
+  background: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.travel-group-toggle:hover {
+  color: var(--text-primary);
+}
+
+.travel-group-toggle:active {
+  opacity: 0.85;
+}
+
+.act-list-group--travel.is-collapsed .travel-group-toggle .act-list-group-chevron {
+  transform: rotate(-90deg);
+}
+
+.act-list-group--travel .act-list-group-items {
+  margin-top: 10px;
+  padding-left: 0;
+}
+
+.act-list-group--travel.is-collapsed .act-list-group-items {
+  display: none;
+}
+
+.act-list-group + .act-list-group {
+  margin-top: 4px;
+}
+
+.act-list-group--travel + .act-list-group--travel {
+  margin-top: 0;
+}
+
+@media (max-width: 540px) {
+  .act-list.act-list--grouped:has(.act-list-group--travel) {
+    gap: 14px;
+  }
+
+  .act-list-group--travel {
+    padding: 16px 14px 12px;
+  }
 }
 
 .wishlist-page .act-list-item.is-selected .act-list-item-inner {

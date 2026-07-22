@@ -1,5 +1,7 @@
 import { createElement } from '../vendor/lucide.mjs';
 import {
+  ArrowLeft,
+  ChevronLeft,
   Bird,
   Bug,
   Cat,
@@ -8,6 +10,8 @@ import {
   Dog,
   Fish,
   Filter,
+  Grid2x2,
+  LayoutGrid,
   Heart,
   House,
   Layers,
@@ -16,6 +20,7 @@ import {
   Origami,
   Panda,
   Plane,
+  Plus,
   Rabbit,
   Rat,
   RollerCoaster,
@@ -48,6 +53,10 @@ export function renderLucideIcon(Icon, { strokeWidth = 2, width, height, ...attr
 /** Icônes de navigation (clés = champ `icon` dans config.js). */
 const NAV_ICON_COMPONENTS = {
   home: House,
+  'grid2x2': Grid2x2,
+  'layout-grid': LayoutGrid,
+  'arrow-left': ArrowLeft,
+  'chevron-left': ChevronLeft,
   map: Map,
   activity: RollerCoaster,
   restaurant: Utensils,
@@ -74,13 +83,26 @@ const NAV_ICON_COMPONENTS = {
   'user-pen': UserPen,
   close: X,
   menu: Menu,
+  plus: Plus,
   filter: Filter,
   search: Search,
   layers: Layers,
 };
 
-export function renderNavIcon(name, { strokeWidth, width, height, ...attrs } = {}) {
+export function renderNavIcon(name, { strokeWidth, width, height, fill, ...attrs } = {}) {
   const Icon = NAV_ICON_COMPONENTS[name] || House;
   const resolvedStrokeWidth = strokeWidth ?? (name === 'activity' ? 2 : 1.75);
-  return renderLucideIcon(Icon, { strokeWidth: resolvedStrokeWidth, width, height, ...attrs });
+  const resolvedFill = fill ?? (name === 'heart-filled' ? 'currentColor' : 'none');
+  const resolvedStroke = name === 'heart-filled' ? 'none' : 'currentColor';
+  const iconName = name === 'heart-filled' ? 'heart-filled' : name;
+  const Component = iconName === 'heart-filled' ? Heart : Icon;
+
+  return renderLucideIcon(Component, {
+    strokeWidth: resolvedStrokeWidth,
+    width,
+    height,
+    fill: resolvedFill,
+    stroke: resolvedStroke,
+    ...attrs,
+  });
 }

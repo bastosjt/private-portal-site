@@ -2,7 +2,6 @@ import { CalendarClock } from '../../vendor/lucide.mjs';
 import { getCategoryById } from '../../config.js';
 import { renderLucideIcon } from '../../lib/lucide-icon.js';
 import { renderTravelTypeIcon } from './IconsType.js';
-import { initTravelDetail } from '../../ui/travel-detail.js';
 import {
   createCategoryStatusFilterOptions,
   getCategoryStatusLabels,
@@ -14,6 +13,13 @@ import {
 } from '../shared/listPageBoilerplate.js';
 import { renderPinLocation, renderGlobeLocation } from '../shared/listLocation.js';
 import { createMapTabOptions } from '../shared/listMapSection.js';
+import {
+  initTravelHubDetail,
+  renderTravelGroupHead,
+  renderTravelGroupListItem,
+  renderTravelListGroups,
+  resolveTravelListItemFromRow,
+} from './travel-list-groups.js';
 
 const TRAVEL_STATUS = getCategoryStatusLabels('travels');
 const STATUS_FILTER_OPTIONS = createCategoryStatusFilterOptions('travels');
@@ -68,9 +74,9 @@ function renderTravelCountry(item, ctx) {
 const { init, destroy, refresh } = createListPageController({
   categoryId: 'travels',
   collection: 'travels',
-  pickScope: 'travels',
   theme: getCategoryById('travels')?.theme || 'blue',
   titleKey: 'destination',
+  enablePick: false,
   dom: {
     listId: 'voyages-list',
     listPanelId: 'voyages-list-panel',
@@ -102,13 +108,15 @@ const { init, destroy, refresh } = createListPageController({
     emptyNone: 'Aucun voyage enregistré',
     emptyFiltered: 'Aucun voyage ne correspond à ces filtres',
     addCta: 'Ajouter un voyage',
-    pickEmptyText: 'Ajoutez des destinations pour commencer.',
-    pickAllDoneText: 'Toutes vos destinations sont réalisées.',
-    pickIdleText: 'Lancez le dé pour piocher une destination',
-    pickQuotaExhaustedText: 'Vous avez pioché toutes vos destinations disponibles. Revenez demain !',
   }),
   sidebarIconKey: 'travel',
-  initDetail: initTravelDetail,
+  initDetail: initTravelHubDetail,
+  renderListGroups: renderTravelListGroups,
+  renderGroupHead: renderTravelGroupHead,
+  renderGroupListItem: renderTravelGroupListItem,
+  resolveListItemFromRow: resolveTravelListItemFromRow,
+  preloadCollections: ['activities', 'restaurants'],
+  watchCollections: ['activities', 'restaurants'],
   renderTypeIcon: (item) => renderTravelTypeIcon(item.type),
   renderListMeta: (item, ctx) =>
     `<p class="act-list-meta">${ctx.escapeHtml(getTravelMetaLine(item, ctx))}</p>`,

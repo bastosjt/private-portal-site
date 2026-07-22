@@ -2,7 +2,10 @@
   display: flex;
   flex-direction: column;
   gap: 36px;
-  padding-bottom: 12px;
+  padding-top: 0;
+  padding-bottom: 0;
+  margin-top: 0;
+  margin-bottom: 0;
 }
 
 .settings-section {
@@ -34,22 +37,8 @@
 }
 
 /* ── Panels ── */
-.settings-panel {
-  animation: settings-fade-in 0.4s ease both;
-}
-
 .settings-panel--spaced {
   margin-top: 14px;
-}
-
-.settings-panel:nth-child(2) { animation-delay: 0.05s; }
-.settings-section:nth-child(3) .settings-panel { animation-delay: 0.1s; }
-.settings-section:nth-child(4) .settings-panel { animation-delay: 0.15s; }
-.settings-section:nth-child(5) .settings-panel { animation-delay: 0.2s; }
-
-@keyframes settings-fade-in {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
 }
 
 .settings-panel-inner {

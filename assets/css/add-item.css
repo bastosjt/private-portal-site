@@ -734,6 +734,11 @@ body.route-no-fab .fab {
 }
 
 @media (max-width: 639px) {
+  .fab {
+    display: none !important;
+    pointer-events: none;
+  }
+
   .add-modal-overlay {
     padding: 0;
     align-items: flex-end;

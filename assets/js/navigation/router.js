@@ -1,7 +1,12 @@
 import { NAV_ITEMS, SETTINGS_ITEM } from '../config.js';
 
+export const EXPLORER_ROUTE = 'explorer';
 const DEFAULT_ROUTE = 'accueil';
-const VALID_ROUTES = new Set([...NAV_ITEMS.map((item) => item.id), SETTINGS_ITEM.id]);
+const VALID_ROUTES = new Set([
+  ...NAV_ITEMS.map((item) => item.id),
+  SETTINGS_ITEM.id,
+  EXPLORER_ROUTE,
+]);
 
 export function getRouteFromHash() {
   const raw = window.location.hash.replace(/^#\/?/, '').split('?')[0];
