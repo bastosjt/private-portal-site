@@ -24,6 +24,7 @@ const LIST_MAP_BLOCK = renderListMapViewBlock({
 
 export const VOYAGES_VIEW_HTML = renderCategoryListPageView({
   theme: THEME,
+  includePick: false,
   headerHtml: renderListPageHeader({
     theme: THEME,
     menuIconHtml: renderNavIcon('menu', { strokeWidth: 1.75 }),
@@ -31,8 +32,8 @@ export const VOYAGES_VIEW_HTML = renderCategoryListPageView({
     pageTitle: 'Voyages',
   }),
   listSectionHtml: renderListSection({
-    listHeading: 'Toutes nos destinations',
-    listSub: 'Votre liste complète',
+    listHeading: 'Nos destinations',
+    listSub: 'Activités et adresses regroupées par voyage',
     body: LIST_MAP_BLOCK,
   }),
 });

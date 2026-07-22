@@ -1,3 +1,5 @@
+import { renderNavIcon } from '../../lib/lucide-icon.js';
+
 const DICE_BTN_ICON = `
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
     <rect width="18" height="18" x="3" y="3" rx="2"/>
@@ -6,13 +8,20 @@ const DICE_BTN_ICON = `
 `;
 
 export function renderListPageHeader({ theme, menuIconHtml, mobileIconHtml, pageTitle }) {
+  const backIconHtml = renderNavIcon('chevron-left', { strokeWidth: 2, width: 20, height: 20 });
+
   return `
   <header class="page-header page-header--themed page-header--activities" data-theme="${theme}">
     <button type="button" class="btn-menu" id="menu-toggle" aria-label="Ouvrir le menu">
       ${menuIconHtml}
     </button>
-    <div class="page-header-mobile-icon" data-theme="${theme}" aria-hidden="true">
-      ${mobileIconHtml}
+    <div class="page-header-mobile-group">
+      <button type="button" class="page-header-mobile-icon page-header-back" id="page-header-back" data-theme="${theme}" aria-label="Retour">
+        ${backIconHtml}
+      </button>
+      <div class="page-header-mobile-icon" data-theme="${theme}" aria-hidden="true">
+        ${mobileIconHtml}
+      </div>
     </div>
     <div class="page-header-content">
       <h1 class="page-header-title" id="page-title">${pageTitle}</h1>

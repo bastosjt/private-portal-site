@@ -6,6 +6,7 @@ import { isAllowedUser } from './auth/session.js';
 import { NAV_ITEMS, APP_NAME, APP_VERSION, SETTINGS_ITEM, renderVersionBadgeHtml } from './config.js';
 import { initRouter, navigate } from './navigation/router.js';
 import { renderSidebar, initSidebar, updateSidebarActive } from './ui/sidebar.js';
+import { renderBottomNav, initBottomNav, updateBottomNavActive } from './bottom-nav.js';
 import { initAddItem } from './ui/add-item.js';
 import { waitForTransition, nextFrame } from './lib/transitions.js';
 import { initSplash, dismissSplash } from './ui/splash.js';
@@ -26,10 +27,13 @@ import { init as initWishlist, destroy as destroyWishlist, refresh as refreshWis
 import { init as initVoyages, destroy as destroyVoyages, refresh as refreshVoyages, VOYAGES_VIEW_HTML } from './pages/voyages/index.js';
 import { init as initCarte, destroy as destroyCarte, refresh as refreshCarte, MAP_VIEW_HTML } from './pages/carte/index.js';
 import { init as initParametres, destroy as destroyParametres, refresh as refreshParametres, SETTINGS_VIEW_HTML } from './pages/parametres/index.js';
+import { init as initExplorer, destroy as destroyExplorer, refresh as refreshExplorer, EXPLORER_VIEW_HTML } from './pages/explorer/index.js';
 import { getPlaceholderViewHtml } from './navigation/placeholder.js';
+import { EXPLORER_ROUTE } from './navigation/router.js';
 
 const PAGE_TITLES = {
   accueil: 'Accueil',
+  explorer: 'Explorer',
   carte: 'Carte interactive',
   activites: 'Activités',
   restaurants: 'Restaurants',
@@ -44,6 +48,7 @@ let currentRoute = null;
 let addItemModal = null;
 let stopRouter = null;
 let sidebarInitialized = false;
+let bottomNavInitialized = false;
 let pageTransitionToken = 0;
 let stopDailyPickReset = null;
 let splashActive = true;
@@ -61,6 +66,7 @@ const authView = document.getElementById('auth-view');
 const appView = document.getElementById('app-view');
 const pageRoot = document.getElementById('page-root');
 const sidebarRoot = document.getElementById('sidebar-root');
+const bottomNavRoot = document.getElementById('bottom-nav-root');
 
 function markBootMountDone() {
   if (bootMountResolved) return;
@@ -82,6 +88,7 @@ function destroyCurrentView() {
   destroyWishlist();
   destroyVoyages();
   destroyParametres();
+  destroyExplorer();
 }
 
 function refreshCurrentViewNow() {
@@ -93,6 +100,7 @@ function refreshCurrentViewNow() {
   if (currentRoute === 'wishlist') return refreshWishlist();
   if (currentRoute === 'voyages') return refreshVoyages();
   if (currentRoute === 'parametres') return refreshParametres();
+  if (currentRoute === EXPLORER_ROUTE) return refreshExplorer();
   return undefined;
 }
 
@@ -146,6 +154,7 @@ async function mountRoute(routeId) {
   currentRoute = routeId;
   setPageTitle(routeId);
   updateSidebarActive(routeId);
+  updateBottomNavActive(routeId);
   document.body.classList.toggle('route-no-fab', routeId === 'parametres' || routeId === 'carte');
 
   document.body.classList.toggle('app-page', true);
@@ -235,6 +244,14 @@ async function mountRoute(routeId) {
     return;
   }
 
+  if (routeId === EXPLORER_ROUTE) {
+    pageRoot.innerHTML = EXPLORER_VIEW_HTML;
+    await finishPageEnter();
+    if (token !== pageTransitionToken) return;
+    await initExplorer();
+    return;
+  }
+
   pageRoot.innerHTML = getPlaceholderViewHtml(routeId);
   await finishPageEnter();
   } finally {
@@ -258,6 +275,7 @@ function showAuthView({ reveal = true } = {}) {
   currentUser = null;
   currentRoute = null;
   sidebarInitialized = false;
+  bottomNavInitialized = false;
 
   document.body.classList.add('auth-page');
   document.body.classList.remove('app-page', 'route-no-fab');
@@ -301,6 +319,17 @@ async function showAppView(user, { reveal = true, awaitData = false } = {}) {
     sidebarInitialized = true;
   } else {
     updateSidebarActive();
+  }
+
+  if (!bottomNavInitialized) {
+    renderBottomNav(bottomNavRoot, { activeId: currentRoute || 'accueil' });
+    initBottomNav({
+      onNavigate: (routeId) => navigate(routeId),
+      onAdd: () => ensureSharedAddItem(currentUser)?.open?.(),
+    });
+    bottomNavInitialized = true;
+  } else {
+    updateBottomNavActive(currentRoute || 'accueil');
   }
 
   if (!stopRouter) {
@@ -436,7 +465,7 @@ document.addEventListener('click', (event) => {
   if (!link || !currentUser) return;
 
   const routeId = link.getAttribute('href').replace(/^#\/?/, '');
-  const validRoutes = new Set([...NAV_ITEMS.map((item) => item.id), SETTINGS_ITEM.id]);
+  const validRoutes = new Set([...NAV_ITEMS.map((item) => item.id), SETTINGS_ITEM.id, EXPLORER_ROUTE]);
   if (!validRoutes.has(routeId)) return;
 
   event.preventDefault();

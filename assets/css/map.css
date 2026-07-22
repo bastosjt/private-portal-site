@@ -2,10 +2,15 @@
 .app-main:has(.map-page) {
   display: flex;
   flex-direction: column;
-  height: 100dvh;
-  min-height: 100dvh;
   overflow: hidden;
-  padding-bottom: clamp(20px, 2.5vw, 48px);
+}
+
+@media (min-width: 640px) {
+  .app-main:has(.map-page) {
+    height: 100dvh;
+    min-height: 100dvh;
+    padding-bottom: clamp(20px, 2.5vw, 48px);
+  }
 }
 
 .map-page {
@@ -597,11 +602,34 @@
   to { transform: rotate(360deg); }
 }
 
-@media (max-width: 900px) {
+@media (max-width: 639px) {
+  .app-main:has(.map-page) {
+    height: calc(100dvh - var(--page-mobile-bottom));
+    min-height: calc(100dvh - var(--page-mobile-bottom));
+    padding-bottom: 0;
+  }
+
+  .app-main:has(.map-page) .page-header {
+    margin-bottom: 16px;
+  }
+
+  .map-page .act-cat-panel--map.map-panel {
+    border-bottom-left-radius: var(--radius-md);
+    border-bottom-right-radius: var(--radius-md);
+  }
+
+  .map-controls {
+    bottom: 10px;
+  }
+}
+
+@media (max-width: 900px) and (min-width: 640px) {
   .app-main:has(.map-page) {
     padding-bottom: 18px;
   }
+}
 
+@media (max-width: 900px) {
   .map-controls {
     bottom: 10px;
   }

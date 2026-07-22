@@ -8,14 +8,14 @@ import { Timestamp } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-f
 
 export const ITEM_COLLECTIONS = HOME_CATEGORIES.map((cat) => cat.id);
 
-export const PICK_SCOPES = ['activities', 'restaurants', 'movies', 'travels'];
+export const PICK_SCOPES = ['activities', 'restaurants', 'movies'];
 
 /** Chargées en priorité (splash + accueil). */
 export const PRIMARY_COLLECTIONS = ['activities', 'restaurants', 'movies', 'wishlist'];
 /** Différées en requestIdleCallback pour libérer le thread au first paint. */
 export const SECONDARY_COLLECTIONS = ['travels'];
 export const PRIMARY_PICK_SCOPES = ['activities', 'restaurants', 'movies'];
-export const SECONDARY_PICK_SCOPES = ['travels'];
+export const SECONDARY_PICK_SCOPES = [];
 
 const itemsCache = new Map();
 let prefetchPromise = null;

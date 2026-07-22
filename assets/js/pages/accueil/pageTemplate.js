@@ -1,5 +1,6 @@
 import { BASE_THEME } from '../../config.js';
 import { renderNavIcon } from '../../lib/lucide-icon.js';
+import { EXPLORER_SECTION_HTML } from '../../ui/explorer-section.js';
 
 export const HOME_VIEW_HTML = `
   <header class="page-header page-header--home" data-theme="${BASE_THEME}">
@@ -21,20 +22,11 @@ export const HOME_VIEW_HTML = `
 
   <main class="page-content home-page" data-theme="${BASE_THEME}">
     <section class="home-hero">
-      <article class="days-card hero-days" data-theme="love" aria-labelledby="days-heading">
+      <article class="days-card hero-days" data-theme="love" aria-labelledby="days-count days-label">
         <div class="days-card-inner">
           <div class="love-hearts-field love-hearts-field--card days-story-love-hearts" id="days-story-love-hearts" aria-hidden="true"></div>
           <div class="days-card-body">
             <div class="days-card-content">
-              <p class="days-story-eyebrow" id="days-heading">
-                <span class="days-story-eyebrow-icon" aria-hidden="true">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
-                  </svg>
-                </span>
-                <span class="days-story-eyebrow-text">Notre histoire</span>
-              </p>
-
               <div class="days-story-main">
                 <div class="days-stat-display">
                   <span class="days-count" id="days-count" aria-label="Nombre de jours">0</span>
@@ -88,19 +80,6 @@ export const HOME_VIEW_HTML = `
       </article>
     </section>
 
-    <section class="home-today-section" aria-labelledby="home-today-heading">
-      <div class="section-head">
-        <div>
-          <h2 id="home-today-heading">Pioches du jour</h2>
-          <p id="home-today-sub">-</p>
-        </div>
-      </div>
-      <article class="home-today-card" data-theme="${BASE_THEME}">
-        <span class="home-today-accent" aria-hidden="true"></span>
-        <div class="home-today-inner is-loading" id="home-today-inner" aria-live="polite"></div>
-      </article>
-    </section>
-
     <section class="home-nearby-section" aria-labelledby="home-nearby-heading">
       <div class="section-head">
         <div>
@@ -117,21 +96,13 @@ export const HOME_VIEW_HTML = `
     <section class="home-shortcuts-section" aria-labelledby="home-shortcuts-heading">
       <div class="section-head">
         <div>
-          <h2 id="home-shortcuts-heading">Et si on…</h2>
+          <h2 id="home-shortcuts-heading">Accès rapide</h2>
           <p id="home-shortcuts-sub">Trouver une idée</p>
         </div>
       </div>
       <div class="home-shortcuts" id="home-shortcuts"></div>
     </section>
 
-    <section class="home-explorer-section" aria-labelledby="home-explorer-heading">
-      <div class="section-head">
-        <div>
-          <h2 id="home-explorer-heading">Explorer</h2>
-          <p>Parcourir par catégorie</p>
-        </div>
-      </div>
-      <nav class="home-explorer" id="home-explorer" aria-label="Catégories"></nav>
-    </section>
+    ${EXPLORER_SECTION_HTML}
   </main>
 `;

@@ -15,40 +15,6 @@
     gap: 12px;
   }
 
-  .home-picks-list {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 14px;
-    padding: 14px 16px 16px;
-  }
-
-  .home-pick-item {
-    flex-direction: row;
-    align-items: center;
-    gap: 12px;
-    min-height: 92px;
-    height: 100%;
-    padding: 16px;
-  }
-
-  .home-pick-copy {
-    flex: 1;
-    min-width: 0;
-  }
-
-  .home-pick-title {
-    white-space: normal;
-    display: -webkit-box;
-    line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-
-  .home-pick-detail {
-    align-self: center;
-    margin-top: 0;
-  }
-
   .home-nearby-inner:has(.home-nearby-places) {
     display: grid;
     grid-template-columns: minmax(220px, 0.95fr) minmax(0, 1.35fr);
@@ -82,25 +48,25 @@
     gap: 16px;
   }
 
-  .home-picks-list {
-    gap: 16px;
-  }
-
   .home-explorer {
     grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: 16px;
   }
 }
 
-.home-today-section,
 .home-nearby-section,
-.home-shortcuts-section,
 .home-explorer-section {
   margin-bottom: 40px;
 }
 
 .home-explorer-section {
   margin-bottom: 24px;
+}
+
+@media (max-width: 639px) {
+  .home-page:not(.explorer-page) .home-explorer-section {
+    display: none;
+  }
 }
 
 .hero-days {
@@ -943,8 +909,7 @@
   display: none;
 }
 
-/* ── Bloc Aujourd'hui ── */
-.home-today-card,
+/* ── Bloc autour / cartes ── */
 .home-nearby-card {
   position: relative;
   border-radius: var(--radius-md);
@@ -954,7 +919,6 @@
   overflow: hidden;
 }
 
-.home-today-accent,
 .home-nearby-accent {
   position: absolute;
   top: 0;
@@ -966,166 +930,12 @@
   z-index: 1;
 }
 
-.home-today-inner,
+/* ── Autour de nous ── */
 .home-nearby-inner {
   position: relative;
   z-index: 1;
   display: flex;
   flex-direction: column;
-  gap: 0;
-}
-
-.home-today-inner {
-  padding: 8px 0;
-}
-
-/* ── Liste des pioches ── */
-.home-picks-list {
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin: 0;
-  padding: 8px 14px 12px;
-}
-
-.home-pick-item {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 14px 16px;
-  border-radius: var(--radius-sm);
-  background: var(--bg);
-  border: 1px solid color-mix(in srgb, var(--cat-border) 60%, transparent);
-  box-shadow: var(--neu-in);
-  animation: home-item-in 0.35s ease both;
-}
-
-@keyframes home-item-in {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-.home-pick-icon {
-  width: 40px;
-  height: 40px;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 12px;
-  color: var(--cat-color);
-  background: var(--cat-icon-bg);
-  border: 1px solid var(--cat-border);
-  box-shadow: var(--neu-in), 0 0 10px var(--cat-glow);
-}
-
-.home-pick-icon svg {
-  width: 18px;
-  height: 18px;
-}
-
-.home-pick-copy {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 0;
-  flex: 1;
-}
-
-.home-pick-cat {
-  font-size: 0.66rem;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--cat-color);
-}
-
-.home-pick-title {
-  font-size: 0.92rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: var(--text-primary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.home-pick-detail {
-  flex-shrink: 0;
-  min-height: 34px;
-  padding: 0 14px;
-  border-radius: var(--radius-pill);
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: var(--cat-color);
-  background: var(--cat-bg);
-  border: 1px solid var(--cat-border);
-  box-shadow: var(--neu-in);
-  transition: box-shadow 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
-}
-
-.home-pick-detail:hover {
-  border-color: color-mix(in srgb, var(--cat-color) 45%, transparent);
-  box-shadow: var(--neu-up-sm), 0 0 14px var(--cat-glow);
-  transform: translateY(-1px);
-}
-
-.home-pick-detail:active {
-  transform: scale(0.97);
-  box-shadow: var(--neu-press);
-}
-
-.home-picks-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 28px 20px 24px;
-  text-align: center;
-}
-
-.home-picks-empty p {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.home-picks-empty-hint {
-  font-size: 0.76rem;
-  color: var(--text-secondary);
-  line-height: 1.45;
-  max-width: 26ch;
-}
-
-.home-picks-empty-links {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 8px;
-  margin-top: 8px;
-}
-
-.home-picks-empty-link {
-  padding: 8px 14px;
-  border-radius: var(--radius-pill);
-  font-size: 0.74rem;
-  font-weight: 600;
-  text-decoration: none;
-  color: var(--cat-color);
-  background: var(--cat-bg);
-  border: 1px solid var(--cat-border);
-  box-shadow: var(--neu-in);
-  transition: box-shadow 0.2s ease, transform 0.15s ease;
-}
-
-.home-picks-empty-link:hover {
-  box-shadow: var(--neu-up-sm), 0 0 12px var(--cat-glow);
-  transform: translateY(-1px);
-}
-
-/* ── Autour de nous ── */
-.home-nearby-inner {
   padding: 18px 18px 14px;
   gap: 14px;
 }
@@ -1362,7 +1172,7 @@
   height: 16px;
 }
 
-/* ── Et si on… (raccourcis) ── */
+/* ── Accès rapide (raccourcis) ── */
 .home-shortcuts {
   display: flex;
   flex-direction: column;
@@ -1604,7 +1414,6 @@
 }
 
 /* ── Skeleton loaders ── */
-.home-today-inner.is-loading,
 .home-nearby-inner.is-loading {
   min-height: 80px;
 }
@@ -1638,41 +1447,6 @@
 
 .skel-block {
   border-radius: var(--radius-sm);
-}
-
-.skel-block--pick-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
-  flex-shrink: 0;
-}
-
-.skel-block--pick-cat {
-  width: 56px;
-  height: 10px;
-}
-
-.skel-block--pick-title {
-  width: 65%;
-  height: 14px;
-}
-
-.skel-block--pick-detail {
-  width: 58px;
-  height: 34px;
-  border-radius: var(--radius-pill);
-  flex-shrink: 0;
-}
-
-.home-pick-item--skeleton {
-  pointer-events: none;
-}
-
-.home-pick-item--skeleton .home-pick-copy {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  flex: 1;
 }
 
 .skel-block--nearby-icon {
@@ -1709,12 +1483,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .skel-shimmer::after,
-  .home-pick-item {
-    animation: none;
-  }
-
   .skel-shimmer::after {
+    animation: none;
     opacity: 0.04;
   }
 }
@@ -1737,8 +1507,6 @@
 
   .days-card-inner,
   .scene-stage,
-  .home-pick-item,
-  .home-pick-detail,
   .home-shortcut,
   .cat-card,
   .home-nearby-place {
