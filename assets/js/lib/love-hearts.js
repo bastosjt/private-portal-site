@@ -6,6 +6,10 @@ export const HEART_PATH =
 export const HEART_ANIM_SCALE = 1.06;
 export const HEART_GAP_PX = 5;
 export const LOVE_PULSE_MS = 1500;
+export const LOVE_SPAM_WINDOW_MS = 280;
+export const LOVE_SPAM_PULSE_MS = 720;
+export const LOVE_BURST_COUNT = 7;
+export const LOVE_BURST_MAX = 48;
 
 const NUDGE_OFFSETS = (() => {
   const offsets = [[0, 0]];
@@ -220,6 +224,69 @@ export function createLoveHeartsController({
 }) {
   let unbindLayout = null;
   let pulseTimer = null;
+  let lastPulseAt = 0;
+  let burstLayer = null;
+  let skipClickUntil = 0;
+
+  function ensureBurstLayer() {
+    if (burstLayer?.isConnected) return burstLayer;
+    const host = root.querySelector('.days-card-inner') || root;
+    if (getComputedStyle(host).position === 'static') {
+      host.style.position = 'relative';
+    }
+    burstLayer = document.createElement('div');
+    burstLayer.className = 'love-burst-layer';
+    burstLayer.setAttribute('aria-hidden', 'true');
+    host.appendChild(burstLayer);
+    return burstLayer;
+  }
+
+  function spawnClickBurst() {
+    if (!trigger || !root) return;
+
+    const layer = ensureBurstLayer();
+    const host = layer.parentElement;
+    if (!host) return;
+
+    const hostRect = host.getBoundingClientRect();
+    const triggerRect = trigger.getBoundingClientRect();
+    const originX = triggerRect.left + triggerRect.width / 2 - hostRect.left;
+    const originY = triggerRect.top + triggerRect.height / 2 - hostRect.top;
+    const count = LOVE_BURST_COUNT + Math.floor(Math.random() * 3);
+
+    while (layer.childElementCount + count > LOVE_BURST_MAX) {
+      layer.firstElementChild?.remove();
+    }
+
+    for (let i = 0; i < count; i += 1) {
+      const angle = ((Math.PI * 2) * i) / count + (Math.random() - 0.5) * 0.55;
+      const distance = 42 + Math.random() * 78;
+      const size = 14 + Math.random() * 16;
+      const duration = 0.55 + Math.random() * 0.35;
+      const el = document.createElement('div');
+      el.className = 'love-burst-heart';
+      el.style.left = `${originX}px`;
+      el.style.top = `${originY}px`;
+      el.style.width = `${size}px`;
+      el.style.height = `${size}px`;
+      el.style.setProperty('--burst-x', `${Math.cos(angle) * distance}px`);
+      el.style.setProperty('--burst-y', `${Math.sin(angle) * distance - 18}px`);
+      el.style.setProperty('--burst-rotate', `${Math.round((Math.random() - 0.5) * 70)}deg`);
+      el.style.setProperty('--burst-duration', `${duration.toFixed(2)}s`);
+      el.style.setProperty('--burst-scale', String(0.85 + Math.random() * 0.55));
+
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('viewBox', '0 0 24 24');
+      svg.setAttribute('aria-hidden', 'true');
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', HEART_PATH);
+      svg.appendChild(path);
+      el.appendChild(svg);
+
+      el.addEventListener('animationend', () => el.remove(), { once: true });
+      layer.appendChild(el);
+    }
+  }
 
   function getKeepOutRects() {
     if (placementMode !== 'card') return [];
@@ -295,28 +362,57 @@ export function createLoveHeartsController({
     }
   }
 
-  function triggerPulse() {
+  function triggerPulse({ withBurst = true } = {}) {
     if (pulseTimer) clearTimeout(pulseTimer);
 
-    root.classList.remove('is-love-pulsing');
-    void root.offsetWidth;
-    root.classList.add('is-love-pulsing');
+    const now = performance.now();
+    const isSpam = now - lastPulseAt < LOVE_SPAM_WINDOW_MS;
+    lastPulseAt = now;
 
-    container.querySelectorAll('.love-heart').forEach((heart) => {
-      heart.classList.remove('is-lit');
-      void heart.offsetWidth;
+    root.classList.add('is-love-awakened');
+    root.classList.remove('is-love-pulsing');
+    container.classList.remove('is-love-burst');
+    if (isSpam) container.dataset.spam = '';
+    else delete container.dataset.spam;
+
+    // Un seul reflow pour relancer toutes les anims (spam-safe).
+    void root.offsetWidth;
+
+    root.classList.add('is-love-pulsing');
+    container.classList.add('is-love-burst');
+
+    for (const heart of container.children) {
       heart.classList.add('is-lit');
-    });
+    }
+
+    if (withBurst) spawnClickBurst();
 
     pulseTimer = setTimeout(() => {
       root.classList.remove('is-love-pulsing');
+      container.classList.remove('is-love-burst');
+      delete container.dataset.spam;
       pulseTimer = null;
-    }, pulseDurationMs);
+    }, isSpam ? LOVE_SPAM_PULSE_MS : pulseDurationMs);
   }
 
-  function onTriggerClick() {
-    root.classList.add('is-love-awakened');
-    triggerPulse();
+  function onTriggerActivate(event) {
+    if (event?.pointerType === 'mouse' && event.button != null && event.button !== 0) return;
+    triggerPulse({ withBurst: true });
+  }
+
+  function onPointerDown(event) {
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    // Évite le double déclenchement pointerdown + click.
+    skipClickUntil = performance.now() + 450;
+    onTriggerActivate(event);
+  }
+
+  function onClick(event) {
+    if (performance.now() < skipClickUntil) {
+      event.preventDefault();
+      return;
+    }
+    onTriggerActivate(event);
   }
 
   const relayout = debounce(() => layoutLoveHearts(), 120);
@@ -328,7 +424,11 @@ export function createLoveHeartsController({
     unbindLayout = null;
   };
 
-  trigger?.addEventListener('click', onTriggerClick);
+  if (trigger) {
+    trigger.style.touchAction = 'manipulation';
+    trigger.addEventListener('pointerdown', onPointerDown);
+    trigger.addEventListener('click', onClick);
+  }
 
   return {
     relayout: layoutLoveHearts,
@@ -339,7 +439,14 @@ export function createLoveHeartsController({
         clearTimeout(pulseTimer);
         pulseTimer = null;
       }
-      trigger?.removeEventListener('click', onTriggerClick);
+      if (trigger) {
+        trigger.removeEventListener('pointerdown', onPointerDown);
+        trigger.removeEventListener('click', onClick);
+      }
+      burstLayer?.remove();
+      burstLayer = null;
+      delete container.dataset.spam;
+      container.classList.remove('is-love-burst');
     },
   };
 }
