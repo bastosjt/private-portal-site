@@ -186,7 +186,7 @@
   border-radius: 50%;
   flex-shrink: 0;
   color: var(--accent-deep);
-  background: linear-gradient(145deg, rgba(246, 160, 181, 0.22) 0%, var(--bg) 100%);
+  background: linear-gradient(145deg, color-mix(in srgb, var(--accent) 22%, transparent) 0%, var(--bg) 100%);
   border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
   box-shadow: var(--neu-in);
   font-size: 0.82rem;
@@ -229,13 +229,7 @@
   border-color: color-mix(in srgb, var(--cat-color) 30%, transparent);
 }
 
-.profile-display-name-form,
-.profile-partner-nickname-form,
-.space-tagline-form {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
+/* Formulaires réglages : layout via .add-form (scroll + footer) */
 
 /* ── Notre espace ── */
 .settings-section--love .settings-panel-inner {
@@ -315,11 +309,19 @@
 }
 
 .settings-member-avatar--slate {
-  background: linear-gradient(135deg, var(--accent-deep) 0%, var(--accent) 100%);
+  background: linear-gradient(135deg, #64748b 0%, #94a3b8 100%);
 }
 
+.settings-member-avatar--royal,
+.settings-member-avatar--lime,
+.settings-member-avatar--fuchsia,
+.settings-member-avatar--teal,
+.settings-member-avatar--sky,
+.settings-member-avatar--hotpink,
+.settings-member-avatar--amber,
+.settings-member-avatar--base,
 .settings-member-avatar--love {
-  background: linear-gradient(135deg, #f9a8d4 0%, #a78bfa 100%);
+  background: linear-gradient(135deg, var(--accent-soft) 0%, var(--accent) 55%, var(--accent-deep) 100%);
 }
 
 .settings-member-avatar.has-animal svg {
@@ -328,7 +330,7 @@
 }
 
 /* ── Formulaire couleur animal ── */
-.profile-animal-form {
+.profile-animal-form .add-form-scroll {
   gap: 18px;
 }
 

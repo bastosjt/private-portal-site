@@ -22,7 +22,7 @@ export const HOME_VIEW_HTML = `
 
   <main class="page-content home-page" data-theme="${BASE_THEME}">
     <section class="home-hero">
-      <article class="days-card hero-days" data-theme="love" aria-labelledby="days-count days-label">
+      <article class="days-card hero-days" data-theme="${BASE_THEME}" aria-labelledby="days-count days-label">
         <div class="days-card-inner">
           <div class="love-hearts-field love-hearts-field--card days-story-love-hearts" id="days-story-love-hearts" aria-hidden="true"></div>
           <div class="days-card-body">

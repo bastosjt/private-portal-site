@@ -1,4 +1,4 @@
-import { COUPLE_START_DATE, MAP_THEME, getCategoryById, getUserDisplayName } from '../../config.js';
+import { BASE_THEME, COUPLE_START_DATE, MAP_THEME, getCategoryById, getUserDisplayName } from '../../config.js';
 import {
   ensurePrefetch,
   getNearestMapPlacesFromCache,
@@ -236,7 +236,7 @@ function renderNearbySection() {
 
   const placesHtml = places.map(({ categoryId, item, title, location, distanceLabel }) => {
     const cat = getCategoryById(categoryId);
-    const theme = cat?.theme || 'base';
+    const theme = cat?.theme || BASE_THEME;
     const tag = cat?.label?.replace(' & Séries', '') || 'Lieu';
 
     return `

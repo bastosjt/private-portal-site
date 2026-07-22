@@ -11,6 +11,12 @@ export const DEFAULT_FIELD_OPTIONS = {
     { value: 'cinema', label: 'Cinéma' },
     { value: 'feux_d_artifice', label: 'Feux d\'artifice' },
     { value: 'sport', label: 'Sport' },
+    { value: 'parc', label: 'Parc' },
+    { value: 'jardin_botanique', label: 'Jardin botanique' },
+    { value: 'eglise', label: 'Église' },
+    { value: 'cathedrale', label: 'Cathédrale' },
+    { value: 'fontaine', label: 'Fontaine' },
+    { value: 'place', label: 'Place' },
   ],
   'restaurants.type': [
     { value: 'restaurant', label: 'Restaurant' },

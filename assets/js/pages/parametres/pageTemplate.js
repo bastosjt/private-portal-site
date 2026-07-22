@@ -57,7 +57,7 @@ export const SETTINGS_VIEW_HTML = `
       </button>
     </section>
 
-    <section class="settings-section settings-section--love" data-theme="love" aria-labelledby="settings-space-heading">
+    <section class="settings-section settings-section--love" data-theme="${SETTINGS_THEME}" aria-labelledby="settings-space-heading">
       <div class="section-head">
         <div>
           <h2 id="settings-space-heading">Notre espace</h2>

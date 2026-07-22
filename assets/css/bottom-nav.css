@@ -78,12 +78,12 @@
 }
 
 .bottom-nav-item .sidebar-link-icon {
+  position: relative;
   width: var(--bottom-nav-icon-size);
   height: var(--bottom-nav-icon-size);
 }
 
 .bottom-nav-icon-glyph {
-  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -91,7 +91,6 @@
   height: 21px;
 }
 
-.bottom-nav-item .sidebar-link-icon svg,
 .bottom-nav-icon-glyph > svg {
   width: 21px;
   height: 21px;
@@ -99,10 +98,11 @@
 
 .bottom-nav-explorer-badge {
   position: absolute;
-  top: -7px;
-  right: -7px;
+  top: 0;
+  right: 0;
   z-index: 1;
   pointer-events: none;
+  transform: translate(25%, -25%);
 }
 
 .bottom-nav-explorer-badge[hidden] {
@@ -114,20 +114,20 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 17px;
-  height: 17px;
-  border: 1px solid color-mix(in srgb, var(--cat-color, var(--accent)) 28%, transparent);
+  width: 26px;
+  height: 26px;
+  border: 2px solid color-mix(in srgb, var(--cat-color, var(--accent)) 28%, transparent);
   border-radius: 50%;
   background: #1f2229;
   color: var(--cat-color, var(--accent));
   box-shadow:
-    0 1px 3px rgba(0, 0, 0, 0.55),
-    0 0 8px color-mix(in srgb, var(--cat-color, var(--accent)) 32%, transparent);
+    0 2px 5px rgba(0, 0, 0, 0.55),
+    0 0 12px color-mix(in srgb, var(--cat-color, var(--accent)) 32%, transparent);
 }
 
 .bottom-nav-page-badge svg {
-  width: 10px !important;
-  height: 10px !important;
+  width: 14px;
+  height: 14px;
   stroke: currentColor;
 }
 

@@ -1,6 +1,6 @@
 /* ── Hero / Notre histoire ── */
 .home-hero {
-  margin-bottom: 24px;
+  margin-bottom: 50px;
 }
 
 /* ── Layout accueil ── */
@@ -56,7 +56,7 @@
 
 .home-nearby-section,
 .home-explorer-section {
-  margin-bottom: 40px;
+  margin-bottom: 50px;
 }
 
 .home-explorer-section {
@@ -487,7 +487,7 @@
 }
 
 .scene-core:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--logo-heart) 70%, transparent);
+  outline: 2px solid color-mix(in srgb, var(--cat-color, var(--accent)) 70%, transparent);
   outline-offset: 4px;
 }
 
@@ -510,13 +510,13 @@
   border: none;
   background: radial-gradient(
     circle,
-    rgba(244, 114, 182, 0.14) 0%,
-    rgba(167, 139, 250, 0.07) 38%,
+    color-mix(in srgb, var(--cat-color, var(--accent)) 14%, transparent) 0%,
+    color-mix(in srgb, var(--cat-color-deep, var(--accent-deep)) 7%, transparent) 38%,
     transparent 68%
   );
   box-shadow:
-    0 0 0 1px rgba(244, 114, 182, 0.22),
-    0 0 20px rgba(244, 114, 182, 0.08);
+    0 0 0 1px color-mix(in srgb, var(--cat-color, var(--accent)) 22%, transparent),
+    0 0 20px color-mix(in srgb, var(--cat-color, var(--accent)) 8%, transparent);
   opacity: 0;
   transform-origin: center;
   will-change: transform, opacity;
@@ -549,8 +549,8 @@
 .scene-core svg {
   width: 40px;
   height: 40px;
-  color: var(--accent-soft);
-  filter: drop-shadow(0 0 12px rgba(167, 139, 250, 0.45));
+  color: var(--cat-color, var(--accent));
+  filter: drop-shadow(0 0 12px color-mix(in srgb, var(--cat-color, var(--accent)) 45%, transparent));
   position: relative;
   z-index: 1;
   animation: heart-beat-icon 2s ease-in-out infinite;
@@ -576,15 +576,15 @@
 @keyframes heart-beat-icon {
   0%, 100% {
     transform: scale(1);
-    filter: drop-shadow(0 0 12px rgba(167, 139, 250, 0.45));
+    filter: drop-shadow(0 0 12px color-mix(in srgb, var(--cat-color, var(--accent)) 45%, transparent));
   }
   11% {
     transform: scale(1.06);
-    filter: drop-shadow(0 0 17px rgba(244, 114, 182, 0.52));
+    filter: drop-shadow(0 0 17px color-mix(in srgb, var(--cat-color, var(--accent)) 52%, transparent));
   }
   22% {
     transform: scale(1);
-    filter: drop-shadow(0 0 12px rgba(167, 139, 250, 0.45));
+    filter: drop-shadow(0 0 12px color-mix(in srgb, var(--cat-color, var(--accent)) 45%, transparent));
   }
 }
 
@@ -593,8 +593,8 @@
   position: absolute;
   inset: 12px;
   border-radius: 50%;
-  background: linear-gradient(145deg, rgba(167, 139, 250, 0.18) 0%, transparent 60%);
-  box-shadow: inset 0 0 20px rgba(167, 139, 250, 0.1);
+  background: linear-gradient(145deg, color-mix(in srgb, var(--cat-color, var(--accent)) 18%, transparent) 0%, transparent 60%);
+  box-shadow: inset 0 0 20px color-mix(in srgb, var(--cat-color, var(--accent)) 10%, transparent);
 }
 
 .scene-orb {
@@ -734,14 +734,23 @@
 
 .hero-days .days-card-inner {
   padding: clamp(24px, 4vw, 36px);
-  background: linear-gradient(155deg, var(--cat-bg) 0%, var(--surface) 50%);
-  border: 1px solid var(--cat-border);
+  background: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--cat-color) 12%, var(--surface)) 0%,
+    var(--surface) 48%,
+    color-mix(in srgb, var(--bg) 35%, var(--surface)) 100%
+  );
+  border: 1px solid color-mix(in srgb, var(--cat-border) 80%, transparent);
   box-shadow: var(--neu-up);
   overflow: hidden;
 }
 
 .hero-days .days-card-inner::before {
-  background: linear-gradient(135deg, var(--cat-soft) 0%, transparent 55%);
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--cat-soft) 70%, transparent) 0%,
+    transparent 52%
+  );
 }
 
 .hero-days .days-card-glow {
@@ -752,9 +761,9 @@
   height: 340px;
   background: radial-gradient(
     circle,
-    rgba(244, 114, 182, 0.2) 0%,
-    rgba(167, 139, 250, 0.12) 42%,
-    transparent 68%
+    color-mix(in srgb, var(--cat-color) 22%, transparent) 0%,
+    color-mix(in srgb, var(--cat-color-deep) 10%, transparent) 46%,
+    transparent 70%
   );
   animation: home-glow-drift 7s ease-in-out infinite;
 }
@@ -767,7 +776,11 @@
   width: 260px;
   height: 260px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(34, 211, 238, 0.14) 0%, transparent 68%);
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--cat-color-deep) 12%, transparent) 0%,
+    transparent 68%
+  );
   pointer-events: none;
   z-index: 0;
   animation: home-glow-drift 9s ease-in-out infinite reverse;
@@ -780,7 +793,7 @@
 
 
 .hero-days .days-count {
-  filter: drop-shadow(0 0 20px rgba(244, 114, 182, 0.22));
+  filter: drop-shadow(0 0 20px color-mix(in srgb, var(--cat-color) 22%, transparent));
 }
 
 @keyframes home-dot-pulse {
@@ -800,22 +813,22 @@
   inset: -14px -10px;
   z-index: -1;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(244, 114, 182, 0.1) 0%, transparent 72%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--cat-color) 12%, transparent) 0%, transparent 72%);
   pointer-events: none;
 }
 
-.hero-days .scene-ring--1 { border-color: rgba(244, 114, 182, 0.22); }
-.hero-days .scene-ring--2 { border-color: rgba(167, 139, 250, 0.18); }
-.hero-days .scene-ring--3 { border-color: rgba(34, 211, 238, 0.14); }
+.hero-days .scene-ring--1 { border-color: color-mix(in srgb, var(--cat-color) 28%, transparent); }
+.hero-days .scene-ring--2 { border-color: color-mix(in srgb, var(--cat-color) 20%, transparent); }
+.hero-days .scene-ring--3 { border-color: color-mix(in srgb, var(--cat-color-deep) 16%, transparent); }
 
 .hero-days .scene-orb--1 {
-  background: linear-gradient(145deg, rgba(244, 114, 182, 0.35) 0%, var(--surface) 100%);
-  box-shadow: var(--neu-up-sm), 0 0 14px rgba(244, 114, 182, 0.3);
+  background: linear-gradient(145deg, color-mix(in srgb, var(--cat-color) 35%, transparent) 0%, var(--surface) 100%);
+  box-shadow: var(--neu-up-sm), 0 0 14px color-mix(in srgb, var(--cat-color) 30%, transparent);
 }
 
 .hero-days .scene-orb--2 {
-  background: linear-gradient(145deg, rgba(34, 211, 238, 0.3) 0%, var(--surface) 100%);
-  box-shadow: var(--neu-up-sm), 0 0 12px rgba(34, 211, 238, 0.25);
+  background: linear-gradient(145deg, color-mix(in srgb, var(--cat-color-mid, var(--cat-color)) 28%, transparent) 0%, var(--surface) 100%);
+  box-shadow: var(--neu-up-sm), 0 0 12px color-mix(in srgb, var(--cat-color) 22%, transparent);
 }
 
 .hero-days .scene-core {
@@ -824,7 +837,7 @@
     8px 8px 20px rgba(0, 0, 0, 0.5),
     inset -4px -4px 10px rgba(255, 255, 255, 0.03),
     inset 4px 4px 10px rgba(0, 0, 0, 0.35),
-    0 0 28px rgba(244, 114, 182, 0.2);
+    0 0 28px color-mix(in srgb, var(--cat-color) 22%, transparent);
   animation:
     core-float 4s ease-in-out infinite,
     heart-beat-living 2s ease-in-out infinite;
@@ -833,18 +846,17 @@
 .hero-days .scene-heart-ripple {
   background: radial-gradient(
     circle,
-    rgba(244, 114, 182, 0.15) 0%,
-    rgba(167, 139, 250, 0.08) 36%,
-    rgba(34, 211, 238, 0.04) 58%,
+    color-mix(in srgb, var(--cat-color) 16%, transparent) 0%,
+    color-mix(in srgb, var(--cat-color-deep) 8%, transparent) 42%,
     transparent 72%
   );
   box-shadow:
-    0 0 0 1px rgba(244, 114, 182, 0.26),
-    0 0 24px rgba(244, 114, 182, 0.1);
+    0 0 0 1px color-mix(in srgb, var(--cat-color) 26%, transparent),
+    0 0 24px color-mix(in srgb, var(--cat-color) 10%, transparent);
 }
 
 .hero-days .scene-core svg {
-  color: var(--logo-heart);
+  color: var(--cat-color);
   animation: heart-beat-icon-hero 2s ease-in-out infinite;
 }
 
@@ -859,7 +871,7 @@
 .hero-days.is-love-pulsing .scene-heart-ripple.love-ripple {
   animation: love-ripple-pulse-out 1.45s var(--ease-premium) forwards;
   background: none;
-  border: 1.5px solid color-mix(in srgb, var(--logo-heart) 40%, transparent);
+  border: 1.5px solid color-mix(in srgb, var(--cat-color) 40%, transparent);
   box-shadow: none;
 }
 
@@ -878,21 +890,21 @@
 @keyframes heart-beat-icon-hero {
   0%, 100% {
     transform: scale(1);
-    filter: drop-shadow(0 0 16px rgba(244, 114, 182, 0.55));
+    filter: drop-shadow(0 0 16px color-mix(in srgb, var(--cat-color) 55%, transparent));
   }
   11% {
     transform: scale(1.06);
-    filter: drop-shadow(0 0 21px rgba(244, 114, 182, 0.62));
+    filter: drop-shadow(0 0 21px color-mix(in srgb, var(--cat-color) 62%, transparent));
   }
   22% {
     transform: scale(1);
-    filter: drop-shadow(0 0 16px rgba(244, 114, 182, 0.55));
+    filter: drop-shadow(0 0 16px color-mix(in srgb, var(--cat-color) 55%, transparent));
   }
 }
 
 .hero-days .scene-orb--3 {
-  background: linear-gradient(135deg, #f472b6 0%, #a78bfa 55%, #22d3ee 100%);
-  box-shadow: 0 0 20px rgba(244, 114, 182, 0.45);
+  background: linear-gradient(135deg, var(--accent-soft) 0%, var(--cat-color) 55%, var(--cat-color-deep) 100%);
+  box-shadow: 0 0 20px color-mix(in srgb, var(--cat-color) 45%, transparent);
 }
 
 .hero-days .hero-scene {
@@ -913,8 +925,13 @@
 .home-nearby-card {
   position: relative;
   border-radius: var(--radius-md);
-  background: linear-gradient(160deg, var(--cat-bg, rgba(255,255,255,0.02)) 0%, var(--surface) 58%);
-  border: 1px solid var(--cat-border, rgba(255,255,255,0.06));
+  background: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--cat-color) 10%, var(--surface)) 0%,
+    var(--surface) 52%,
+    color-mix(in srgb, var(--bg) 30%, var(--surface)) 100%
+  );
+  border: 1px solid color-mix(in srgb, var(--cat-border) 80%, transparent);
   box-shadow: var(--neu-up-sm);
   overflow: hidden;
 }
@@ -923,10 +940,15 @@
   position: absolute;
   top: 0;
   left: 0;
-  width: 4px;
+  width: 3px;
   height: 100%;
-  background: linear-gradient(180deg, var(--accent-soft) 0%, var(--accent) 55%, transparent 100%);
-  box-shadow: 0 0 14px rgba(167, 139, 250, 0.35);
+  background: linear-gradient(
+    180deg,
+    var(--cat-color) 0%,
+    color-mix(in srgb, var(--cat-color) 50%, transparent) 55%,
+    transparent 100%
+  );
+  box-shadow: 0 0 12px var(--cat-glow);
   z-index: 1;
 }
 

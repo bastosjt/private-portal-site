@@ -16,23 +16,27 @@ function getInitialsFromName(name) {
 function renderFormHtml(displayName) {
   return `
     <form class="profile-display-name-form add-form" id="profile-display-name-form" data-theme="${SETTINGS_THEME}" novalidate>
-      <p class="add-picker-lead">Choisis ton pseudo</p>
-      <label class="form-field" for="profile-display-name-input">
-        <span class="form-field-label">Pseudo</span>
-        <div class="form-input-wrap">
-          <input
-            type="text"
-            class="form-input"
-            id="profile-display-name-input"
-            maxlength="32"
-            autocomplete="nickname"
-            placeholder="Ex. MonPseudo"
-            value="${escapeHtml(displayName)}"
-            required
-          >
-        </div>
-      </label>
-      <button type="submit" class="add-form-submit" id="profile-display-name-save">Enregistrer</button>
+      <div class="add-form-scroll">
+        <p class="add-picker-lead">Choisis ton pseudo</p>
+        <label class="form-field" for="profile-display-name-input">
+          <span class="form-field-label">Pseudo</span>
+          <div class="form-input-wrap">
+            <input
+              type="text"
+              class="form-input"
+              id="profile-display-name-input"
+              maxlength="32"
+              autocomplete="nickname"
+              placeholder="Ex. MonPseudo"
+              value="${escapeHtml(displayName)}"
+              required
+            >
+          </div>
+        </label>
+      </div>
+      <div class="add-form-footer">
+        <button type="submit" class="add-form-submit" id="profile-display-name-save">Enregistrer</button>
+      </div>
     </form>
   `;
 }

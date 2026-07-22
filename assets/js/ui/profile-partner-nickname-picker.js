@@ -14,23 +14,27 @@ import { MODAL_DRAG_HANDLE_HTML, wireModalDragClose } from '../lib/modal-drag-cl
 function renderFormHtml({ partnerName, nickname }) {
   return `
     <form class="profile-partner-nickname-form add-form" id="profile-partner-nickname-form" data-theme="${SETTINGS_THEME}" novalidate>
-      <p class="add-picker-lead">Choisis un surnom pour ${escapeHtml(partnerName)}</p>
-      <label class="form-field" for="profile-partner-nickname-input">
-        <span class="form-field-label">Surnom</span>
-        <div class="form-input-wrap">
-          <input
-            type="text"
-            class="form-input"
-            id="profile-partner-nickname-input"
-            maxlength="32"
-            autocomplete="off"
-            placeholder="Ex. Mon Loulou"
-            value="${escapeHtml(nickname)}"
-          >
-        </div>
-      </label>
-      <p class="form-field-hint">Sans surnom, « ${escapeHtml(DEFAULT_PARTNER_NICKNAME_LABEL)} » s'affiche par défaut.</p>
-      <button type="submit" class="add-form-submit" id="profile-partner-nickname-save">Enregistrer</button>
+      <div class="add-form-scroll">
+        <p class="add-picker-lead">Choisis un surnom pour ${escapeHtml(partnerName)}</p>
+        <label class="form-field" for="profile-partner-nickname-input">
+          <span class="form-field-label">Surnom</span>
+          <div class="form-input-wrap">
+            <input
+              type="text"
+              class="form-input"
+              id="profile-partner-nickname-input"
+              maxlength="32"
+              autocomplete="off"
+              placeholder="Ex. Mon Loulou"
+              value="${escapeHtml(nickname)}"
+            >
+          </div>
+        </label>
+        <p class="form-field-hint">Sans surnom, « ${escapeHtml(DEFAULT_PARTNER_NICKNAME_LABEL)} » s'affiche par défaut.</p>
+      </div>
+      <div class="add-form-footer">
+        <button type="submit" class="add-form-submit" id="profile-partner-nickname-save">Enregistrer</button>
+      </div>
     </form>
   `;
 }

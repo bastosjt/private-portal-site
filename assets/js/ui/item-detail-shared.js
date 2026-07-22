@@ -105,6 +105,30 @@ export function updateDoneToggleUI(root, done, busy = false, labels = {}) {
   if (hint) hint.textContent = done ? doneHint : todoHint;
 }
 
+export function renderDetailActionsHtml({ confirmDelete = false, isBusy = false } = {}) {
+  return `
+    <div class="act-detail-actions">
+      <button type="button" class="act-detail-btn act-detail-btn--edit" id="act-detail-edit" ${isBusy ? 'disabled' : ''}>
+        Modifier
+      </button>
+      <button type="button" class="act-detail-btn act-detail-btn--delete" id="act-detail-delete" ${isBusy ? 'disabled' : ''}>
+        ${confirmDelete ? 'Confirmer la suppression' : 'Supprimer'}
+      </button>
+    </div>
+  `;
+}
+
+export function wrapDetailContentHtml(scrollHtml, { done = false, confirmDelete = false, isBusy = false } = {}) {
+  return `
+    <div class="act-detail-content${done ? ' act-detail-content--done' : ''}">
+      <div class="act-detail-scroll">
+        ${scrollHtml}
+      </div>
+      ${renderDetailActionsHtml({ confirmDelete, isBusy })}
+    </div>
+  `;
+}
+
 export function renderLinkedTravelChip(item, { escapeHtml }) {
   if (!item?.travelId) return '';
   const travel = findCachedItemById('travels', item.travelId);
