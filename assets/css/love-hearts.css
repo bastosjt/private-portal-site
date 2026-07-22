@@ -61,14 +61,72 @@
   filter: drop-shadow(0 0 0 transparent);
 }
 
-.love-heart.is-lit {
+.love-hearts-field.is-love-burst .love-heart {
   animation: love-glow var(--love-duration, 1s) cubic-bezier(0.33, 1, 0.68, 1) forwards;
   animation-delay: var(--love-delay, 0s);
 }
 
-.love-heart.is-lit svg {
+.love-hearts-field.is-love-burst .love-heart svg {
   animation: love-shine var(--love-duration, 1s) cubic-bezier(0.33, 1, 0.68, 1) forwards;
   animation-delay: var(--love-delay, 0s);
+}
+
+.love-hearts-field.is-love-burst[data-spam] .love-heart,
+.love-hearts-field.is-love-burst[data-spam] .love-heart svg {
+  animation-delay: 0s;
+  animation-duration: 0.58s;
+}
+
+.love-burst-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.love-burst-heart {
+  position: absolute;
+  margin: 0;
+  color: var(--logo-heart);
+  transform: translate(-50%, -50%) scale(0.55) rotate(var(--burst-rotate, 0deg));
+  opacity: 0;
+  pointer-events: none;
+  will-change: transform, opacity;
+  animation: love-burst-fly var(--burst-duration, 0.7s) cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.love-burst-heart svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 0 8px var(--logo-heart-glow));
+}
+
+.love-burst-heart svg path {
+  fill: currentColor;
+}
+
+@keyframes love-burst-fly {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.4) rotate(var(--burst-rotate, 0deg));
+  }
+
+  14% {
+    opacity: 0.95;
+  }
+
+  100% {
+    opacity: 0;
+    transform:
+      translate(
+        calc(-50% + var(--burst-x, 0px)),
+        calc(-50% + var(--burst-y, -24px))
+      )
+      scale(var(--burst-scale, 1))
+      rotate(var(--burst-rotate, 0deg));
+  }
 }
 
 .love-ripple {
@@ -181,13 +239,20 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .love-heart.is-lit {
+  .love-heart.is-lit,
+  .love-hearts-field.is-love-burst .love-heart {
     animation: none;
     opacity: 0.45;
   }
 
-  .love-heart.is-lit svg {
+  .love-heart.is-lit svg,
+  .love-hearts-field.is-love-burst .love-heart svg {
     animation: none;
+  }
+
+  .love-burst-heart {
+    animation: none;
+    display: none;
   }
 
   .love-ripple {
