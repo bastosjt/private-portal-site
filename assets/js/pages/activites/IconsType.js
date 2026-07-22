@@ -1,12 +1,13 @@
 /**
  * Icônes par type d'activité — clé = value du champ `categorie` (config.js).
- * Valeur = nom Lucide (voir https://lucide.dev/icons).
+ * Valeur = nom Lucide (voir https://lucide.dev/icons) ou icône custom.
  *
- * Pour ajouter un type : importer l'icône ci-dessous et l'enregistrer dans ICON_REGISTRY.
+ * Pour ajouter un type : importer l'icône et l'enregistrer dans ICON_REGISTRY.
  */
 import {
   BicepsFlexed,
   Castle,
+  Church,
   Footprints,
   Landmark,
   Mountain,
@@ -16,8 +17,10 @@ import {
   RollerCoaster,
   Sparkles,
   Tickets,
+  Trees,
 } from '../../vendor/lucide.mjs';
 import { renderLucideIcon } from '../../lib/lucide-icon.js';
+import { BotanicalGarden, Fountain, Place } from './custom-type-icons.js';
 
 const ICON_REGISTRY = {
   landmark: Landmark,
@@ -30,6 +33,11 @@ const ICON_REGISTRY = {
   sparkles: Sparkles,
   'biceps-flexed': BicepsFlexed,
   mountain: Mountain,
+  trees: Trees,
+  church: Church,
+  fountain: Fountain,
+  place: Place,
+  'botanical-garden': BotanicalGarden,
   activity: RollerCoaster,
 };
 
@@ -45,6 +53,13 @@ const ACTIVITY_TYPE_ICONS = {
   feux_d_artifice: 'sparkles',
   sport: 'biceps-flexed',
   sommet: 'mountain',
+  parc: 'trees',
+  jardin_botanique: 'botanical-garden',
+  eglise: 'church',
+  cathedrale: 'church',
+  eglise_cathedrale: 'church',
+  fontaine: 'fountain',
+  place: 'place',
 };
 
 export function getActivityTypeLucideIcon(categoryValue) {

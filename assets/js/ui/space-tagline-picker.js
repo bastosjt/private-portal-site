@@ -9,24 +9,28 @@ import { MODAL_DRAG_HANDLE_HTML, wireModalDragClose } from '../lib/modal-drag-cl
 function renderFormHtml(tagline) {
   return `
     <form class="space-tagline-form add-form" id="space-tagline-form" data-theme="${SETTINGS_THEME}" novalidate>
-      <p class="add-picker-lead">Choisissez un nom pour votre espace</p>
-      <label class="form-field" for="space-tagline-input">
-        <span class="form-field-label">Nom de l'espace</span>
-        <div class="form-input-wrap">
-          <input
-            type="text"
-            class="form-input"
-            id="space-tagline-input"
-            maxlength="48"
-            autocomplete="off"
-            placeholder="Ex. À nous deux"
-            value="${escapeHtml(tagline)}"
-            required
-          >
-        </div>
-      </label>
-      <p class="form-field-hint">Par défaut : « ${escapeHtml(APP_TAGLINE)} ».</p>
-      <button type="submit" class="add-form-submit" id="space-tagline-save">Enregistrer</button>
+      <div class="add-form-scroll">
+        <p class="add-picker-lead">Choisissez un nom pour votre espace</p>
+        <label class="form-field" for="space-tagline-input">
+          <span class="form-field-label">Nom de l'espace</span>
+          <div class="form-input-wrap">
+            <input
+              type="text"
+              class="form-input"
+              id="space-tagline-input"
+              maxlength="48"
+              autocomplete="off"
+              placeholder="Ex. À nous deux"
+              value="${escapeHtml(tagline)}"
+              required
+            >
+          </div>
+        </label>
+        <p class="form-field-hint">Par défaut : « ${escapeHtml(APP_TAGLINE)} ».</p>
+      </div>
+      <div class="add-form-footer">
+        <button type="submit" class="add-form-submit" id="space-tagline-save">Enregistrer</button>
+      </div>
     </form>
   `;
 }

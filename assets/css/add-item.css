@@ -315,7 +315,8 @@ body.route-no-fab .fab {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  padding-bottom: 4px;
+  /* Symétrie avec le padding-top du footer au-dessus du trait */
+  padding-bottom: 12px;
 }
 
 .add-form-scroll .form-field[data-select-field="travelId"] {
@@ -749,6 +750,8 @@ body.route-no-fab .fab {
     max-width: none;
     max-height: min(94dvh, 100%);
     border-radius: var(--radius-md) var(--radius-md) 0 0;
+    /* Même espace bas que la bottom-nav (bandeau surface sous le contenu) */
+    padding-bottom: var(--bottom-nav-bottom-gap);
     transform: translateY(100%);
     box-shadow:
       0 -4px 24px rgba(0, 0, 0, 0.45),
@@ -796,6 +799,12 @@ body.route-no-fab .fab {
 
   .add-modal-head {
     padding-top: 8px;
+  }
+
+  /* Le gap bas est déjà sur .add-modal — éviter le double safe-area */
+  .add-form-footer,
+  .act-detail-actions {
+    padding-bottom: 18px;
   }
 }
 

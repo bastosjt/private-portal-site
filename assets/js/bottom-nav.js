@@ -1,4 +1,4 @@
-import { NAV_ITEMS } from './config.js';
+import { BASE_THEME, NAV_ITEMS } from './config.js';
 import { EXPLORER_ROUTE, getRouteFromHash } from './navigation/router.js';
 import { renderNavIcon } from './lib/lucide-icon.js';
 
@@ -56,10 +56,10 @@ function renderPageBadgeHtml(navItem) {
   return `
     <span
       class="bottom-nav-page-badge"
-      data-theme="${navItem.theme || 'base'}"
+      data-theme="${navItem.theme || BASE_THEME}"
       title="${navItem.label}"
       aria-hidden="true"
-    >${renderNavIcon(navItem.icon, { strokeWidth: 2.25, width: 9, height: 9 })}</span>
+    >${renderNavIcon(navItem.icon, { strokeWidth: 2.25, width: 14, height: 14 })}</span>
   `.trim();
 }
 
@@ -92,8 +92,8 @@ function renderRouteItem(routeId, label, iconName, activeId, routeIdForBadge = n
       <span class="sidebar-link-icon" aria-hidden="true">
         <span class="bottom-nav-icon-glyph">
           ${icon(iconName, 1.75)}
-          ${badgeHtml}
         </span>
+        ${badgeHtml}
       </span>
     </a>
   `;

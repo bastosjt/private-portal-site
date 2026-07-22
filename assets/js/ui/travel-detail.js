@@ -14,6 +14,7 @@ import {
   renderDoneToggle,
   updateDoneToggleUI,
   wireModalDragClose,
+  wrapDetailContentHtml,
 } from './item-detail-shared.js';
 import { paintItemAuthors, renderItemAuthorMarkup } from './item-author.js';
 
@@ -54,8 +55,7 @@ export function initTravelDetail({ onChanged, onEdit, onClose, theme = 'blue' } 
       chips.push(`<span class="act-chip act-chip--muted">${escapeHtml(budgetLabel)}</span>`);
     }
 
-    bodyEl.innerHTML = `
-      <div class="act-detail-content${item.done ? ' act-detail-content--done' : ''}">
+    bodyEl.innerHTML = wrapDetailContentHtml(`
         <h3 class="act-detail-name">${escapeHtml(item.destination)}</h3>
         ${chips.length ? `<div class="act-chips">${chips.join('')}</div>` : ''}
         ${renderGeoCategoryLocation(item, 'travels', { escapeHtml })}
@@ -66,17 +66,7 @@ export function initTravelDetail({ onChanged, onEdit, onClose, theme = 'blue' } 
         ${renderDoneToggle(Boolean(item.done), isBusy, DONE_LABELS)}
 
         ${renderItemAuthorMarkup(item)}
-
-        <div class="act-detail-actions">
-          <button type="button" class="act-detail-btn act-detail-btn--edit" id="act-detail-edit" ${isBusy ? 'disabled' : ''}>
-            Modifier
-          </button>
-          <button type="button" class="act-detail-btn act-detail-btn--delete" id="act-detail-delete" ${isBusy ? 'disabled' : ''}>
-            ${confirmDelete ? 'Confirmer la suppression' : 'Supprimer'}
-          </button>
-        </div>
-      </div>
-    `;
+    `, { done: item.done, confirmDelete, isBusy });
 
     bodyEl.querySelector('#act-detail-done')?.addEventListener('click', handleToggleDone);
     bodyEl.querySelector('#act-detail-edit')?.addEventListener('click', handleEdit);

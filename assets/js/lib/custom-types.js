@@ -48,6 +48,41 @@ async function seedMissingDefaultOptions(initializedKeys) {
   await Promise.all(updates);
 }
 
+/** Ajoute les nouvelles valeurs par défaut absentes d’une liste déjà initialisée. */
+async function mergeMissingDefaultOptions() {
+  const updates = [];
+
+  for (const [storageKey, defaults] of Object.entries(DEFAULT_FIELD_OPTIONS)) {
+    const categoryId = storageKey.split('.')[0];
+    if (!FIRESTORE_OPTION_CATEGORIES.includes(categoryId)) continue;
+
+    const existing = cache[storageKey];
+    if (!existing?.length) continue;
+
+    const seen = new Set(existing.map((opt) => opt.value));
+    const toAdd = defaults.filter((opt) => opt?.value && !seen.has(opt.value));
+    if (!toAdd.length) continue;
+
+    cache[storageKey] = [...existing, ...normalizeOptions(toAdd)];
+    updates.push(persistCustomOptions(storageKey, cache[storageKey]));
+  }
+
+  await Promise.all(updates);
+}
+
+/** Retire l’ancienne option combinée « Église / Cathédrale ». */
+async function removeRetiredActivityCategories() {
+  const storageKey = 'activities.categorie';
+  const existing = cache[storageKey];
+  if (!existing?.length) return;
+
+  const next = existing.filter((opt) => opt.value !== 'eglise_cathedrale');
+  if (next.length === existing.length) return;
+
+  cache[storageKey] = next;
+  await persistCustomOptions(storageKey, next);
+}
+
 async function migrateStorageKeyAliases() {
   const aliases = [
     ['voyages.type', 'travels.type'],
@@ -105,6 +140,8 @@ export async function initCustomOptions() {
     }
 
     await seedMissingDefaultOptions(initializedKeys);
+    await mergeMissingDefaultOptions();
+    await removeRetiredActivityCategories();
   })();
 
   return initPromise;

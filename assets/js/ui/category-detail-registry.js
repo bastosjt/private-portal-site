@@ -1,4 +1,4 @@
-import { getCategoryById } from '../config.js';
+import { getCategoryById, BASE_THEME } from '../config.js';
 import { initActivityDetail } from './activity-detail.js';
 import { initRestaurantDetail } from './restaurant-detail.js';
 import { initMovieDetail } from './movie-detail.js';
@@ -14,7 +14,7 @@ const DETAIL_INIT_BY_CATEGORY = {
 };
 
 function getCategoryTheme(categoryId) {
-  return getCategoryById(categoryId)?.theme || 'base';
+  return getCategoryById(categoryId)?.theme || BASE_THEME;
 }
 
 export function initCategoryDetailModals(categoryIds, handlers = {}) {

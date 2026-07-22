@@ -2,6 +2,7 @@ import { escapeHtml } from '../../lib/escape-html.js';
 import {
   APP_NAME,
   APP_VERSION,
+  BASE_THEME,
   renderVersionBadgeHtml,
   COUPLE_START_DATE,
   getUserDisplayName,
@@ -50,7 +51,7 @@ let profilePartnerNicknamePicker = null;
 let spaceTaglinePicker = null;
 let stopLocationListener = null;
 
-const MEMBER_THEMES = ['slate', 'love'];
+const MEMBER_THEMES = ['slate', BASE_THEME];
 
 function getDaysTogether(startDateStr) {
   const start = new Date(startDateStr);

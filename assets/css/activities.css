@@ -2243,9 +2243,22 @@
 }
 
 .act-detail-content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.act-detail-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   display: flex;
   flex-direction: column;
   gap: 16px;
+  /* Même espace au-dessus du trait que le padding-top du footer (12px) */
+  padding-bottom: 12px;
 }
 
 .act-detail-name {
@@ -2415,14 +2428,19 @@
 }
 
 .act-detail-actions {
+  flex-shrink: 0;
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
-  margin-top: 4px;
+  /* Identique à .add-form-footer pour aligner avec Enregistrer */
+  padding: 12px 0 max(18px, env(safe-area-inset-bottom, 0px));
+  background: var(--surface);
+  border-top: 1px solid color-mix(in srgb, var(--text-secondary) 10%, transparent);
 }
 
 .act-detail-btn {
-  padding: 13px 16px;
+  min-height: 50px;
+  padding: 0 16px;
   border-radius: var(--radius-sm);
   font-size: 0.85rem;
   font-weight: 600;

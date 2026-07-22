@@ -56,29 +56,33 @@ function renderColorFormHtml({ animalId, selectedColorId }) {
 
   return `
     <form class="profile-animal-form add-form" id="profile-animal-form" data-theme="${SETTINGS_THEME}" novalidate>
-      <div class="profile-animal-preview">
-        <span class="profile-animal-preview-avatar" id="profile-animal-preview" style="background:${colorStyle.gradient};border:1px solid ${colorStyle.border};color:${colorStyle.iconColor};box-shadow:var(--neu-up-sm), 0 0 18px ${colorStyle.glow}">
-          ${renderNavIcon(animalId, { strokeWidth: 2, width: 34, height: 34 })}
-        </span>
-        <p class="profile-animal-preview-label">${escapeHtml(animal?.label || '')}</p>
+      <div class="add-form-scroll">
+        <div class="profile-animal-preview">
+          <span class="profile-animal-preview-avatar" id="profile-animal-preview" style="background:${colorStyle.gradient};border:1px solid ${colorStyle.border};color:${colorStyle.iconColor};box-shadow:var(--neu-up-sm), 0 0 18px ${colorStyle.glow}">
+            ${renderNavIcon(animalId, { strokeWidth: 2, width: 34, height: 34 })}
+          </span>
+          <p class="profile-animal-preview-label">${escapeHtml(animal?.label || '')}</p>
+        </div>
+        <p class="add-picker-lead">Choisis une couleur</p>
+        <div class="profile-color-grid" role="listbox" aria-label="Couleurs de profil">
+          ${PROFILE_ANIMAL_COLORS.map((color) => `
+            <button
+              type="button"
+              class="profile-color-swatch${color.id === selectedColorId ? ' is-selected' : ''}"
+              data-color="${color.id}"
+              style="background:${color.gradient}"
+              aria-label="${escapeHtml(color.label)}"
+              aria-selected="${color.id === selectedColorId ? 'true' : 'false'}"
+              title="${escapeHtml(color.label)}"
+            >
+              <span class="profile-color-swatch-ring" aria-hidden="true"></span>
+            </button>
+          `).join('')}
+        </div>
       </div>
-      <p class="add-picker-lead">Choisis une couleur</p>
-      <div class="profile-color-grid" role="listbox" aria-label="Couleurs de profil">
-        ${PROFILE_ANIMAL_COLORS.map((color) => `
-          <button
-            type="button"
-            class="profile-color-swatch${color.id === selectedColorId ? ' is-selected' : ''}"
-            data-color="${color.id}"
-            style="background:${color.gradient}"
-            aria-label="${escapeHtml(color.label)}"
-            aria-selected="${color.id === selectedColorId ? 'true' : 'false'}"
-            title="${escapeHtml(color.label)}"
-          >
-            <span class="profile-color-swatch-ring" aria-hidden="true"></span>
-          </button>
-        `).join('')}
+      <div class="add-form-footer">
+        <button type="submit" class="add-form-submit" id="profile-animal-save">Enregistrer</button>
       </div>
-      <button type="submit" class="add-form-submit" id="profile-animal-save">Enregistrer</button>
     </form>
   `;
 }
