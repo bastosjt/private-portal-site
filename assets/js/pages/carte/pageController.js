@@ -21,6 +21,7 @@ import {
   setSelectedMapMarker,
   tryInitialMapFit,
 } from './map-markers.js';
+import { isMapPinMoveActive, startMapPinMove, stopMapPinMove } from './map-pin-move.js';
 
 const MAP_DETAIL_CATEGORIES = ['activities', 'restaurants', 'travels'];
 
@@ -53,24 +54,9 @@ function closeOpenMapDetail() {
   }
 }
 
-function initDetailModals() {
-  destroyCategoryDetailModals(detailModals);
-  detailModals = initCategoryDetailModals(MAP_DETAIL_CATEGORIES, {
-    onChanged: () => handleMapDataChanged(),
-    onClose: () => clearSelectedMapMarker(getInteractiveMap()),
-    onEdit: async (categoryId, item) => {
-      await detailModals[categoryId]?.close?.();
-      addItemModal?.openEdit(categoryId, item);
-    },
-  });
-}
-
-function destroyDetailModals() {
-  destroyCategoryDetailModals(detailModals);
-  detailModals = {};
-}
-
 function openMapItemDetail(categoryId, itemId, { flyTo = true } = {}) {
+  if (isMapPinMoveActive()) return false;
+
   const item = findCachedItemById(categoryId, itemId);
   const modal = detailModals[categoryId];
   const map = getInteractiveMap();
@@ -92,7 +78,80 @@ function openMapItemDetail(categoryId, itemId, { flyTo = true } = {}) {
   return true;
 }
 
+function createMapPinMoveHandlers(categoryId, itemId) {
+  return {
+    onCancel: () => {
+      const item = findCachedItemById(categoryId, itemId);
+      const map = getInteractiveMap();
+      if (map && item?.longitude != null && item?.latitude != null) {
+        map.easeTo({
+          center: [item.longitude, item.latitude],
+          zoom: Math.max(map.getZoom(), MARKER_FOCUS_ZOOM),
+          duration: 500,
+          essential: true,
+        });
+      }
+      openMapItemDetail(categoryId, itemId, { flyTo: false });
+    },
+    onSaved: ({ categoryId: catId, itemId: id, latitude, longitude }) => {
+      handleMapDataChanged();
+      const map = getInteractiveMap();
+      setSelectedMapMarker(map, { categoryId: catId, itemId: id });
+      if (map && longitude != null && latitude != null) {
+        map.easeTo({
+          center: [longitude, latitude],
+          zoom: Math.max(map.getZoom(), MARKER_FOCUS_ZOOM),
+          duration: 500,
+          essential: true,
+        });
+      }
+    },
+  };
+}
+
+async function beginMovePin(categoryId, item) {
+  const map = getInteractiveMap();
+  if (!map || !item) return;
+
+  await detailModals[categoryId]?.close?.();
+  clearSelectedMapMarker(map);
+
+  const handlers = createMapPinMoveHandlers(categoryId, item.id);
+
+  await startMapPinMove({
+    map,
+    categoryId,
+    item,
+    ...handlers,
+  });
+}
+
+function initDetailModals() {
+  destroyCategoryDetailModals(detailModals);
+  detailModals = initCategoryDetailModals(MAP_DETAIL_CATEGORIES, {
+    onChanged: () => handleMapDataChanged(),
+    onClose: () => {
+      if (!isMapPinMoveActive()) {
+        clearSelectedMapMarker(getInteractiveMap());
+      }
+    },
+    onEdit: async (categoryId, item) => {
+      await detailModals[categoryId]?.close?.();
+      addItemModal?.openEdit(categoryId, item);
+    },
+    onMovePin: (categoryId, item) => {
+      void beginMovePin(categoryId, item);
+    },
+  });
+}
+
+function destroyDetailModals() {
+  destroyCategoryDetailModals(detailModals);
+  detailModals = {};
+}
+
 function handleMarkerClick({ categoryId, itemId }) {
+  if (isMapPinMoveActive()) return;
   openMapItemDetail(categoryId, itemId, { flyTo: true });
 }
 
@@ -101,6 +160,23 @@ function openMapFocusFromHash(map) {
   if (!focus) return;
 
   clearMapPlaceHash();
+
+  if (focus.move) {
+    const item = findCachedItemById(focus.categoryId, focus.itemId);
+    if (item) {
+      const handlers = createMapPinMoveHandlers(focus.categoryId, focus.itemId);
+      void startMapPinMove({
+        map,
+        categoryId: focus.categoryId,
+        item,
+        ...handlers,
+      });
+      return;
+    }
+    devWarn('move pin: item introuvable', focus);
+    return;
+  }
+
   openMapItemDetail(focus.categoryId, focus.itemId);
 }
 
@@ -139,6 +215,7 @@ export async function initMapPage(user, { addItemModal: sharedModal } = {}) {
   pageAbort = new AbortController();
   mapReadyHandled = false;
   resetMapPageFit();
+  stopMapPinMove({ restore: false });
 
   await initCustomOptions();
   await ensureMapDataReady();
@@ -173,6 +250,7 @@ export async function initMapPage(user, { addItemModal: sharedModal } = {}) {
   initMapSearch({
     signal: pageAbort.signal,
     onSelect: ({ categoryId, itemId }) => {
+      if (isMapPinMoveActive()) return;
       openMapItemDetail(categoryId, itemId, { flyTo: true });
     },
   });
@@ -184,6 +262,7 @@ export function destroyMapPage() {
   pageAbort?.abort();
   pageAbort = null;
   mapReadyHandled = false;
+  stopMapPinMove({ restore: false });
   setMapMarkerSelectionPrunedHandler(null);
   destroyMapFilters();
   destroyMapSearch();

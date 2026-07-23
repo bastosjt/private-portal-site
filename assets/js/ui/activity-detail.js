@@ -18,6 +18,7 @@ import {
   wireModalDragClose,
   renderLinkedTravelChip,
   wrapDetailContentHtml,
+  itemHasMapPin,
 } from './item-detail-shared.js';
 import { paintItemAuthors, renderItemAuthorMarkup } from './item-author.js';
 
@@ -27,7 +28,7 @@ function getFieldLabel(category, fieldName, value) {
   return getFieldOptionLabel(category.id, fieldName, value);
 }
 
-export function initActivityDetail({ onChanged, onEdit, onClose, theme = 'cyan' } = {}) {
+export function initActivityDetail({ onChanged, onEdit, onMovePin, onClose, theme = 'cyan' } = {}) {
   const category = getCategoryById('activities');
   let currentItem = null;
   let isBusy = false;
@@ -64,10 +65,11 @@ export function initActivityDetail({ onChanged, onEdit, onClose, theme = 'cyan' 
         ${renderDoneToggle(Boolean(item.done), isBusy, DONE_LABELS)}
 
         ${renderItemAuthorMarkup(item)}
-    `, { done: item.done, confirmDelete, isBusy });
+    `, { done: item.done, confirmDelete, isBusy, canMovePin: itemHasMapPin(item) && Boolean(onMovePin) });
 
     bodyEl.querySelector('#act-detail-done')?.addEventListener('click', handleToggleDone);
     bodyEl.querySelector('#act-detail-edit')?.addEventListener('click', handleEdit);
+    bodyEl.querySelector('#act-detail-move-pin')?.addEventListener('click', handleMovePin);
     bodyEl.querySelector('#act-detail-delete')?.addEventListener('click', handleDelete);
     paintItemAuthors(bodyEl);
   }
@@ -100,6 +102,11 @@ export function initActivityDetail({ onChanged, onEdit, onClose, theme = 'cyan' 
   function handleEdit() {
     if (!currentItem || isBusy) return;
     onEdit?.(currentItem);
+  }
+
+  function handleMovePin() {
+    if (!currentItem || isBusy || !itemHasMapPin(currentItem)) return;
+    onMovePin?.(currentItem);
   }
 
   async function handleDelete() {

@@ -46,6 +46,7 @@ let markerInteractionsBound = false;
 let markersLayersPromise = null;
 let markerClickHandler = null;
 let selectedMarker = null;
+let hiddenMarker = null;
 let initialFitDone = false;
 
 const MARKERS_SYMBOL_LAYER_ID = 'map-markers-symbols';
@@ -133,6 +134,8 @@ function isTravelLinkedMarker(marker) {
 }
 
 function isMarkerDisplayed(marker) {
+  if (isMarkerHidden(marker)) return false;
+
   if (isTravelLinkedMarker(marker)) {
     if (!layerVisibility.travels) return false;
     return markerMatchesFilters(marker);
@@ -147,8 +150,24 @@ function isMarkerDisplayed(marker) {
   return markerMatchesFilters(marker);
 }
 
+function isMarkerHidden(marker) {
+  if (!hiddenMarker) return false;
+  return marker.categoryId === hiddenMarker.categoryId && marker.id === hiddenMarker.itemId;
+}
+
 export function getDisplayedMarkers() {
   return getMapMarkersFromCache().filter(isMarkerDisplayed);
+}
+
+export function setHiddenMapMarker(map, selection) {
+  hiddenMarker = selection
+    ? { categoryId: selection.categoryId, itemId: selection.itemId }
+    : null;
+  syncMarkerSource(map);
+}
+
+export function clearHiddenMapMarker(map) {
+  setHiddenMapMarker(map, null);
 }
 
 function findSelectedMarker() {
@@ -609,6 +628,7 @@ export function resetMapMarkersState() {
   markersLayersPromise = null;
   markerClickHandler = null;
   selectedMarker = null;
+  hiddenMarker = null;
   onSelectionPruned = null;
   initialFitDone = false;
   resetTravelZonesState();

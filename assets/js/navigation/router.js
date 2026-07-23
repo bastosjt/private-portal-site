@@ -18,8 +18,15 @@ export function routeHref(routeId) {
   return `#${routeId}`;
 }
 
-export function mapPlaceHref(categoryId, itemId) {
-  return `#carte?place=${encodeURIComponent(`${categoryId}:${itemId}`)}`;
+export function mapPlaceHref(categoryId, itemId, { move = false } = {}) {
+  const params = new URLSearchParams();
+  params.set('place', `${categoryId}:${itemId}`);
+  if (move) params.set('move', '1');
+  return `#carte?${params.toString()}`;
+}
+
+export function mapPlaceMoveHref(categoryId, itemId) {
+  return mapPlaceHref(categoryId, itemId, { move: true });
 }
 
 export function getMapPlaceFromHash() {
@@ -27,7 +34,8 @@ export function getMapPlaceFromHash() {
   const [route, query] = raw.split('?');
   if (route !== 'carte' || !query) return null;
 
-  const place = new URLSearchParams(query).get('place');
+  const params = new URLSearchParams(query);
+  const place = params.get('place');
   if (!place) return null;
 
   const sep = place.indexOf(':');
@@ -37,7 +45,11 @@ export function getMapPlaceFromHash() {
   const itemId = place.slice(sep + 1);
   if (!categoryId || !itemId) return null;
 
-  return { categoryId, itemId };
+  return {
+    categoryId,
+    itemId,
+    move: params.get('move') === '1',
+  };
 }
 
 export function clearMapPlaceHash() {

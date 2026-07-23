@@ -259,7 +259,7 @@ export function resolveTravelListItemFromRow(row) {
   return null;
 }
 
-export function initTravelHubDetail({ onChanged, onEdit, onClose, theme = 'blue' } = {}) {
+export function initTravelHubDetail({ onChanged, onEdit, onMovePin, onClose, theme = 'blue' } = {}) {
   const travelTheme = theme || getCategoryById('travels')?.theme || 'blue';
   const activityTheme = getCategoryById('activities')?.theme || 'cyan';
   const restaurantTheme = getCategoryById('restaurants')?.theme || 'rose';
@@ -271,6 +271,9 @@ export function initTravelHubDetail({ onChanged, onEdit, onClose, theme = 'blue'
     onChanged,
     onClose,
     onEdit: (item) => onEdit?.({ ...item, _editCategory: 'travels' }),
+    onMovePin: onMovePin
+      ? (item) => onMovePin({ ...item, _editCategory: 'travels' })
+      : undefined,
   });
 
   const activityDetail = initActivityDetail({
@@ -278,6 +281,9 @@ export function initTravelHubDetail({ onChanged, onEdit, onClose, theme = 'blue'
     onChanged,
     onClose,
     onEdit: (item) => onEdit?.({ ...item, _editCategory: 'activities' }),
+    onMovePin: onMovePin
+      ? (item) => onMovePin({ ...item, _editCategory: 'activities' })
+      : undefined,
   });
 
   const restaurantDetail = initRestaurantDetail({
@@ -285,6 +291,9 @@ export function initTravelHubDetail({ onChanged, onEdit, onClose, theme = 'blue'
     onChanged,
     onClose,
     onEdit: (item) => onEdit?.({ ...item, _editCategory: 'restaurants' }),
+    onMovePin: onMovePin
+      ? (item) => onMovePin({ ...item, _editCategory: 'restaurants' })
+      : undefined,
   });
 
   const modals = {

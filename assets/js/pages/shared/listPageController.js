@@ -26,7 +26,7 @@ import {
 import { buildFieldFilterOptions } from './filterOptions.js';
 import { normalizeSearchText } from '../../lib/normalize-search.js';
 import { escapeHtml } from '../../lib/escape-html.js';
-import { navigate } from '../../navigation/router.js';
+import { navigate, mapPlaceMoveHref } from '../../navigation/router.js';
 
 export const DEFAULT_SORT_OPTIONS = [
   { id: 'alpha', label: 'Ordre alphabétique', shortLabel: 'A → Z' },
@@ -986,6 +986,11 @@ export function createListPageController(config) {
       onEdit: async (item) => {
         await detailModal.close();
         addItemModal.openEdit(item._editCategory || categoryId, item);
+      },
+      onMovePin: async (item) => {
+        const moveCategoryId = item._editCategory || categoryId;
+        await detailModal.close();
+        window.location.hash = mapPlaceMoveHref(moveCategoryId, item.id).slice(1);
       },
     });
 

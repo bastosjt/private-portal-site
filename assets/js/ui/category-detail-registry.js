@@ -29,6 +29,7 @@ export function initCategoryDetailModals(categoryIds, handlers = {}) {
       onChanged: handlers.onChanged,
       onClose: handlers.onClose,
       onEdit: handlers.onEdit ? (item) => handlers.onEdit(categoryId, item) : undefined,
+      onMovePin: handlers.onMovePin ? (item) => handlers.onMovePin(categoryId, item) : undefined,
       theme: getCategoryTheme(categoryId),
     });
   }

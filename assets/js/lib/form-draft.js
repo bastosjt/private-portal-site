@@ -38,7 +38,8 @@ function snapshotHasMeaningfulContent(fields, category) {
   });
 }
 
-export function snapshotFormFields(form, category) {
+/** Capture brute des champs (+ meta adresse) sans filtre « contenu utile ». */
+export function captureFormSnapshot(form, category) {
   if (!form || !category) return null;
 
   const fields = {};
@@ -62,11 +63,47 @@ export function snapshotFormFields(form, category) {
     }
   }
 
-  if (!snapshotHasMeaningfulContent(fields, category)) return null;
+  return { fields, meta };
+}
+
+function normalizeSnapshotValue(value) {
+  return String(value ?? '').trim();
+}
+
+export function formSnapshotsEqual(a, b) {
+  if (!a || !b) return a === b;
+
+  const keys = new Set([
+    ...Object.keys(a.fields || {}),
+    ...Object.keys(b.fields || {}),
+    ...Object.keys(a.meta || {}),
+    ...Object.keys(b.meta || {}),
+  ]);
+
+  for (const key of keys) {
+    const inFields = Object.prototype.hasOwnProperty.call(a.fields || {}, key)
+      || Object.prototype.hasOwnProperty.call(b.fields || {}, key);
+    if (inFields) {
+      if (normalizeSnapshotValue(a.fields?.[key]) !== normalizeSnapshotValue(b.fields?.[key])) {
+        return false;
+      }
+      continue;
+    }
+
+    if (normalizeSnapshotValue(a.meta?.[key]) !== normalizeSnapshotValue(b.meta?.[key])) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+export function snapshotFormFields(form, category) {
+  const raw = captureFormSnapshot(form, category);
+  if (!raw || !snapshotHasMeaningfulContent(raw.fields, category)) return null;
 
   return {
-    fields,
-    meta,
+    ...raw,
     savedAt: Date.now(),
   };
 }

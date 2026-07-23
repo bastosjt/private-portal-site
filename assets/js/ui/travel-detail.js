@@ -15,6 +15,7 @@ import {
   updateDoneToggleUI,
   wireModalDragClose,
   wrapDetailContentHtml,
+  itemHasMapPin,
 } from './item-detail-shared.js';
 import { paintItemAuthors, renderItemAuthorMarkup } from './item-author.js';
 
@@ -31,7 +32,7 @@ function formatBudgetLabel(budget) {
   return value.includes('€') ? value : `${value} €`;
 }
 
-export function initTravelDetail({ onChanged, onEdit, onClose, theme = 'blue' } = {}) {
+export function initTravelDetail({ onChanged, onEdit, onMovePin, onClose, theme = 'blue' } = {}) {
   const category = getCategoryById('travels');
   let currentItem = null;
   let isBusy = false;
@@ -66,10 +67,11 @@ export function initTravelDetail({ onChanged, onEdit, onClose, theme = 'blue' } 
         ${renderDoneToggle(Boolean(item.done), isBusy, DONE_LABELS)}
 
         ${renderItemAuthorMarkup(item)}
-    `, { done: item.done, confirmDelete, isBusy });
+    `, { done: item.done, confirmDelete, isBusy, canMovePin: itemHasMapPin(item) && Boolean(onMovePin) });
 
     bodyEl.querySelector('#act-detail-done')?.addEventListener('click', handleToggleDone);
     bodyEl.querySelector('#act-detail-edit')?.addEventListener('click', handleEdit);
+    bodyEl.querySelector('#act-detail-move-pin')?.addEventListener('click', handleMovePin);
     bodyEl.querySelector('#act-detail-delete')?.addEventListener('click', handleDelete);
     paintItemAuthors(bodyEl);
   }
@@ -101,6 +103,11 @@ export function initTravelDetail({ onChanged, onEdit, onClose, theme = 'blue' } 
   function handleEdit() {
     if (!currentItem || isBusy) return;
     onEdit?.(currentItem);
+  }
+
+  function handleMovePin() {
+    if (!currentItem || isBusy || !itemHasMapPin(currentItem)) return;
+    onMovePin?.(currentItem);
   }
 
   async function handleDelete() {
