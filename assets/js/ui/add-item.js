@@ -26,7 +26,9 @@ import {
 import { getFieldOptionLabel } from '../lib/custom-types.js';
 import {
   applyFormDraft,
+  captureFormSnapshot,
   clearFormDraft,
+  formSnapshotsEqual,
   loadFormDraft,
   saveFormDraft,
 } from '../lib/form-draft.js';
@@ -146,6 +148,7 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
   let addressCleanup = null;
   let selectCleanup = null;
   let draftCleanup = null;
+  let formDraftBaseline = null;
   let bodyTransitionToken = 0;
   let modalTransitionToken = 0;
   let isBodyTransitioning = false;
@@ -302,9 +305,13 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
 
     const category = getCategoryById(categoryId);
     const draft = loadFormDraft(categoryId, editingItemId, category);
-    notice.classList.toggle('hidden', !draft);
+    const isDirty = formDraftBaseline
+      ? !formSnapshotsEqual(captureFormSnapshot(form, category), formDraftBaseline)
+      : Boolean(draft);
 
-    if (draft && meta) {
+    notice.classList.toggle('hidden', !draft || !isDirty);
+
+    if (draft && isDirty && meta) {
       meta.textContent = formatDraftSavedAt(draft.savedAt);
     }
 
@@ -344,6 +351,8 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
     if (editingItem) {
       populateForm(form, category, editingItem);
     }
+
+    formDraftBaseline = captureFormSnapshot(form, category);
   }
 
   function handleDraftClear(event, form, category) {
@@ -372,6 +381,14 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
     const form = getActiveForm();
     const category = getCategoryById(activeCategoryId);
     if (!form || !category) return;
+
+    const current = captureFormSnapshot(form, category);
+    if (formDraftBaseline && formSnapshotsEqual(current, formDraftBaseline)) {
+      clearFormDraft(activeCategoryId, editingItemId);
+      updateDraftNotice(form, activeCategoryId);
+      return;
+    }
+
     saveFormDraft(activeCategoryId, editingItemId, form, category);
     updateDraftNotice(form, activeCategoryId);
   }
@@ -447,6 +464,9 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
     addressCleanup = initFormAddressFields(form, category);
     selectCleanup = await initFormSelectFields(form, category);
 
+    // Baseline = état initial (vide ou item édité), avant restauration d'un brouillon.
+    formDraftBaseline = captureFormSnapshot(form, category);
+
     const draft = loadFormDraft(categoryId, editingItemId, category);
     if (draft) {
       applyFormDraft(form, category, draft);
@@ -466,9 +486,16 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
           categoryId,
         );
       }
+
+      // Brouillon déjà présent : resynchroniser uniquement s'il diffère vraiment de la baseline.
+      const current = captureFormSnapshot(form, category);
+      if (!formSnapshotsEqual(current, formDraftBaseline)) {
+        saveFormDraft(categoryId, editingItemId, form, category);
+      } else {
+        clearFormDraft(categoryId, editingItemId);
+      }
     }
 
-    saveFormDraft(categoryId, editingItemId, form, category);
     setupDraftAutosave(form, category);
     updateDraftNotice(form, categoryId);
     blurFormFields(form);
@@ -484,6 +511,7 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
     editingItemId = null;
     editingItem = null;
     activeCategoryId = null;
+    formDraftBaseline = null;
     setModalTitle('Nouvelle idée', false);
 
     const content = getContentEl() || bodyEl;
@@ -623,6 +651,7 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
     activeCategoryId = null;
     editingItemId = null;
     editingItem = null;
+    formDraftBaseline = null;
     bodyEl.innerHTML = '';
   }
 

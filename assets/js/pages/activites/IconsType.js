@@ -12,9 +12,11 @@ import {
   Landmark,
   Mountain,
   Music,
+  Parasol,
   Popcorn,
   Puzzle,
   RollerCoaster,
+  Ship,
   Sparkles,
   Tickets,
   Trees,
@@ -38,6 +40,8 @@ const ICON_REGISTRY = {
   fountain: Fountain,
   place: Place,
   'botanical-garden': BotanicalGarden,
+  parasol: Parasol,
+  ship: Ship,
   activity: RollerCoaster,
 };
 
@@ -60,6 +64,8 @@ const ACTIVITY_TYPE_ICONS = {
   eglise_cathedrale: 'church',
   fontaine: 'fountain',
   place: 'place',
+  plage: 'parasol',
+  port: 'ship',
 };
 
 export function getActivityTypeLucideIcon(categoryValue) {

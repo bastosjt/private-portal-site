@@ -663,3 +663,109 @@
     gap: 6px;
   }
 }
+
+/* ── Mode déplacement pin (Bolt-style) ── */
+body.map-pin-move-active .map-controls,
+body.map-pin-move-active .map-search,
+body.map-pin-move-active .map-filters-panel {
+  display: none !important;
+}
+
+.map-pin-move-marker {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 510;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  /* Tip du pin = centre de la carte (ne jamais décaler) */
+  transform: translate(-50%, -100%);
+  pointer-events: none;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.45));
+  transform-origin: 50% 100%;
+}
+
+.map-pin-move-marker.is-moving .map-pin-move-marker-svg {
+  animation: map-pin-move-pulse 0.7s ease-in-out infinite;
+}
+
+.map-pin-move-marker-svg {
+  width: 48px;
+  height: 48px;
+  display: block;
+  overflow: visible;
+  transform-origin: 50% 100%;
+}
+
+@keyframes map-pin-move-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.72; }
+}
+
+.map-pin-move-bar {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  z-index: 520;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 14px 12px;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  border: 1px solid color-mix(in srgb, var(--cat-border, rgba(255, 255, 255, 0.08)) 80%, transparent);
+  box-shadow: var(--neu-up-sm), 0 10px 28px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.map-pin-move-hint {
+  margin: 0;
+  text-align: center;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.map-pin-move-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.map-pin-move-btn {
+  min-height: 46px;
+  padding: 0 14px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
+}
+
+.map-pin-move-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.map-pin-move-btn--cancel {
+  color: var(--text-primary);
+  background: var(--bg);
+  box-shadow: var(--neu-up-sm);
+}
+
+.map-pin-move-btn--confirm {
+  color: var(--cat-on-accent, #0c1a22);
+  background: linear-gradient(135deg, var(--cat-color) 0%, var(--cat-color-deep, var(--cat-color)) 100%);
+  box-shadow: var(--neu-up-sm), 0 0 16px color-mix(in srgb, var(--cat-glow) 55%, transparent);
+}
+
+.map-pin-move-btn:not(:disabled):active {
+  transform: scale(0.98);
+  box-shadow: var(--neu-press);
+}

@@ -17,6 +17,8 @@ export const DEFAULT_FIELD_OPTIONS = {
     { value: 'cathedrale', label: 'Cathédrale' },
     { value: 'fontaine', label: 'Fontaine' },
     { value: 'place', label: 'Place' },
+    { value: 'plage', label: 'Plage' },
+    { value: 'port', label: 'Port' },
   ],
   'restaurants.type': [
     { value: 'restaurant', label: 'Restaurant' },

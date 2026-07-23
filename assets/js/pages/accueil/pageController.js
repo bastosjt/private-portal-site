@@ -13,7 +13,7 @@ import { MAP_FALLBACK_CENTER } from '../carte/map-markers.js';
 import { initCustomOptions } from '../../lib/custom-types.js';
 import { escapeHtml } from '../../lib/escape-html.js';
 import { renderNavIcon } from '../../lib/lucide-icon.js';
-import { mapPlaceHref } from '../../navigation/router.js';
+import { mapPlaceHref, mapPlaceMoveHref } from '../../navigation/router.js';
 import { destroyCategoryDetailModals, initCategoryDetailModals } from '../../ui/category-detail-registry.js';
 import { initAddItem } from '../../ui/add-item.js';
 import { sidebarIcon } from '../../ui/sidebar.js';
@@ -316,6 +316,10 @@ function initDetailModals() {
   destroyCategoryDetailModals(detailModals);
   detailModals = initCategoryDetailModals(HOME_DETAIL_CATEGORIES, {
     onChanged: () => loadHomeData(),
+    onMovePin: async (categoryId, item) => {
+      await detailModals[categoryId]?.close?.();
+      window.location.hash = mapPlaceMoveHref(categoryId, item.id).slice(1);
+    },
   });
 }
 
