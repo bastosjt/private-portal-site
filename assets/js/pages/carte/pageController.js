@@ -1,6 +1,10 @@
 import { clearMapPlaceHash, getMapPlaceFromHash } from '../../navigation/router.js';
 import { devWarn } from '../../lib/dev-log.js';
-import { countGeolocatedPlacesFromCache, ensureMapDataReady, findCachedItemById } from '../../data/appDataCache.js';
+import {
+  ensureMapDataReady,
+  findCachedItemById,
+  getMapMarkersFromCache,
+} from '../../data/appDataCache.js';
 import { initCustomOptions } from '../../lib/custom-types.js';
 import { destroyCategoryDetailModals, initCategoryDetailModals } from '../../ui/category-detail-registry.js';
 import { initAddItem } from '../../ui/add-item.js';
@@ -10,18 +14,23 @@ import {
   getLastUserLocation,
   initInteractiveMap,
   refreshInteractiveMap,
+  showMapControlFeedback,
   syncMapLayerButtons,
+  syncMapTravelModeButton,
 } from './interactive-map.js';
 import { destroyMapFilters, initMapFilters, onMapLayerToggled, updateMapFilterBadge } from './map-filters.js';
 import { destroyMapSearch, initMapSearch } from './map-search.js';
 import {
   clearSelectedMapMarker,
+  getSelectedTravelId,
+  isTravelModeActive,
   resetMapPageFit,
   setMapMarkerSelectionPrunedHandler,
   setSelectedMapMarker,
   tryInitialMapFit,
 } from './map-markers.js';
 import { isMapPinMoveActive, startMapPinMove, stopMapPinMove } from './map-pin-move.js';
+import { initMapTravelModeControls } from './map-travel-mode.js';
 
 const MAP_DETAIL_CATEGORIES = ['activities', 'restaurants', 'travels'];
 
@@ -31,15 +40,54 @@ let pageAbort = null;
 let addItemModal = null;
 let detailModals = {};
 let mapReadyHandled = false;
+let travelModeControls = null;
+
+function formatPlacesCount(count) {
+  if (count <= 0) return '';
+  return `${count} lieu${count > 1 ? 'x' : ''} géolocalisé${count > 1 ? 's' : ''}`;
+}
+
+/** Activités / restos selon le mode : locaux hors voyage, ou liés au voyage actif. */
+function countMapContextPlaces() {
+  const markers = getMapMarkersFromCache();
+
+  if (isTravelModeActive()) {
+    const travelId = getSelectedTravelId();
+    if (!travelId) return 0;
+    return markers.filter((marker) => (
+      (marker.categoryId === 'activities' || marker.categoryId === 'restaurants')
+      && marker.travelId === travelId
+    )).length;
+  }
+
+  return markers.filter((marker) => (
+    (marker.categoryId === 'activities' || marker.categoryId === 'restaurants')
+    && !marker.travelId
+  )).length;
+}
 
 function updateHeaderSub() {
   const sub = document.getElementById('map-header-sub');
   if (!sub) return;
 
-  const count = countGeolocatedPlacesFromCache();
-  sub.textContent = count > 0
-    ? `${count} lieu${count > 1 ? 'x' : ''} géolocalisé${count > 1 ? 's' : ''}`
-    : 'Activités, restaurants et voyages';
+  const placesCount = countMapContextPlaces();
+  const placesLabel = formatPlacesCount(placesCount);
+
+  if (isTravelModeActive()) {
+    const travel = findCachedItemById('travels', getSelectedTravelId());
+    const label = travel?.destination?.trim();
+    const modeLabel = label ? `Mode voyage - ${label}` : 'Mode voyage';
+    sub.textContent = placesLabel ? `${modeLabel} · ${placesLabel}` : modeLabel;
+    return;
+  }
+
+  sub.textContent = placesLabel || 'Activités, restaurants et voyages';
+}
+
+function syncTravelModeUi() {
+  syncMapLayerButtons();
+  syncMapTravelModeButton();
+  updateHeaderSub();
 }
 
 function handleMapDataChanged() {
@@ -226,6 +274,18 @@ export async function initMapPage(user, { addItemModal: sharedModal } = {}) {
     onUpdated: handleMapDataChanged,
   });
 
+  travelModeControls = initMapTravelModeControls({
+    signal: pageAbort.signal,
+    getMap: getInteractiveMap,
+    getAddItemModal: () => addItemModal,
+    showFeedback: showMapControlFeedback,
+    syncUi: syncTravelModeUi,
+    onModeChanged: () => {
+      updateMapFilterBadge();
+      updateHeaderSub();
+    },
+  });
+
   initDetailModals();
   setMapMarkerSelectionPrunedHandler(closeOpenMapDetail);
   updateHeaderSub();
@@ -235,6 +295,7 @@ export async function initMapPage(user, { addItemModal: sharedModal } = {}) {
     onLayerToggled: handleLayerToggled,
     onMarkerClick: handleMarkerClick,
     onMarkersReady: handleMarkersReady,
+    onTravelModeToggle: (opts) => travelModeControls?.toggleTravelMode(opts),
   });
 
   const map = getInteractiveMap();
@@ -262,6 +323,7 @@ export function destroyMapPage() {
   pageAbort?.abort();
   pageAbort = null;
   mapReadyHandled = false;
+  travelModeControls = null;
   stopMapPinMove({ restore: false });
   setMapMarkerSelectionPrunedHandler(null);
   destroyMapFilters();

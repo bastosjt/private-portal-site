@@ -7,7 +7,6 @@ import {
   bindMapMarkerImageFallback,
   MAP_MARKER_DONE_BADGE_ID,
   MAP_MARKER_LIMITED_BADGE_ID,
-  MAP_MARKER_TRAVEL_LINKED_BADGE_ID,
 } from './map-marker-images.js';
 import {
   ensureTravelZoneLayers,
@@ -52,13 +51,11 @@ let initialFitDone = false;
 const MARKERS_SYMBOL_LAYER_ID = 'map-markers-symbols';
 const MARKERS_DONE_BADGE_LAYER_ID = 'map-markers-done-badge';
 const MARKERS_LIMITED_BADGE_LAYER_ID = 'map-markers-limited-badge';
-const MARKERS_TRAVEL_LINKED_BADGE_LAYER_ID = 'map-markers-travel-linked-badge';
 const MARKER_SORT_KEY = ['-', 0, ['get', 'lat']];
 const MARKER_LAYER_IDS = [
   MARKERS_SYMBOL_LAYER_ID,
   MARKERS_DONE_BADGE_LAYER_ID,
   MARKERS_LIMITED_BADGE_LAYER_ID,
-  MARKERS_TRAVEL_LINKED_BADGE_LAYER_ID,
 ];
 const INTERACTIVE_MARKER_LAYER_IDS = [...MARKER_LAYER_IDS, 'map-marker-selected'];
 
@@ -72,7 +69,6 @@ const LIMITED_BADGE_FILTER = [
   ['==', ['get', 'limitedDuration'], 1],
   ['==', ['get', 'done'], 0],
 ];
-const TRAVEL_LINKED_BADGE_FILTER = ['==', ['get', 'travelLinked'], 1];
 const SHOW_UNSELECTED_FILTER = ['==', ['get', 'isSelected'], 0];
 
 export function setMapMarkerClickHandler(handler) {
@@ -133,13 +129,32 @@ function isTravelLinkedMarker(marker) {
   return Boolean(marker.travelId);
 }
 
+let travelMode = false;
+let selectedTravelId = '';
+
 function isMarkerDisplayed(marker) {
   if (isMarkerHidden(marker)) return false;
 
-  if (isTravelLinkedMarker(marker)) {
-    if (!layerVisibility.travels) return false;
-    return markerMatchesFilters(marker);
+  if (travelMode) {
+    if (!selectedTravelId) return false;
+
+    if (marker.categoryId === 'travels') {
+      if (marker.id !== selectedTravelId) return false;
+      if (!layerVisibility.travels) return false;
+      return markerMatchesFilters(marker);
+    }
+
+    if (isTravelLinkedMarker(marker)) {
+      if (marker.travelId !== selectedTravelId) return false;
+      if (!layerVisibility[marker.categoryId]) return false;
+      return markerMatchesFilters(marker);
+    }
+
+    return false;
   }
+
+  // Hors mode voyage : les lieux liés à un voyage restent masqués
+  if (isTravelLinkedMarker(marker)) return false;
 
   if (marker.categoryId === 'travels') {
     if (!layerVisibility.travels) return false;
@@ -217,7 +232,6 @@ function buildFeatureCollection() {
         iconImage: getMarkerIconImageId(marker),
         done: marker.done ? 1 : 0,
         limitedDuration: marker.limitedDuration ? 1 : 0,
-        travelLinked: marker.travelId ? 1 : 0,
         isSelected: isMarkerSelected(marker) ? 1 : 0,
         lat: marker.coordinates[1],
       },
@@ -275,10 +289,31 @@ export function clearSelectedMapMarker(map) {
   setSelectedMapMarker(map, null);
 }
 
+/** Padding fitBounds : laisse la search + dock + tête des pins hors du cadre. */
+function getMapFitPadding() {
+  const mapEl = document.getElementById('interactive-map');
+  const search = document.querySelector('.map-page .map-search');
+  const pinHeadroom = 52;
+  let top = 80 + pinHeadroom;
+
+  if (mapEl && search) {
+    const mapBox = mapEl.getBoundingClientRect();
+    const searchBox = search.getBoundingClientRect();
+    top = Math.max(top, Math.ceil(searchBox.bottom - mapBox.top) + pinHeadroom);
+  }
+
+  return {
+    top,
+    bottom: 120,
+    left: 60,
+    right: 60,
+  };
+}
+
 export function fitMapToLocalArea(map, {
   center = MAP_FALLBACK_CENTER,
   radiusKm = MAP_LOCAL_RADIUS_KM,
-  padding = { top: 80, bottom: 120, left: 60, right: 60 },
+  padding = getMapFitPadding(),
   maxZoom = 13,
   duration = 900,
 } = {}) {
@@ -298,7 +333,13 @@ export function fitMapToLocalArea(map, {
 
 function fitMapToPoints(map, points, { padding, maxZoom, duration }) {
   if (points.length === 1) {
-    map.flyTo({ center: points[0], zoom: maxZoom, duration, essential: true });
+    map.flyTo({
+      center: points[0],
+      zoom: maxZoom,
+      duration,
+      essential: true,
+      padding: padding || getMapFitPadding(),
+    });
     return;
   }
 
@@ -309,7 +350,7 @@ function fitMapToPoints(map, points, { padding, maxZoom, duration }) {
 }
 
 export function fitMapToVisibleMarkers(map, {
-  padding = { top: 80, bottom: 120, left: 60, right: 60 },
+  padding = getMapFitPadding(),
   maxZoom = 15,
   duration = 900,
   userLocation = null,
@@ -443,34 +484,6 @@ function ensureLimitedBadgeLayer(map) {
   });
 }
 
-function ensureTravelLinkedBadgeLayer(map) {
-  if (map.getLayer(MARKERS_TRAVEL_LINKED_BADGE_LAYER_ID)) {
-    map.setFilter(MARKERS_TRAVEL_LINKED_BADGE_LAYER_ID, TRAVEL_LINKED_BADGE_FILTER);
-    map.setLayoutProperty(MARKERS_TRAVEL_LINKED_BADGE_LAYER_ID, 'symbol-sort-key', MARKER_SORT_KEY);
-    map.setLayoutProperty(MARKERS_TRAVEL_LINKED_BADGE_LAYER_ID, 'symbol-z-order', 'auto');
-    return;
-  }
-
-  map.addLayer({
-    id: MARKERS_TRAVEL_LINKED_BADGE_LAYER_ID,
-    type: 'symbol',
-    source: 'map-markers',
-    filter: TRAVEL_LINKED_BADGE_FILTER,
-    layout: {
-      'icon-image': MAP_MARKER_TRAVEL_LINKED_BADGE_ID,
-      'icon-size': BASE_ICON_SIZE,
-      'icon-anchor': 'bottom',
-      'icon-allow-overlap': true,
-      'icon-ignore-placement': true,
-      'symbol-sort-key': MARKER_SORT_KEY,
-      'symbol-z-order': 'auto',
-    },
-    paint: {
-      'icon-opacity': 1,
-    },
-  });
-}
-
 function ensureSelectedMarkerLayer(map) {
   if (map.getLayer('map-marker-selected')) {
     map.setLayoutProperty('map-marker-selected', 'symbol-sort-key', MARKER_SORT_KEY);
@@ -513,7 +526,6 @@ export async function ensureMapMarkerLayers(map) {
     ensureMarkersSymbolLayer(map);
     ensureDoneBadgeLayer(map);
     ensureLimitedBadgeLayer(map);
-    ensureTravelLinkedBadgeLayer(map);
     ensureSelectedMarkerLayer(map);
     syncLayerVisibility(map);
     bindMapMarkerInteractions(map);
@@ -539,7 +551,6 @@ export async function ensureMapMarkerLayers(map) {
       ensureMarkersSymbolLayer(map);
       ensureDoneBadgeLayer(map);
       ensureLimitedBadgeLayer(map);
-      ensureTravelLinkedBadgeLayer(map);
       ensureSelectedMarkerLayer(map);
 
       markersSourceReady = true;
@@ -622,6 +633,32 @@ export function getMapMarkerFilters() {
   };
 }
 
+export function isTravelModeActive() {
+  return travelMode;
+}
+
+export function getSelectedTravelId() {
+  return selectedTravelId;
+}
+
+export function setTravelModeState(map, { active = false, travelId = '' } = {}) {
+  travelMode = Boolean(active);
+  selectedTravelId = travelMode ? String(travelId || '') : '';
+
+  if (travelMode) {
+    layerVisibility.travels = true;
+    layerVisibility.activities = true;
+    layerVisibility.restaurants = true;
+  }
+
+  if (map?.isStyleLoaded()) {
+    syncMarkerSource(map);
+    syncTravelMapZones(map).catch((err) => {
+      devWarn('syncTravelMapZones:', err.message);
+    });
+  }
+}
+
 export function resetMapMarkersState() {
   markersSourceReady = false;
   markerInteractionsBound = false;
@@ -631,6 +668,8 @@ export function resetMapMarkersState() {
   hiddenMarker = null;
   onSelectionPruned = null;
   initialFitDone = false;
+  travelMode = false;
+  selectedTravelId = '';
   resetTravelZonesState();
   layerVisibility.activities = true;
   layerVisibility.restaurants = true;

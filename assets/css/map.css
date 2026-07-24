@@ -427,6 +427,10 @@
   background: var(--bg);
   border: 1px solid color-mix(in srgb, var(--cat-border) 35%, transparent);
   box-shadow: var(--neu-in);
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
   transition:
     color 0.18s ease,
     background 0.18s ease,
@@ -507,6 +511,17 @@
 .map-dock-btn--layer[data-map-layer="activities"] { --map-filter-color: #f97316; }
 .map-dock-btn--layer[data-map-layer="restaurants"] { --map-filter-color: #f43f5e; }
 .map-dock-btn--layer[data-map-layer="travels"] { --map-filter-color: #0ea5e9; }
+
+.map-dock-btn--travel-mode.is-active {
+  color: #0ea5e9;
+  background: color-mix(in srgb, #0ea5e9 12%, var(--bg));
+  border-color: color-mix(in srgb, #0ea5e9 45%, transparent);
+  box-shadow: var(--neu-in);
+}
+
+.map-dock-btn--travel-mode.is-active svg {
+  color: #0ea5e9;
+}
 
 .map-dock-btn.has-error {
   color: #f87171;
@@ -769,3 +784,181 @@ body.map-pin-move-active .map-filters-panel {
   transform: scale(0.98);
   box-shadow: var(--neu-press);
 }
+
+/* ── Mode voyage picker ── */
+#map-travel-mode-overlay .add-modal-body {
+  padding-left: 12px;
+  padding-right: 12px;
+}
+
+#map-travel-mode-overlay .add-modal-content:not(:has(.add-form)) {
+  overflow-x: clip;
+  overflow-y: auto;
+  padding-left: 10px;
+  padding-right: 10px;
+  padding-bottom: 22px;
+}
+
+.map-travel-picker-hint {
+  margin: -8px 0 14px;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.map-travel-picker-scroll {
+  overflow: visible;
+  padding: 6px 8px 16px;
+  margin: 0;
+}
+
+.map-travel-picker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 2px 0;
+}
+
+.map-travel-picker-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  box-shadow: var(--neu-up-sm);
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+  transition: box-shadow 0.22s var(--ease-premium), border-color 0.22s ease, transform 0.15s ease;
+}
+
+.map-travel-picker-item:hover {
+  box-shadow: var(--neu-up-sm), 0 0 14px color-mix(in srgb, #0ea5e9 28%, transparent);
+}
+
+.map-travel-picker-item:active {
+  transform: scale(0.985);
+  box-shadow: var(--neu-press);
+}
+
+.map-travel-picker-item.is-selected {
+  border-color: color-mix(in srgb, #0ea5e9 55%, transparent);
+  background: color-mix(in srgb, #0ea5e9 10%, var(--bg));
+}
+
+.map-travel-picker-item.is-done {
+  opacity: 0.78;
+}
+
+.map-travel-picker-item-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  color: #0ea5e9;
+  background: color-mix(in srgb, #0ea5e9 14%, var(--bg));
+  flex-shrink: 0;
+}
+
+.map-travel-picker-item-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.map-travel-picker-item-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.map-travel-picker-item-title {
+  font-size: 0.92rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.map-travel-picker-item-meta {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  line-height: 1.3;
+}
+
+.map-travel-picker-item-check {
+  color: #0ea5e9;
+  flex-shrink: 0;
+}
+
+.map-travel-picker-banner {
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, #0ea5e9 10%, var(--bg));
+  border: 1px solid color-mix(in srgb, #0ea5e9 28%, transparent);
+}
+
+.map-travel-picker-banner-title {
+  margin: 0 0 4px;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.map-travel-picker-banner-text {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: var(--text-secondary);
+}
+
+.map-travel-picker-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 10px 18px;
+}
+
+.map-travel-picker-footer {
+  gap: 8px;
+  padding-left: 8px;
+  padding-right: 8px;
+  padding-bottom: max(18px, env(safe-area-inset-bottom, 0px));
+}
+
+.map-travel-picker-exit {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted, #64748b);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 500;
+  padding: 10px 12px;
+  cursor: pointer;
+  border-radius: 12px;
+}
+
+.map-travel-picker-exit:hover {
+  color: var(--text, #0f172a);
+  background: color-mix(in srgb, var(--cat-color, #0ea5e9) 10%, transparent);
+}
+
+.map-travel-picker-cta.add-form-submit {
+  width: 100%;
+  color: #0c1a22;
+  background: linear-gradient(135deg, var(--cat-color, #0ea5e9) 0%, var(--cat-color-deep, #0284c7) 100%);
+  box-shadow: var(--neu-up-sm), 0 0 16px color-mix(in srgb, var(--cat-glow, rgba(14, 165, 233, 0.38)) 55%, transparent);
+}
+
+.map-travel-picker-cta.add-form-submit:hover {
+  filter: brightness(1.05);
+}
+

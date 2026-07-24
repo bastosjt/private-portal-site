@@ -160,8 +160,10 @@ export function findCachedItemById(collectionName, itemId) {
   return items.find((item) => item.id === itemId) ?? null;
 }
 
-export function getCollectionCountFromCache(collectionName) {
-  return itemsCache.get(collectionName)?.length ?? 0;
+export function getCollectionCountFromCache(collectionName, { excludeTravelLinked = false } = {}) {
+  const items = itemsCache.get(collectionName) ?? [];
+  if (!excludeTravelLinked) return items.length;
+  return items.filter((item) => !item.travelId).length;
 }
 
 export function getRecentItemsFromCache(collectionName, max = 3) {
@@ -285,9 +287,16 @@ export function getNearestMapPlacesFromCache(max = 4, originLngLat = null) {
     .slice(0, max);
 }
 
+/** Lieux visibles sur la carte hors mode voyage : locaux + pins voyages (liés exclus). */
 export function countGeolocatedPlacesFromCache() {
   return MAP_MARKER_SOURCES.reduce((sum, { collection }) => {
-    const count = (itemsCache.get(collection) ?? []).filter(hasMapCoordinates).length;
+    const count = (itemsCache.get(collection) ?? []).filter((item) => {
+      if (!hasMapCoordinates(item)) return false;
+      if (collection === 'activities' || collection === 'restaurants') {
+        return !item.travelId;
+      }
+      return true;
+    }).length;
     return sum + count;
   }, 0);
 }
