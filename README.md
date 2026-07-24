@@ -6,7 +6,7 @@ Application web privée partagée à deux. Centralise idées, lieux et envies co
 |                 |                                                                        |
 | --------------- | ---------------------------------------------------------------------- |
 | **Produit**     | Our Space - *À nous deux*                                              |
-| **Version**     | `2.3.0` (`APP_VERSION` · `[assets/js/config.js](assets/js/config.js)`) |
+| **Version**     | `2.3.1` (`APP_VERSION` · `[assets/js/config.js](assets/js/config.js)`) |
 | **Runtime**     | Single Page App (ESM), sans framework ni bundler                       |
 | **Backend**     | Firebase Auth + Cloud Firestore                                        |
 | **Hébergement** | GitHub Pages (CI)                                                      |
@@ -191,4 +191,9 @@ Historique aligné sur les bumps de `APP_VERSION`. Le numérotage n’a pas touj
 - Compteurs Explorer / Accès rapide alignés sur les listes (lieux liés à un voyage exclus)
 - Restaurants : cuisine optionnelle ; nouveaux types (boulangerie, glacier, pâtisserie, cookie)
 - Raffinements UI voyages (couleurs liées, CTA, padding ombres)
+
+### 2.3.1
+
+- Prefetch : voyages + `activeTravelId` chargés en parallèle avec le reste des données
+- Activation mode voyage instantanée (persistance Firestore en arrière-plan)
 

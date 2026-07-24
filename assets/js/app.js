@@ -292,8 +292,9 @@ function showAuthView({ reveal = true } = {}) {
 async function showAppView(user, { reveal = true, awaitData = false } = {}) {
   await initCustomOptions();
   await initUserProfiles(user.uid);
-  await initSpaceSettings();
+  // Prefetch parallèle : collections + pioches + space settings (activeTravelId).
   const prefetch = prefetchAppData();
+  await initSpaceSettings();
   if (awaitData) await prefetch;
   if (!splashActive) void initUserLocationAtLaunch();
   currentUser = user;
