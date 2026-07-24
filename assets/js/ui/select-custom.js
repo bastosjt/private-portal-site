@@ -69,7 +69,8 @@ function renderSelectOptions(field, options, selectedValue) {
 
   if (field.allowCustom) {
     const placeholderSelected = !selectedValue ? ' selected' : '';
-    html.push(`<option value="${PLACEHOLDER_OPTION_VALUE}"${placeholderSelected}>-</option>`);
+    const emptyLabel = field.emptyLabel || '-';
+    html.push(`<option value="${PLACEHOLDER_OPTION_VALUE}"${placeholderSelected}>${escapeHtml(emptyLabel)}</option>`);
   }
 
   for (const opt of options) {

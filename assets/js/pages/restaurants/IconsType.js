@@ -4,7 +4,11 @@
  */
 import {
   Beer,
+  CakeSlice,
   Coffee,
+  Cookie,
+  Croissant,
+  IceCreamCone,
   Martini,
   PaperBag,
   UtensilsCrossed,
@@ -17,6 +21,10 @@ const ICON_REGISTRY = {
   beer: Beer,
   coffee: Coffee,
   martini: Martini,
+  croissant: Croissant,
+  'cake-slice': CakeSlice,
+  cookie: Cookie,
+  'ice-cream-cone': IceCreamCone,
 };
 
 const RESTAURANT_TYPE_ICONS = {
@@ -24,6 +32,10 @@ const RESTAURANT_TYPE_ICONS = {
   cafe: 'coffee',
   brasserie: 'beer',
   bar_a_cocktail: 'martini',
+  boulangerie: 'croissant',
+  patisserie: 'cake-slice',
+  marchand_de_cookie: 'cookie',
+  glacier: 'ice-cream-cone',
   fast_food: 'paper-bag',
   restauration_rapide: 'paper-bag',
 };

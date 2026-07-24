@@ -4,7 +4,7 @@ export const COUPLE_START_DATE = '2026-06-27';
 /** Nom de l'espace et version */
 export const APP_NAME = 'Our Space';
 export const APP_TAGLINE = 'À nous deux';
-export const APP_VERSION = '2.2.0';
+export const APP_VERSION = '2.3.0';
 
 /** Durée minimale du splash (ms). 0 = comportement normal. */
 export const SPLASH_MIN_DURATION_MS = 0;
@@ -122,7 +122,7 @@ export const HOME_CATEGORIES = [
     fields: [
       { name: 'nom', label: 'Nom', type: 'text', required: true, placeholder: 'Ex. Le Comptoir' },
       { name: 'type', label: 'Type', type: 'select', allowCustom: true },
-      { name: 'cuisine', label: 'Type de cuisine', type: 'select', allowCustom: true },
+      { name: 'cuisine', label: 'Type de cuisine', type: 'select', allowCustom: true, optional: true },
       { name: 'adresse', label: 'Adresse', type: 'address', placeholder: 'Numéro, rue, ville…', fills: { lienMaps: 'mapsUrl' } },
       { name: 'prix', label: 'Prix estimé', type: 'priceRange', placeholderMin: 'Min', placeholderMax: 'Max' },
       { name: 'lienMaps', label: 'Lien Google Maps', type: 'url', placeholder: 'Rempli automatiquement' },

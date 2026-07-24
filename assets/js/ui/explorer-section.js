@@ -33,11 +33,16 @@ function renderExplorerMapCard() {
   `;
 }
 
+/** Aligné sur les listes Activités / Restos (lieux liés à un voyage exclus). */
+const EXCLUDE_TRAVEL_LINKED_COUNTS = new Set(['activities', 'restaurants']);
+
 export function renderExplorerSection(root = document.getElementById('home-explorer')) {
   if (!root) return;
 
   root.innerHTML = renderExplorerMapCard() + HOME_CATEGORIES.map((cat) => {
-    const count = getCollectionCountFromCache(cat.id);
+    const count = getCollectionCountFromCache(cat.id, {
+      excludeTravelLinked: EXCLUDE_TRAVEL_LINKED_COUNTS.has(cat.id),
+    });
     return `
       <a href="${cat.href}" class="cat-card cat-card--stat" data-theme="${cat.theme}">
         <div class="cat-card-inner">

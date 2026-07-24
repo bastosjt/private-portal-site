@@ -1,4 +1,4 @@
-import { createElement, Check, Clock, Plane } from '../../vendor/lucide.mjs';
+import { createElement, Check, Clock } from '../../vendor/lucide.mjs';
 import { renderLucideIcon } from '../../lib/lucide-icon.js';
 import { getActivityTypeLucideIcon } from '../activites/IconsType.js';
 import { getRestaurantTypeLucideIcon } from '../restaurants/IconsType.js';
@@ -12,7 +12,6 @@ const PIN_STROKE = 0.75;
 
 export const MAP_MARKER_DONE_BADGE_ID = 'map-pin-done-badge-v2';
 export const MAP_MARKER_LIMITED_BADGE_ID = 'map-pin-limited-badge-v2';
-export const MAP_MARKER_TRAVEL_LINKED_BADGE_ID = 'map-pin-travel-plane-badge-v3';
 /** Vert « réalisé » (aligné sur .act-done-card) */
 const DONE_BADGE_GREEN = '#4ade80';
 /** Coin supérieur droit de la tête du pin (viewBox 24×24, ancrage bas). */
@@ -33,10 +32,6 @@ const CATEGORY_COLORS = {
   restaurants: '#f43f5e',
   travels: '#0ea5e9',
 };
-
-export function isMarkerTravelLinked(marker) {
-  return Boolean(marker?.travelId);
-}
 
 function normalizeTypeKey(typeValue) {
   const raw = String(typeValue || '').trim();
@@ -260,14 +255,6 @@ function buildLimitedBadgeSvg() {
   });
 }
 
-function buildTravelLinkedBadgeSvg() {
-  return buildOverlayBadgeSvg({
-    filterId: 'travel-plane-shadow',
-    color: CATEGORY_COLORS.travels,
-    iconMarkup: getIconMarkup(Plane),
-  });
-}
-
 function svgToImage(svgString) {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -322,7 +309,6 @@ export async function preloadMapMarkerImages(markers = []) {
   await Promise.all([
     getOrBuildCachedImage(MAP_MARKER_DONE_BADGE_ID, buildDoneBadgeSvg),
     getOrBuildCachedImage(MAP_MARKER_LIMITED_BADGE_ID, buildLimitedBadgeSvg),
-    getOrBuildCachedImage(MAP_MARKER_TRAVEL_LINKED_BADGE_ID, buildTravelLinkedBadgeSvg),
     ...descriptors.map((descriptor) => getOrBuildCachedImage(
       descriptor.imageId,
       () => buildMarkerSvg(descriptor),
@@ -338,15 +324,10 @@ export async function ensureMapMarkerLimitedBadge(map) {
   await addCachedImageToMap(map, MAP_MARKER_LIMITED_BADGE_ID, buildLimitedBadgeSvg);
 }
 
-export async function ensureMapMarkerTravelLinkedBadge(map) {
-  await addCachedImageToMap(map, MAP_MARKER_TRAVEL_LINKED_BADGE_ID, buildTravelLinkedBadgeSvg);
-}
-
 export async function ensureMapMarkerOverlayBadges(map) {
   await Promise.all([
     ensureMapMarkerDoneBadge(map),
     ensureMapMarkerLimitedBadge(map),
-    ensureMapMarkerTravelLinkedBadge(map),
   ]);
 }
 

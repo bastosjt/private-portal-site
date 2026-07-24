@@ -726,6 +726,15 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
         continue;
       }
 
+      if (field.type === 'select') {
+        if (value && value !== ADD_OPTION_VALUE && value !== PLACEHOLDER_OPTION_VALUE) {
+          data[field.name] = value;
+        } else if (editingItemId || field.optional) {
+          data[field.name] = null;
+        }
+        continue;
+      }
+
       if (value && value !== ADD_OPTION_VALUE) {
         data[field.name] = isMoneyField(field.name) ? formatPrice(value) : value;
       }
@@ -788,6 +797,7 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
       }
 
       if (field.type !== 'select' || !field.allowCustom) continue;
+      if (field.optional) continue;
       const value = await getSelectFieldValue(form, field, category.id);
       if (!value || value === ADD_OPTION_VALUE || value === PLACEHOLDER_OPTION_VALUE) {
         errorEl.textContent = `Choisissez un « ${field.label} ».`;

@@ -24,6 +24,8 @@ const RESTAURANT_STATUS = getCategoryStatusLabels('restaurants');
 const TRAVEL_STATUS_BADGE = { doneLabel: TRAVEL_STATUS.done, todoLabel: TRAVEL_STATUS.todo };
 const ACTIVITY_STATUS_BADGE = { doneLabel: ACTIVITY_STATUS.done, todoLabel: ACTIVITY_STATUS.todo };
 const RESTAURANT_STATUS_BADGE = { doneLabel: RESTAURANT_STATUS.done, todoLabel: RESTAURANT_STATUS.todo };
+const ACTIVITY_THEME = getCategoryById('activities')?.theme || 'cyan';
+const RESTAURANT_THEME = getCategoryById('restaurants')?.theme || 'rose';
 const PERIOD_ICON = renderLucideIcon(CalendarClock, { strokeWidth: 2, width: 16, height: 16 });
 
 const scheduleNoteOptions = {
@@ -175,7 +177,7 @@ function renderTravelGroupActivityItem(activity, index, { animate, escapeHtml })
 
   return `
     <li class="act-list-item${activity.done ? ' act-list-item--done' : ''}${extraClasses}"${animate ? ` style="animation-delay: ${index * 40}ms"` : ''}>
-      <div class="act-list-item-inner" data-activity-id="${escapeHtml(activity.id)}" role="button" tabindex="0" aria-label="Voir ${escapeHtml(activity.nom)}">
+      <div class="act-list-item-inner" data-theme="${ACTIVITY_THEME}" data-activity-id="${escapeHtml(activity.id)}" role="button" tabindex="0" aria-label="Voir ${escapeHtml(activity.nom)}">
         <span class="cat-panel-accent" aria-hidden="true"></span>
         <div class="act-list-item-head">
           <span class="cat-panel-icon">${renderActivityTypeIcon(activity.categorie)}</span>
@@ -203,7 +205,7 @@ function renderTravelGroupRestaurantItem(restaurant, index, { animate, escapeHtm
 
   return `
     <li class="act-list-item${restaurant.done ? ' act-list-item--done' : ''}"${animate ? ` style="animation-delay: ${index * 40}ms"` : ''}>
-      <div class="act-list-item-inner" data-restaurant-id="${escapeHtml(restaurant.id)}" role="button" tabindex="0" aria-label="Voir ${escapeHtml(restaurant.nom)}">
+      <div class="act-list-item-inner" data-theme="${RESTAURANT_THEME}" data-restaurant-id="${escapeHtml(restaurant.id)}" role="button" tabindex="0" aria-label="Voir ${escapeHtml(restaurant.nom)}">
         <span class="cat-panel-accent" aria-hidden="true"></span>
         <div class="act-list-item-head">
           <span class="cat-panel-icon">${renderRestaurantTypeIcon(restaurant.type)}</span>

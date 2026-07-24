@@ -107,8 +107,15 @@ function getMovieCtaLabel() {
   return 'On regarde quoi ce soir ?';
 }
 
+const TRAVEL_LINKED_LIST_COLLECTIONS = new Set(['activities', 'restaurants']);
+
 function countTodoItems(categoryId) {
-  return (getCachedItems(categoryId) ?? []).filter((item) => !item.done).length;
+  const excludeTravelLinked = TRAVEL_LINKED_LIST_COLLECTIONS.has(categoryId);
+  return (getCachedItems(categoryId) ?? []).filter((item) => {
+    if (item.done) return false;
+    if (excludeTravelLinked && item.travelId) return false;
+    return true;
+  }).length;
 }
 
 function buildShortcutsSubtitle() {

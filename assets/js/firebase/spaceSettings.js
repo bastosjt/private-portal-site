@@ -26,3 +26,10 @@ export async function upsertSpaceTagline(tagline) {
     updatedAt: Timestamp.now(),
   }, { merge: true });
 }
+
+export async function upsertActiveTravelId(activeTravelId) {
+  await setDoc(doc(db, SPACE_COLLECTION, SPACE_SETTINGS_DOC), {
+    activeTravelId: activeTravelId || null,
+    updatedAt: Timestamp.now(),
+  }, { merge: true });
+}

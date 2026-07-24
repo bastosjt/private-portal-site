@@ -18,6 +18,7 @@ import {
   fitMapToLocalArea,
   fitMapToVisibleMarkers,
   isMapLayerVisible,
+  isTravelModeActive,
   MAP_FALLBACK_CENTER,
   refreshMapMarkers,
   resetMapMarkersState,
@@ -40,10 +41,17 @@ export const MAP_LAYER_CONTROLS = [
   { id: 'travels', label: 'Voyages', icon: 'travel' },
 ];
 
+const MAP_ICON_OPTS = { strokeWidth: 1.75, width: 15, height: 15 };
+
+function getTravelModeAriaLabel(active) {
+  return active
+    ? 'Mode voyage activé - appui long pour changer de voyage'
+    : 'Activer le mode voyage';
+}
 function getLayerAriaLabel(label, visible) {
   return visible
-    ? `${label} — affichage activé`
-    : `${label} — affichage désactivé`;
+    ? `${label} - affichage activé`
+    : `${label} - affichage désactivé`;
 }
 
 function formatLayerFeedbackMessage(label, visible) {
@@ -138,7 +146,6 @@ export function getLastUserLocation() {
   return lastUserLocation ?? getUserLocationLngLat();
 }
 
-const MAP_ICON_OPTS = { strokeWidth: 1.75, width: 15, height: 15 };
 let locateFeedbackTimer = null;
 let mapViewMode = 'local';
 
@@ -159,6 +166,26 @@ function syncMapViewButtons(root, mode = mapViewMode) {
 
 function focusMapOnLocalArea(map, lngLat) {
   fitMapToLocalArea(map, { center: lngLat });
+}
+
+/** Recentre la carte : position utilisateur, sinon tous les lieux visibles. */
+export function focusMapOnUserLocation(map = mapInstance) {
+  if (!map) return false;
+
+  const root = document.getElementById('map-controls');
+  const lngLat = getLastUserLocation();
+  if (lngLat) {
+    focusMapOnLocalArea(map, lngLat);
+    syncMapViewButtons(root, 'local');
+    return 'local';
+  }
+
+  if (fitMapToVisibleMarkers(map)) {
+    syncMapViewButtons(root, 'all');
+    return 'markers';
+  }
+
+  return false;
 }
 
 function showLocateFeedback(root, message, { isError = false, variant } = {}) {
@@ -220,6 +247,18 @@ export function syncMapLayerButtons(root = document.getElementById('map-controls
   });
 }
 
+export function syncMapTravelModeButton(root = document.getElementById('map-controls')) {
+  if (!root) return;
+
+  const btn = root.querySelector('[data-map-action="travel-mode"]');
+  if (!btn) return;
+
+  const active = isTravelModeActive();
+  btn.classList.toggle('is-active', active);
+  btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+  btn.setAttribute('aria-label', getTravelModeAriaLabel(active));
+}
+
 function setLayerToggle(map, root, layerId, visible) {
   const control = MAP_LAYER_CONTROLS.find((entry) => entry.id === layerId);
   if (!control) return;
@@ -230,7 +269,7 @@ function setLayerToggle(map, root, layerId, visible) {
   onLayerToggled?.();
 }
 
-function bindControlButtons(map, root, signal) {
+function bindControlButtons(map, root, signal, { onTravelModeToggle } = {}) {
   root.addEventListener('click', (event) => {
     const btn = event.target.closest('button');
     if (btn && root.contains(btn)) btn.blur();
@@ -238,6 +277,7 @@ function bindControlButtons(map, root, signal) {
 
   const locateBtn = root.querySelector('[data-map-action="locate"]');
   const fitAllBtn = root.querySelector('[data-map-action="fit-all"]');
+  const travelModeBtn = root.querySelector('[data-map-action="travel-mode"]');
 
   fitAllBtn?.addEventListener('click', () => {
     const fitted = fitMapToVisibleMarkers(map, { userLocation: getLastUserLocation() });
@@ -280,6 +320,100 @@ function bindControlButtons(map, root, signal) {
     }
   }, { signal });
 
+  if (travelModeBtn && onTravelModeToggle) {
+    const LONG_PRESS_MS = 450;
+    const MOVE_CANCEL_PX = 28;
+    let longPressTimer = null;
+    let longPressArmed = false;
+    let suppressClick = false;
+    let startX = 0;
+    let startY = 0;
+    let activePointerId = null;
+
+    const clearLongPressTimer = () => {
+      window.clearTimeout(longPressTimer);
+      longPressTimer = null;
+    };
+
+    const releaseCapture = () => {
+      if (activePointerId == null) return;
+      try {
+        if (travelModeBtn.hasPointerCapture?.(activePointerId)) {
+          travelModeBtn.releasePointerCapture(activePointerId);
+        }
+      } catch {
+        /* ignore */
+      }
+      activePointerId = null;
+    };
+
+    travelModeBtn.addEventListener('pointerdown', (event) => {
+      if (event.button != null && event.button !== 0) return;
+
+      clearLongPressTimer();
+      longPressArmed = false;
+      suppressClick = false;
+      startX = event.clientX;
+      startY = event.clientY;
+      activePointerId = event.pointerId;
+
+      try {
+        travelModeBtn.setPointerCapture(event.pointerId);
+      } catch {
+        /* ignore */
+      }
+
+      longPressTimer = window.setTimeout(() => {
+        longPressArmed = true;
+        longPressTimer = null;
+      }, LONG_PRESS_MS);
+    }, { signal });
+
+    travelModeBtn.addEventListener('pointermove', (event) => {
+      if (activePointerId != null && event.pointerId !== activePointerId) return;
+      if (!longPressTimer && !longPressArmed) return;
+
+      const dx = event.clientX - startX;
+      const dy = event.clientY - startY;
+      if ((dx * dx) + (dy * dy) > MOVE_CANCEL_PX * MOVE_CANCEL_PX) {
+        clearLongPressTimer();
+        longPressArmed = false;
+      }
+    }, { signal });
+
+    travelModeBtn.addEventListener('pointerup', (event) => {
+      if (activePointerId != null && event.pointerId !== activePointerId) return;
+      clearLongPressTimer();
+      releaseCapture();
+
+      if (!longPressArmed) return;
+      longPressArmed = false;
+      suppressClick = true;
+      void onTravelModeToggle({ forcePicker: true });
+    }, { signal });
+
+    travelModeBtn.addEventListener('pointercancel', () => {
+      clearLongPressTimer();
+      longPressArmed = false;
+      suppressClick = false;
+      releaseCapture();
+    }, { signal });
+
+    travelModeBtn.addEventListener('contextmenu', (event) => {
+      event.preventDefault();
+    }, { signal });
+
+    travelModeBtn.addEventListener('click', (event) => {
+      if (suppressClick) {
+        event.preventDefault();
+        event.stopPropagation();
+        suppressClick = false;
+        return;
+      }
+      void onTravelModeToggle({ forcePicker: false });
+    }, { signal });
+  }
+
   root.querySelectorAll('[data-map-layer]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const layerId = btn.dataset.mapLayer;
@@ -294,6 +428,7 @@ export function initInteractiveMap({
   onLayerToggled: layerToggledHandler,
   onMarkerClick,
   onMarkersReady,
+  onTravelModeToggle,
 } = {}) {
   destroyInteractiveMap();
 
@@ -370,6 +505,15 @@ export function initInteractiveMap({
             <path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/>
           </svg>
         </button>
+        <button
+          type="button"
+          class="map-dock-btn map-dock-btn--view map-dock-btn--travel-mode"
+          data-map-action="travel-mode"
+          aria-label="${getTravelModeAriaLabel(false)}"
+          aria-pressed="false"
+        >
+          ${renderNavIcon('luggage', MAP_ICON_OPTS)}
+        </button>
       </div>
       <div class="map-dock-zone map-dock-zone--layers" role="group" aria-label="Couches">
         ${MAP_LAYER_CONTROLS.map(renderLayerControlButton).join('')}
@@ -378,9 +522,10 @@ export function initInteractiveMap({
     </div>
   `;
 
-  bindControlButtons(mapInstance, controlsRoot, signal);
+  bindControlButtons(mapInstance, controlsRoot, signal, { onTravelModeToggle });
   bindMapCompass(mapInstance, signal);
   syncMapLayerButtons(controlsRoot);
+  syncMapTravelModeButton(controlsRoot);
   syncMapViewButtons(controlsRoot, 'local');
 
   const invalidate = () => {

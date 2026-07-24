@@ -25,6 +25,10 @@ export const DEFAULT_FIELD_OPTIONS = {
     { value: 'cafe', label: 'Café' },
     { value: 'brasserie', label: 'Brasserie' },
     { value: 'bar_a_cocktail', label: 'Bar à cocktail' },
+    { value: 'boulangerie', label: 'Boulangerie' },
+    { value: 'patisserie', label: 'Pâtisserie' },
+    { value: 'marchand_de_cookie', label: 'Marchand de cookie' },
+    { value: 'glacier', label: 'Glacier' },
     { value: 'fast_food', label: 'Restauration rapide' },
   ],
   'restaurants.cuisine': [
