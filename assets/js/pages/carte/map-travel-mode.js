@@ -45,8 +45,9 @@ export function initMapTravelModeControls({
     const travel = findCachedItemById('travels', travelId);
     if (!travel) return false;
 
+    // Persist en arrière-plan : ne pas bloquer le cadrage / UI sur le round-trip Firestore.
     if (persist) {
-      await setActiveTravelId(travelId);
+      void setActiveTravelId(travelId);
     }
 
     setTravelModeState(map, { active: true, travelId });

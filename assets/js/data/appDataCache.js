@@ -4,16 +4,17 @@ import { loadDailyPicks, resetDailyPicksLoadState } from '../firebase/dailyPicks
 import { getStraightLineDistanceKm } from '../lib/geo-utils.js';
 import { hasActivityLimitedDuration } from '../pages/activites/scheduleDisplay.js';
 import { getItemLocationLabel } from '../lib/item-location.js';
+import { initSpaceSettings, clearSpaceSettingsCache } from '../lib/space-settings.js';
 import { Timestamp } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js';
 
 export const ITEM_COLLECTIONS = HOME_CATEGORIES.map((cat) => cat.id);
 
 export const PICK_SCOPES = ['activities', 'restaurants', 'movies'];
 
-/** Chargées en priorité (splash + accueil). */
-export const PRIMARY_COLLECTIONS = ['activities', 'restaurants', 'movies', 'wishlist'];
+/** Chargées en priorité (splash + accueil + mode voyage). */
+export const PRIMARY_COLLECTIONS = ['activities', 'restaurants', 'movies', 'wishlist', 'travels'];
 /** Différées en requestIdleCallback pour libérer le thread au first paint. */
-export const SECONDARY_COLLECTIONS = ['travels'];
+export const SECONDARY_COLLECTIONS = [];
 export const PRIMARY_PICK_SCOPES = ['activities', 'restaurants', 'movies'];
 export const SECONDARY_PICK_SCOPES = [];
 
@@ -383,6 +384,7 @@ export function prefetchAppData() {
   if (prefetchPromise) return prefetchPromise;
 
   prefetchPromise = Promise.all([
+    initSpaceSettings(),
     ...PRIMARY_COLLECTIONS.map((collection) => ensureItems(collection)),
     ...PRIMARY_PICK_SCOPES.map((scope) => loadDailyPicks(scope)),
   ])
@@ -424,6 +426,7 @@ export function clearAppDataCache() {
   cacheLoadedAt = 0;
   lastRefreshStartedAt = 0;
   resetDailyPicksLoadState();
+  clearSpaceSettingsCache();
 }
 
 /** Recharge toutes les collections et pioches depuis Firestore. */

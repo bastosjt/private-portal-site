@@ -4,7 +4,7 @@ export const COUPLE_START_DATE = '2026-06-27';
 /** Nom de l'espace et version */
 export const APP_NAME = 'Our Space';
 export const APP_TAGLINE = 'À nous deux';
-export const APP_VERSION = '2.3.0';
+export const APP_VERSION = '2.3.1';
 
 /** Durée minimale du splash (ms). 0 = comportement normal. */
 export const SPLASH_MIN_DURATION_MS = 0;

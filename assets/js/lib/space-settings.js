@@ -43,6 +43,8 @@ export async function setSpaceTagline(tagline) {
 
 export async function setActiveTravelId(travelId) {
   const next = normalizeTravelId(travelId);
+  if (next === cachedActiveTravelId) return true;
+
   cachedActiveTravelId = next;
 
   try {
