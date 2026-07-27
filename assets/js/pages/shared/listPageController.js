@@ -12,6 +12,7 @@ import {
 } from '../../ui/pick-roll-animation.js';
 import { renderPickLocationLine, renderPickPeriodLabel } from '../../ui/pick-result-display.js';
 import { getCategoryFieldOptions, getFieldOptionLabel, initCustomOptions } from '../../lib/custom-types.js';
+import { shouldShowInGlobalCategoryList } from '../../lib/travel-link.js';
 import {
   addTodayPick,
   canPickToday,
@@ -27,6 +28,7 @@ import { buildFieldFilterOptions } from './filterOptions.js';
 import { normalizeSearchText } from '../../lib/normalize-search.js';
 import { escapeHtml } from '../../lib/escape-html.js';
 import { navigate, mapPlaceMoveHref } from '../../navigation/router.js';
+import { setPageHeaderSub } from '../../ui/page-header.js';
 
 export const DEFAULT_SORT_OPTIONS = [
   { id: 'alpha', label: 'Ordre alphabétique', shortLabel: 'A → Z' },
@@ -129,7 +131,7 @@ export function createListPageController(config) {
 
   function normalizeListItems(items) {
     if (!excludeTravelLinkedFromList) return items;
-    return items.filter((item) => !item.travelId);
+    return items.filter((item) => shouldShowInGlobalCategoryList(item, collection));
   }
 
   function getFieldLabel(fieldName, value) {
@@ -796,29 +798,21 @@ export function createListPageController(config) {
   function updateHeader(items) {
     if (!useTodoHeaderSubtitle) return;
 
-    const subEl = document.getElementById('page-header-sub');
-    if (!subEl) return;
-
     const total = items.length;
     const todo = items.filter((item) => !item.done).length;
 
-    if (total === 0) subEl.textContent = labels.headerEmpty;
-    else if (todo === 0) subEl.textContent = labels.headerAllDone;
-    else if (todo === 1) subEl.textContent = labels.headerOneTodo;
-    else subEl.textContent = labels.headerManyTodo(todo);
+    let text = labels.headerEmpty;
+    if (total === 0) text = labels.headerEmpty;
+    else if (todo === 0) text = labels.headerAllDone;
+    else if (todo === 1) text = labels.headerOneTodo;
+    else text = labels.headerManyTodo(todo);
+
+    void setPageHeaderSub(text, { animate: false });
   }
 
   const itemIdDatasetKey = dataAttrToDatasetKey(itemIdAttr);
 
   function bindEvents(signal) {
-    document.getElementById('page-header-back')?.addEventListener('click', () => {
-      if (window.history.length > 1) {
-        window.history.back();
-      } else {
-        navigate('explorer');
-      }
-    }, { signal });
-
     document.getElementById('dice-roll-btn')?.addEventListener('click', rollDice, { signal });
 
     document.getElementById('act-pick-wrap')?.addEventListener('click', (event) => {

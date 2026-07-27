@@ -2,10 +2,14 @@ import { APP_NAME, SPLASH_MIN_DURATION_MS } from '../config.js';
 import { createLoveHeartsController } from '../lib/love-hearts.js';
 import { waitForTransition } from '../lib/transitions.js';
 
-export const SPLASH_FADE_MS = 480;
+export const SPLASH_FADE_MS = 280;
+const SPLASH_PROGRESS_SETTLE_MS = 400;
+/** Durée visuelle de l’anneau de fin (CSS splash). */
+const SPLASH_RINGS_MS = 1100;
 
 let splashStartedAt = 0;
 let splashLoveController = null;
+let splashProgress = 0;
 
 /**
  * xPct / yPct : position absolue (% viewport, coin supérieur gauche).
@@ -127,8 +131,24 @@ export const SPLASH_LOVE_HEARTS = [
   { xPct: 21.6, yPct: 96.4, scale: 0.24, rotate: 4, delay: 0.42, duration: 0.91 },
 ];
 
+/** Progression du splash (0 → 1), anneau autour du cœur comme une horloge. */
+export function setSplashProgress(ratio) {
+  const next = Math.max(splashProgress, Math.min(1, Number(ratio) || 0));
+  splashProgress = next;
+
+  const pct = Math.round(next * 100);
+  const splash = document.getElementById('splash-view');
+  const progressEl = document.querySelector('.splash-loader-progress');
+
+  if (splash) splash.setAttribute('aria-valuenow', String(pct));
+  if (progressEl) progressEl.style.strokeDashoffset = String(100 - pct);
+}
+
 export function initSplash() {
   splashStartedAt = Date.now();
+  splashProgress = 0;
+  setSplashProgress(0);
+
   const titleEl = document.querySelector('.splash-title');
   const cornerRoot = document.getElementById('splash-corner-hearts');
   const trigger = document.getElementById('splash-heart-trigger');
@@ -156,11 +176,59 @@ async function waitForMinSplashDuration() {
   }
 }
 
+function prefersReducedMotion() {
+  return typeof window !== 'undefined'
+    && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+function waitForAnimationEnd(element, fallbackMs) {
+  if (!element) {
+    return new Promise((resolve) => setTimeout(resolve, fallbackMs));
+  }
+
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      element.removeEventListener('animationend', onEnd);
+      resolve();
+    };
+    const onEnd = (event) => {
+      if (event.target === element) finish();
+    };
+    element.addEventListener('animationend', onEnd);
+    window.setTimeout(finish, fallbackMs + 40);
+  });
+}
+
+/** Battement de fin : anneaux uniquement, puis enchaîne dès qu’ils disparaissent. */
+async function playCompletionBeat(splash) {
+  if (!splash || prefersReducedMotion()) return;
+
+  splash.classList.add('is-complete');
+  splash.classList.remove('is-love-pulsing');
+  void splash.offsetWidth;
+  splash.classList.add('is-love-pulsing');
+
+  const lastRipple = splash.querySelector('.splash-heart-ripple:last-child');
+  await waitForAnimationEnd(lastRipple, SPLASH_RINGS_MS);
+  splash.classList.remove('is-love-pulsing');
+}
+
 export async function dismissSplash() {
   const splash = document.getElementById('splash-view');
   if (!splash || splash.classList.contains('hidden')) return;
 
-  await waitForMinSplashDuration();
+  setSplashProgress(1);
+
+  const progressEl = document.querySelector('.splash-loader-progress');
+  await Promise.all([
+    waitForMinSplashDuration(),
+    waitForTransition(progressEl, SPLASH_PROGRESS_SETTLE_MS),
+  ]);
+
+  await playCompletionBeat(splash);
 
   splashLoveController?.destroy();
   splashLoveController = null;

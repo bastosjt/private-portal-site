@@ -3,6 +3,7 @@ import { devWarn, devError } from '../lib/dev-log.js';
 import { HOME_CATEGORIES, getCategoryById } from '../config.js';
 import { addItem, updateItem } from '../firebase/firestore.js';
 import { patchCachedItem, upsertCachedItem, ensureItems, findCachedItemById } from '../data/appDataCache.js';
+import { getActiveTravelId, setActiveTravelId } from '../lib/space-settings.js';
 import { Timestamp } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js';
 import { sidebarIcon } from './sidebar.js';
 import { initFormAddressFields } from './address-autocomplete.js';
@@ -153,8 +154,8 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
   let modalTransitionToken = 0;
   let isBodyTransitioning = false;
 
-  const MODAL_MS = 360;
-  const STEP_MS = 260;
+  const MODAL_MS = 480;
+  const STEP_LEAVE_MS = 110;
   const abort = new AbortController();
   const { signal } = abort;
 
@@ -254,9 +255,9 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
     backBtn.classList.toggle('hidden', !showBack);
   }
 
-  function staggerPickerItems(root) {
+  function staggerPickerItems(root, { delayBase = 90 } = {}) {
     root?.querySelectorAll('.add-picker-item').forEach((item, index) => {
-      item.style.setProperty('--picker-delay', `${index * 35 + 50}ms`);
+      item.style.setProperty('--picker-delay', `${index * 32 + delayBase}ms`);
     });
   }
 
@@ -422,6 +423,31 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
     };
   }
 
+  async function applyDefaultTravelLink(form, category) {
+    if (editingItemId) return;
+
+    const travelField = category.fields.find((field) => field.name === 'travelId' && field.optionsFrom === 'travels');
+    if (!travelField) return;
+
+    const currentValue = await getSelectFieldValue(form, travelField, category.id);
+    if (currentValue && currentValue !== PLACEHOLDER_OPTION_VALUE) return;
+
+    const activeTravelId = getActiveTravelId();
+    if (!activeTravelId) return;
+
+    await ensureItems('travels');
+    const travel = findCachedItemById('travels', activeTravelId);
+    if (!travel) return;
+
+    setSelectFieldValue(
+      form,
+      travelField,
+      activeTravelId,
+      travel.destination,
+      category.id,
+    );
+  }
+
   async function persistFormData(category, data) {
     const sessionUser = await ensureAuthSession();
     if (editingItemId) {
@@ -440,6 +466,11 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
       createdAt: now,
       updatedAt: now,
     });
+
+    if (category.id === 'travels') {
+      void setActiveTravelId(id);
+    }
+
     return id;
   }
 
@@ -463,6 +494,7 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
 
     addressCleanup = initFormAddressFields(form, category);
     selectCleanup = await initFormSelectFields(form, category);
+    await applyDefaultTravelLink(form, category);
 
     // Baseline = état initial (vide ou item édité), avant restauration d'un brouillon.
     formDraftBaseline = captureFormSnapshot(form, category);
@@ -506,7 +538,7 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
     return true;
   }
 
-  function mountPicker() {
+  function mountPicker({ stepReveal = false } = {}) {
     clearFieldCleanups();
     editingItemId = null;
     editingItem = null;
@@ -520,7 +552,7 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
     } else {
       content.innerHTML = renderCategoryPicker();
     }
-    staggerPickerItems(getContentEl());
+    staggerPickerItems(getContentEl(), { delayBase: stepReveal ? 16 : 90 });
   }
 
   async function mountForm(categoryId, item = null) {
@@ -544,46 +576,72 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
     return await bindForm(getContentEl(), categoryId, item);
   }
 
+  function prefersReducedMotion() {
+    return typeof window.matchMedia === 'function'
+      && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  }
+
   async function transitionContent(mountFn, { direction = 'forward', animate = true } = {}) {
     if (isBodyTransitioning) return false;
 
     const token = ++bodyTransitionToken;
     const content = getContentEl();
-    const canAnimate = animate && content?.innerHTML.trim();
+    const canAnimate = animate && content?.innerHTML.trim() && !prefersReducedMotion();
+    const leavingClass = direction === 'back' ? 'is-leaving-back' : 'is-leaving';
+    const enteringClass = direction === 'back' ? 'is-entering-back' : 'is-entering';
+
+    isBodyTransitioning = true;
 
     if (canAnimate) {
-      isBodyTransitioning = true;
       content.classList.remove('is-entering', 'is-entering-back');
-      content.classList.add(direction === 'back' ? 'is-leaving-back' : 'is-leaving');
-      await waitForTransition(content, STEP_MS);
+      content.classList.add(leavingClass);
+      titleEl.classList.add('is-swapping');
+      // Swap tôt : on ne bloque pas sur la fin de leave ni sur bindForm.
+      await new Promise((resolve) => window.setTimeout(resolve, STEP_LEAVE_MS));
       if (token !== bodyTransitionToken) {
         isBodyTransitioning = false;
+        titleEl.classList.remove('is-swapping');
         return false;
       }
-      content.classList.remove('is-leaving', 'is-leaving-back');
     }
 
-    await mountFn();
-
+    // Lance le mount : la partie sync (innerHTML + titre) s’exécute avant le 1er await.
+    const mountPromise = Promise.resolve().then(() => mountFn());
+    await Promise.resolve();
     if (token !== bodyTransitionToken) {
       isBodyTransitioning = false;
+      titleEl.classList.remove('is-swapping');
       return false;
     }
 
     const nextContent = getContentEl();
     if (canAnimate && nextContent) {
-      nextContent.classList.add(direction === 'back' ? 'is-entering-back' : 'is-entering');
+      nextContent.classList.remove('is-leaving', 'is-leaving-back');
+      nextContent.classList.add(enteringClass);
+      titleEl.classList.remove('is-swapping');
       await nextFrame();
+      if (token !== bodyTransitionToken) {
+        isBodyTransitioning = false;
+        return false;
+      }
       nextContent.classList.remove('is-entering', 'is-entering-back');
+    } else {
+      titleEl.classList.remove('is-swapping');
+    }
+
+    const mounted = await mountPromise;
+    if (token !== bodyTransitionToken) {
+      isBodyTransitioning = false;
+      return false;
     }
 
     isBodyTransitioning = false;
-    return true;
+    return mounted !== false;
   }
 
   async function showPicker({ animate = true } = {}) {
     saveDraftNow();
-    await transitionContent(mountPicker, { direction: 'back', animate });
+    await transitionContent(() => mountPicker({ stepReveal: true }), { direction: 'back', animate });
   }
 
   async function showForm(categoryId, item = null, { animate = true, direction = 'forward' } = {}) {
@@ -599,6 +657,7 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
 
   async function open(categoryId = null, item = null) {
     if (isBodyTransitioning) return;
+    if (overlay.classList.contains('is-active') && !overlay.classList.contains('hidden')) return;
 
     const token = ++modalTransitionToken;
     bodyTransitionToken += 1;
@@ -841,12 +900,19 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
     }
   }
 
-  fab.addEventListener('click', () => open(), { signal });
+  fab.addEventListener('click', () => {
+    fab.classList.add('is-pressed');
+    void open();
+    window.setTimeout(() => fab.classList.remove('is-pressed'), 400);
+  }, { signal });
 
   closeBtn.addEventListener('click', close, { signal });
   backBtn.addEventListener('click', () => {
     if (isBodyTransitioning) return;
-    showPicker({ animate: true });
+    backBtn.classList.add('is-pressed');
+    void showPicker({ animate: true }).finally(() => {
+      backBtn.classList.remove('is-pressed');
+    });
   }, { signal });
 
   overlay.addEventListener('click', (event) => {
@@ -856,9 +922,13 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
   bodyEl.addEventListener('click', (event) => {
     if (isBodyTransitioning) return;
     const pickerBtn = event.target.closest('[data-category]');
-    if (pickerBtn?.closest('#add-picker')) {
-      showForm(pickerBtn.dataset.category, null, { animate: true, direction: 'forward' });
-    }
+    if (!pickerBtn?.closest('#add-picker')) return;
+
+    const categoryId = pickerBtn.dataset.category;
+    if (!categoryId) return;
+
+    pickerBtn.classList.add('is-selected');
+    void showForm(categoryId, null, { animate: true, direction: 'forward' });
   }, { signal });
 
   bodyEl.addEventListener('submit', (event) => {

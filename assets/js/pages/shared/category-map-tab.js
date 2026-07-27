@@ -1,4 +1,5 @@
 import { findCachedItemById, formatPlaceDistanceKm } from '../../data/appDataCache.js';
+import { isTravelLinkedItem } from '../../lib/travel-link.js';
 import { escapeHtml } from '../../lib/escape-html.js';
 import { getStraightLineDistanceKm } from '../../lib/geo-utils.js';
 import { getMapLibre, waitForContainerSize } from '../../lib/map-bootstrap.js';
@@ -78,7 +79,7 @@ export function createCategoryMapTab({
   function getVisibleMarkers() {
     return getDisplayedMarkers().filter((marker) => {
       if (marker.categoryId !== categoryId) return false;
-      if ((categoryId === 'activities' || categoryId === 'restaurants') && marker.travelId) {
+      if ((categoryId === 'activities' || categoryId === 'restaurants') && isTravelLinkedItem({ travelId: marker.travelId })) {
         return false;
       }
       return true;

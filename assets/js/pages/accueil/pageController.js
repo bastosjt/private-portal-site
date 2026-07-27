@@ -21,9 +21,11 @@ import { warmMapForApp } from '../carte/map-warmup.js';
 import { destroyHomeMapPreview, initHomeMapPreview } from './home-map-preview.js';
 import { destroyDaysStoryLoveHearts, initDaysStoryLoveHearts } from './days-story-love.js';
 import { renderExplorerSection } from '../../ui/explorer-section.js';
+import { setPageHeaderSub, setPageHeaderTitle } from '../../ui/page-header.js';
 import { renderActivityTypeIcon } from '../activites/IconsType.js';
 import { renderRestaurantTypeIcon } from '../restaurants/IconsType.js';
 import { renderTravelTypeIcon } from '../voyages/IconsType.js';
+import { isTravelLinkedItem } from '../../lib/travel-link.js';
 
 const COLLECTION_IDS = ITEM_COLLECTIONS;
 
@@ -75,14 +77,12 @@ function getGreetingLabel() {
   return currentUserName ? `${base} ${currentUserName}` : base;
 }
 
-function initPageHeader(total = null, weekCount = null) {
-  const greetingEl = document.getElementById('page-greeting');
-  const subEl = document.getElementById('page-header-sub');
-
-  if (greetingEl) greetingEl.textContent = getGreetingLabel();
-  if (subEl) {
-    subEl.textContent = total === null ? 'Chargement…' : buildHeaderSubtitle(total, weekCount);
-  }
+function refreshHomeHeader(total = null, weekCount = null) {
+  void setPageHeaderTitle(getGreetingLabel(), { animate: false });
+  void setPageHeaderSub(
+    total === null ? 'Chargement…' : buildHeaderSubtitle(total, weekCount),
+    { animate: false },
+  );
 }
 
 const SHORTCUT_CATEGORIES = [
@@ -113,7 +113,7 @@ function countTodoItems(categoryId) {
   const excludeTravelLinked = TRAVEL_LINKED_LIST_COLLECTIONS.has(categoryId);
   return (getCachedItems(categoryId) ?? []).filter((item) => {
     if (item.done) return false;
-    if (excludeTravelLinked && item.travelId) return false;
+    if (excludeTravelLinked && isTravelLinkedItem(item)) return false;
     return true;
   }).length;
 }
@@ -350,7 +350,7 @@ export async function initHomePage(user, { addItemModal: sharedModal } = {}) {
   currentUserName = getUserDisplayName(user);
   addItemModal = sharedModal ?? initAddItem({ user, onAdded: () => loadHomeData() });
   initDetailModals();
-  initPageHeader();
+  refreshHomeHeader();
   renderDaysCounter();
   initDaysStoryLoveHearts();
 
@@ -406,7 +406,7 @@ async function loadHomeData() {
 
   const total = COLLECTION_IDS.reduce((sum, id) => sum + getCollectionCountFromCache(id), 0);
   const weekCount = getWeekItemsCountFromCache(COLLECTION_IDS);
-  initPageHeader(total, weekCount);
+  refreshHomeHeader(total, weekCount);
 
   const nearbyInner = document.getElementById('home-nearby-inner');
 

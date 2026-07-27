@@ -4,13 +4,16 @@ import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/12.15.0/f
 import { login, logout } from './auth/login.js';
 import { isAllowedUser } from './auth/session.js';
 import { NAV_ITEMS, APP_NAME, APP_VERSION, SETTINGS_ITEM, renderVersionBadgeHtml } from './config.js';
-import { initRouter, navigate } from './navigation/router.js';
+import { initRouter } from './navigation/router.js';
+import { resolveNavAction, navigateToRoute } from './navigation/nav-request.js';
+import { withNavRefreshIndicator } from './navigation/nav-refresh-indicator.js';
 import { renderSidebar, initSidebar, updateSidebarActive } from './ui/sidebar.js';
+import { renderPageHeader, beginPageHeaderSwap, commitPageHeaderForRoute, revealPageHeader, setPageHeaderForRoute } from './ui/page-header.js';
 import { renderBottomNav, initBottomNav, updateBottomNavActive } from './bottom-nav.js';
 import { initAddItem } from './ui/add-item.js';
 import { waitForTransition, nextFrame } from './lib/transitions.js';
-import { initSplash, dismissSplash } from './ui/splash.js';
-import { prefetchAppData, clearAppDataCache, scheduleBackgroundRefreshIfNeeded, onSecondaryPrefetchDone, getMapMarkersFromCache } from './data/appDataCache.js';
+import { initSplash, dismissSplash, setSplashProgress } from './ui/splash.js';
+import { prefetchAppData, clearAppDataCache, scheduleBackgroundRefreshIfNeeded, onSecondaryPrefetchDone, onPrefetchProgress, getMapMarkersFromCache } from './data/appDataCache.js';
 import { preloadMapMarkerImages } from './pages/carte/map-marker-images.js';
 import { resetMapWarmup } from './pages/carte/map-warmup.js';
 import { initUserProfiles, clearUserProfilesCache } from './lib/user-profile.js';
@@ -29,7 +32,7 @@ import { init as initCarte, destroy as destroyCarte, refresh as refreshCarte, MA
 import { init as initParametres, destroy as destroyParametres, refresh as refreshParametres, SETTINGS_VIEW_HTML } from './pages/parametres/index.js';
 import { init as initExplorer, destroy as destroyExplorer, refresh as refreshExplorer, EXPLORER_VIEW_HTML } from './pages/explorer/index.js';
 import { getPlaceholderViewHtml } from './navigation/placeholder.js';
-import { EXPLORER_ROUTE } from './navigation/router.js';
+import { EXPLORER_ROUTE, getRouteFromHash } from './navigation/router.js';
 
 const PAGE_TITLES = {
   accueil: 'Accueil',
@@ -40,7 +43,7 @@ const PAGE_TITLES = {
   films: 'Films & Séries',
   voyages: 'Voyages',
   wishlist: 'Wishlist',
-  parametres: 'Paramètres',
+  parametres: 'Profil',
 };
 
 let currentUser = null;
@@ -60,7 +63,7 @@ const bootMountDone = new Promise((resolve) => {
 });
 let bootMountResolved = false;
 
-const PAGE_TRANSITION_MS = 300;
+const PAGE_TRANSITION_MS = 220; // aligné sur --duration-page-leave
 
 const authView = document.getElementById('auth-view');
 const appView = document.getElementById('app-view');
@@ -106,6 +109,42 @@ function refreshCurrentViewNow() {
 
 const refreshCurrentView = debounce(refreshCurrentViewNow, 250);
 
+function scrollAppToTop() {
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+async function softRefreshCurrentRoute() {
+  const overlay = document.querySelector('.add-modal-overlay');
+  if (overlay && !overlay.classList.contains('hidden') && addItemModal?.close) {
+    void addItemModal.close();
+  }
+
+  scrollAppToTop();
+
+  const routeId = currentRoute ?? getRouteFromHash();
+  await withNavRefreshIndicator(routeId, refreshCurrentViewNow());
+
+  if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+    navigator.vibrate(10);
+  }
+}
+
+function requestRoute(routeId) {
+  if (!currentUser) {
+    navigateToRoute(routeId);
+    return;
+  }
+
+  const action = resolveNavAction(routeId, currentRoute ?? getRouteFromHash());
+
+  if (action === 'refresh') {
+    void softRefreshCurrentRoute();
+    return;
+  }
+
+  navigateToRoute(routeId);
+}
+
 function ensureSharedAddItem(user) {
   if (addItemModal) return addItemModal;
 
@@ -142,20 +181,27 @@ async function mountRoute(routeId) {
 
   const token = ++pageTransitionToken;
   const hasContent = pageRoot.innerHTML.trim().length > 0;
+  let headerSwapToken = null;
+
+  // Chrome immédiat : la nav ne doit pas attendre la transition de contenu.
+  updateSidebarActive(routeId);
+  updateBottomNavActive(routeId);
+  document.body.classList.toggle('route-no-fab', routeId === 'parametres' || routeId === 'carte');
 
   try {
   if (hasContent) {
     pageRoot.classList.add('is-page-leaving');
+    headerSwapToken = beginPageHeaderSwap();
     await waitForTransition(pageRoot, PAGE_TRANSITION_MS);
     if (token !== pageTransitionToken) return;
+    commitPageHeaderForRoute(routeId);
+  } else {
+    void setPageHeaderForRoute(routeId, { animate: false });
   }
 
   destroyCurrentView();
   currentRoute = routeId;
   setPageTitle(routeId);
-  updateSidebarActive(routeId);
-  updateBottomNavActive(routeId);
-  document.body.classList.toggle('route-no-fab', routeId === 'parametres' || routeId === 'carte');
 
   document.body.classList.toggle('app-page', true);
   document.body.classList.remove('auth-page');
@@ -164,12 +210,15 @@ async function mountRoute(routeId) {
 
   const finishPageEnter = async () => {
     if (!hasContent) {
-      pageRoot.classList.remove('is-page-leaving');
+      pageRoot.classList.remove('is-page-leaving', 'is-page-entering');
       return;
     }
+    pageRoot.classList.remove('is-page-leaving');
     pageRoot.classList.add('is-page-entering');
     await nextFrame();
-    pageRoot.classList.remove('is-page-leaving', 'is-page-entering');
+    if (token !== pageTransitionToken) return;
+    pageRoot.classList.remove('is-page-entering');
+    revealPageHeader(headerSwapToken);
   };
 
   if (routeId === 'accueil') {
@@ -312,10 +361,12 @@ async function showAppView(user, { reveal = true, awaitData = false } = {}) {
   });
 
   renderSidebar(sidebarRoot, { activeId: currentRoute || 'accueil' });
+  renderPageHeader(document.getElementById('page-header-root'));
+  void setPageHeaderForRoute(currentRoute || 'accueil', { animate: false });
 
   if (!sidebarInitialized) {
     initSidebar({
-      onNavigate: (routeId) => navigate(routeId),
+      onNavigate: (routeId) => requestRoute(routeId),
     });
     sidebarInitialized = true;
   } else {
@@ -325,7 +376,7 @@ async function showAppView(user, { reveal = true, awaitData = false } = {}) {
   if (!bottomNavInitialized) {
     renderBottomNav(bottomNavRoot, { activeId: currentRoute || 'accueil' });
     initBottomNav({
-      onNavigate: (routeId) => navigate(routeId),
+      onNavigate: (routeId) => requestRoute(routeId),
       onAdd: () => ensureSharedAddItem(currentUser)?.open?.(),
     });
     bottomNavInitialized = true;
@@ -341,7 +392,11 @@ async function showAppView(user, { reveal = true, awaitData = false } = {}) {
 }
 
 async function finishSplashForApp() {
-  await Promise.all([bootMountDone, prefetchAppData()]);
+  setSplashProgress(0.12);
+  await Promise.all([
+    bootMountDone.then(() => setSplashProgress(0.9)),
+    prefetchAppData(),
+  ]);
   document.body.classList.add('app-page');
   document.body.classList.remove('auth-page');
   await dismissSplash();
@@ -350,6 +405,7 @@ async function finishSplashForApp() {
 }
 
 async function finishSplashForAuth() {
+  setSplashProgress(0.55);
   showAuthView({ reveal: false });
   await dismissSplash();
   authView?.classList.remove('hidden');
@@ -358,6 +414,8 @@ async function finishSplashForAuth() {
 }
 
 async function handleInitialAuthState(user) {
+  setSplashProgress(0.08);
+
   if (user && isAllowedUser(user)) {
     await showAppView(user, { reveal: false });
     await finishSplashForApp();
@@ -435,6 +493,12 @@ function setupLoginForm() {
 setupLoginForm();
 initSplash();
 
+onPrefetchProgress((completed, total) => {
+  if (!splashActive || !total) return;
+  // Auth (~8–12 %) → prefetch occupe jusqu’à ~88 %, le montage final pousse à 100 %.
+  setSplashProgress(0.12 + (completed / total) * 0.76);
+});
+
 const appVersionEl = document.getElementById('app-version');
 if (appVersionEl) {
   appVersionEl.innerHTML = renderVersionBadgeHtml(APP_VERSION);
@@ -470,7 +534,7 @@ document.addEventListener('click', (event) => {
   if (!validRoutes.has(routeId)) return;
 
   event.preventDefault();
-  navigate(routeId);
+  requestRoute(routeId);
 });
 
 document.addEventListener('visibilitychange', () => {

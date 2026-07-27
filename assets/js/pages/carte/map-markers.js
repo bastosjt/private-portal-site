@@ -1,4 +1,5 @@
 import { getMapMarkersFromCache } from '../../data/appDataCache.js';
+import { getTravelLinkId, isTravelLinkedItem } from '../../lib/travel-link.js';
 import { devWarn } from '../../lib/dev-log.js';
 import { getLngLatDeltaForRadiusKm } from '../../lib/geo-utils.js';
 import {
@@ -126,7 +127,7 @@ function markerMatchesFilters(marker) {
 }
 
 function isTravelLinkedMarker(marker) {
-  return Boolean(marker.travelId);
+  return isTravelLinkedItem({ travelId: marker.travelId });
 }
 
 let travelMode = false;
@@ -145,7 +146,7 @@ function isMarkerDisplayed(marker) {
     }
 
     if (isTravelLinkedMarker(marker)) {
-      if (marker.travelId !== selectedTravelId) return false;
+      if (getTravelLinkId({ travelId: marker.travelId }) !== selectedTravelId) return false;
       if (!layerVisibility[marker.categoryId]) return false;
       return markerMatchesFilters(marker);
     }

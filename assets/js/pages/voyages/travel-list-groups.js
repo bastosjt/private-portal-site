@@ -1,4 +1,5 @@
 import { getCachedItems, findCachedItemById } from '../../data/appDataCache.js';
+import { getTravelLinkId } from '../../lib/travel-link.js';
 import { getFieldOptionLabel } from '../../lib/custom-types.js';
 import { formatItemPrice, hasItemPrice } from '../../lib/price-format.js';
 import { getCategoryStatusLabels } from '../../lib/category-status-labels.js';
@@ -76,11 +77,11 @@ function sortLinkedItems(items, titleKey) {
 
 function getLinkedItemsForTravel(travelId) {
   const activities = sortLinkedItems(
-    (getCachedItems('activities') || []).filter((item) => item.travelId === travelId),
+    (getCachedItems('activities') || []).filter((item) => getTravelLinkId(item) === travelId),
     'nom',
   );
   const restaurants = sortLinkedItems(
-    (getCachedItems('restaurants') || []).filter((item) => item.travelId === travelId),
+    (getCachedItems('restaurants') || []).filter((item) => getTravelLinkId(item) === travelId),
     'nom',
   );
   return { activities, restaurants };

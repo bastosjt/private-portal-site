@@ -2,7 +2,6 @@ import { getCategoryById } from '../../config.js';
 import { renderNavIcon } from '../../lib/lucide-icon.js';
 import {
   renderCategoryListPageView,
-  renderListPageHeader,
   renderListSection,
 } from '../shared/listPageTemplate.js';
 
@@ -59,12 +58,6 @@ export const WISHLIST_VIEW_HTML = renderCategoryListPageView({
   theme: THEME,
   pageRootClass: 'activities-page wishlist-page',
   includePick: false,
-  headerHtml: renderListPageHeader({
-    theme: THEME,
-    menuIconHtml: renderNavIcon('menu', { strokeWidth: 1.75 }),
-    mobileIconHtml: renderNavIcon('wishlist', { strokeWidth: 2 }),
-    pageTitle: 'Wishlist',
-  }),
   listSectionHtml: renderListSection({
     listHeading: 'Toutes vos envies',
     listSub: 'Votre liste complète',

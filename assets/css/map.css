@@ -3,13 +3,18 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  /* Même écart top/bottom/left/right autour de la carte */
+  padding:
+    calc(var(--page-header-offset) + var(--page-inset-x))
+    var(--page-inset-x)
+    var(--page-inset-x);
+  box-sizing: border-box;
 }
 
 @media (min-width: 640px) {
   .app-main:has(.map-page) {
     height: 100dvh;
     min-height: 100dvh;
-    padding-bottom: clamp(20px, 2.5vw, 48px);
   }
 }
 
@@ -619,13 +624,12 @@
 
 @media (max-width: 639px) {
   .app-main:has(.map-page) {
-    height: calc(100dvh - var(--page-mobile-bottom));
-    min-height: calc(100dvh - var(--page-mobile-bottom));
-    padding-bottom: 0;
-  }
-
-  .app-main:has(.map-page) .page-header {
-    margin-bottom: 16px;
+    height: calc(100dvh - var(--bottom-nav-clearance));
+    min-height: calc(100dvh - var(--bottom-nav-clearance));
+    padding:
+      calc(var(--page-header-offset) + var(--page-inset-x))
+      var(--page-inset-x)
+      var(--page-inset-x);
   }
 
   .map-page .act-cat-panel--map.map-panel {
@@ -640,7 +644,7 @@
 
 @media (max-width: 900px) and (min-width: 640px) {
   .app-main:has(.map-page) {
-    padding-bottom: 18px;
+    padding-bottom: var(--page-inset-x);
   }
 }
 

@@ -1,9 +1,7 @@
 import { getCategoryById } from '../../config.js';
-import { renderNavIcon } from '../../lib/lucide-icon.js';
 import { renderListMapViewBlock } from '../shared/listMapSection.js';
 import {
   renderCategoryListPageView,
-  renderListPageHeader,
   renderListSection,
 } from '../shared/listPageTemplate.js';
 
@@ -25,12 +23,6 @@ const LIST_MAP_BLOCK = renderListMapViewBlock({
 export const VOYAGES_VIEW_HTML = renderCategoryListPageView({
   theme: THEME,
   includePick: false,
-  headerHtml: renderListPageHeader({
-    theme: THEME,
-    menuIconHtml: renderNavIcon('menu', { strokeWidth: 1.75 }),
-    mobileIconHtml: renderNavIcon('travel', { strokeWidth: 2 }),
-    pageTitle: 'Voyages',
-  }),
   listSectionHtml: renderListSection({
     listHeading: 'Nos destinations',
     listSub: 'Activités et adresses regroupées par voyage',
