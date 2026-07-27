@@ -6,7 +6,7 @@ Application web privée partagée à deux. Centralise idées, lieux et envies co
 |                 |                                                                        |
 | --------------- | ---------------------------------------------------------------------- |
 | **Produit**     | Our Space - *À nous deux*                                              |
-| **Version**     | `2.6.0` (`APP_VERSION` · `[assets/js/config.js](assets/js/config.js)`) |
+| **Version**     | `2.4.1` (`APP_VERSION` · `[assets/js/config.js](assets/js/config.js)`) |
 | **Runtime**     | Single Page App (ESM), sans framework ni bundler                       |
 | **Backend**     | Firebase Auth + Cloud Firestore                                        |
 | **Hébergement** | GitHub Pages (CI)                                                      |
@@ -209,3 +209,9 @@ Historique aligné sur les bumps de `APP_VERSION`. Le numérotage n’a pas touj
 - **Page Profil** — hub identité (avatar, pseudo) + section **Notre espace** (jours ensemble, membres) visible dès l’ouverture
 - **Réglages en sous-écrans** — Mon profil, Notre couple, Données, Thème (bientôt), Application ; transitions hub ↔ détail
 - Nav / bottom nav / header : libellé **Profil** + icône `user`
+
+### 2.4.1
+
+- Splash mobile : centrage correct du cœur et de l’anneau de progression
+- Paramètres : mémorisation de la position de scroll au retour hub depuis un sous-écran
+- Desktop (≥901px) : plus de chrome header (sidebar suffit) ; retour inline dans les sous-écrans Profil

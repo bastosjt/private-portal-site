@@ -63,6 +63,7 @@ let profilePartnerNicknamePicker = null;
 let spaceTaglinePicker = null;
 let stopLocationListener = null;
 let activePanel = null;
+let hubScrollY = 0;
 let viewTransitionToken = 0;
 let isViewTransitioning = false;
 
@@ -410,12 +411,13 @@ function applyPanelView(panelId) {
   return true;
 }
 
-async function transitionSettingsView(applyFn, headerPatch, { animate = true } = {}) {
+async function transitionSettingsView(applyFn, headerPatch, { animate = true, scrollTop = 0 } = {}) {
   const page = getPageRoot();
   if (!page) return;
 
   const token = ++viewTransitionToken;
   const canAnimate = animate && !prefersReducedMotion();
+  const previousPanel = activePanel;
 
   isViewTransitioning = true;
 
@@ -446,7 +448,10 @@ async function transitionSettingsView(applyFn, headerPatch, { animate = true } =
     return;
   }
 
-  window.scrollTo({ top: 0, behavior: 'auto' });
+  // Ne reset le scroll que lors d’un vrai changement hub ↔ détail
+  if (previousPanel !== activePanel) {
+    window.scrollTo({ top: scrollTop, behavior: 'auto' });
+  }
 
   if (canAnimate) {
     page.classList.remove('is-view-leaving');
@@ -475,7 +480,7 @@ async function showHub({ animate = true } = {}) {
       theme: SETTINGS_THEME,
       showBack: false,
     },
-    { animate },
+    { animate, scrollTop: hubScrollY },
   );
 }
 
@@ -484,6 +489,10 @@ async function showPanel(panelId, { animate = true } = {}) {
   if (!meta) return;
   if (isViewTransitioning && animate) return;
 
+  if (activePanel === null) {
+    hubScrollY = window.scrollY || window.pageYOffset || 0;
+  }
+
   await transitionSettingsView(
     () => applyPanelView(panelId),
     {
@@ -491,7 +500,7 @@ async function showPanel(panelId, { animate = true } = {}) {
       theme: SETTINGS_THEME,
       showBack: true,
     },
-    { animate },
+    { animate, scrollTop: 0 },
   );
 }
 
@@ -566,6 +575,10 @@ export function initSettingsPage(user, { onLogout: logoutHandler, onDataSynced: 
     if (panelId) void showPanel(panelId);
   }, { signal });
 
+  document.getElementById('settings-detail-back')?.addEventListener('click', () => {
+    void showHub({ animate: true });
+  }, { signal });
+
   document.getElementById('settings-space-tagline-change')?.addEventListener('click', openSpaceTaglinePicker, { signal });
   document.getElementById('settings-partner-nickname-change')?.addEventListener('click', openPartnerNicknamePicker, { signal });
   document.getElementById('settings-display-name-change')?.addEventListener('click', openDisplayNamePicker, { signal });
@@ -604,6 +617,7 @@ export function destroySettingsPage() {
   stopSyncStatusTimer();
   clearPageHeaderBackHandler();
   activePanel = null;
+  hubScrollY = 0;
   currentUser = null;
   onLogout = null;
   onDataSynced = null;

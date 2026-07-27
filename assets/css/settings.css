@@ -48,6 +48,55 @@
   gap: 28px;
 }
 
+/* Desktop only — mobile utilise le bouton retour du page-header */
+.settings-detail-back {
+  display: none;
+  align-self: flex-start;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 -8px;
+  padding: 8px 12px 8px 8px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  box-shadow: var(--neu-up-sm);
+  color: var(--text-secondary);
+  font-size: 0.84rem;
+  font-weight: 500;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 0.15s ease, transform 0.15s ease;
+}
+
+.settings-detail-back-icon {
+  display: flex;
+  width: 18px;
+  height: 18px;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-primary);
+}
+
+.settings-detail-back-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.settings-detail-back:hover {
+  color: var(--text-primary);
+}
+
+.settings-detail-back:active {
+  transform: scale(0.96);
+  box-shadow: var(--neu-press);
+}
+
+@media (min-width: 901px) {
+  .settings-detail-back {
+    display: inline-flex;
+  }
+}
+
 .settings-panel-view {
   display: flex;
   flex-direction: column;

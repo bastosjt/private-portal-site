@@ -2,6 +2,7 @@ import { SETTINGS_THEME } from '../../config.js';
 import { renderNavIcon } from '../../lib/lucide-icon.js';
 
 const CHEVRON = renderNavIcon('chevron-right', { strokeWidth: 2, width: 18, height: 18 });
+const CHEVRON_LEFT = renderNavIcon('chevron-left', { strokeWidth: 2, width: 18, height: 18 });
 
 function renderMenuLink({ id, icon, label, valueId, disabled = false, soon = false }) {
   const tag = disabled ? 'div' : 'button';
@@ -79,6 +80,10 @@ export const SETTINGS_VIEW_HTML = `
     </div>
 
     <div class="settings-detail" id="settings-detail" hidden>
+      <button type="button" class="settings-detail-back" id="settings-detail-back" aria-label="Retour aux réglages">
+        <span class="settings-detail-back-icon" aria-hidden="true">${CHEVRON_LEFT}</span>
+        <span>Retour</span>
+      </button>
       <section class="settings-panel-view settings-section--profile" data-panel="profile" hidden aria-labelledby="settings-profile-heading">
         <div class="section-head">
           <div>
