@@ -446,11 +446,7 @@ body.modal-open {
   min-width: 0;
   width: calc(100% - var(--sidebar-width));
   margin-left: var(--sidebar-width);
-  /* Même écart top / left / right / bottom que la page carte */
-  padding:
-    calc(var(--page-header-offset) + var(--page-inset-x))
-    var(--page-inset-x)
-    var(--page-inset-x);
+  padding: var(--page-inset-top) var(--page-inset-x) var(--page-inset-bottom);
   box-sizing: border-box;
   transition: filter var(--duration-sidebar) var(--ease-premium);
 }
@@ -735,6 +731,11 @@ body.modal-open {
 }
 
 @media (min-width: 901px) {
+  /* Sidebar permanente : pas de chrome header au-dessus de 900px */
+  .page-header {
+    display: none !important;
+  }
+
   .sidebar-header {
     display: block;
   }
