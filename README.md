@@ -90,7 +90,7 @@ CSP stricte côté `index.html` (scripts Firebase, tuiles CARTO, APIs d’adress
 
 Historique aligné sur les bumps de `APP_VERSION`. Le numérotage n’a pas toujours suivi un semver linéaire.
 
-###  1.0.0 — Fondations
+### Fondations
 
 - Auth Firebase (email / mot de passe) avec allowlist des comptes autorisés
 - Single Page App sur `index.html` : layout dark, sidebar, design system de base
