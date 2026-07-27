@@ -1,25 +1,7 @@
 import { BASE_THEME } from '../../config.js';
-import { renderNavIcon } from '../../lib/lucide-icon.js';
 import { EXPLORER_SECTION_HTML } from '../../ui/explorer-section.js';
 
 export const HOME_VIEW_HTML = `
-  <header class="page-header page-header--home" data-theme="${BASE_THEME}">
-    <button type="button" class="btn-menu" id="menu-toggle" aria-label="Ouvrir le menu">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <line x1="4" x2="20" y1="12" y2="12"/>
-        <line x1="4" x2="20" y1="6" y2="6"/>
-        <line x1="4" x2="20" y1="18" y2="18"/>
-      </svg>
-    </button>
-    <div class="page-header-mobile-icon" data-theme="${BASE_THEME}" aria-hidden="true">
-      ${renderNavIcon('home')}
-    </div>
-    <div class="page-header-content">
-      <h1 class="page-header-title" id="page-greeting">Bonjour</h1>
-      <p class="page-header-sub" id="page-header-sub">-</p>
-    </div>
-  </header>
-
   <main class="page-content home-page" data-theme="${BASE_THEME}">
     <section class="home-hero">
       <article class="days-card hero-days" data-theme="love" aria-labelledby="days-count days-label">

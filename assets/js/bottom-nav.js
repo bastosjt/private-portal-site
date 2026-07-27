@@ -1,13 +1,8 @@
 import { BASE_THEME, NAV_ITEMS } from './config.js';
 import { EXPLORER_ROUTE, getRouteFromHash } from './navigation/router.js';
+import { EXPLORER_CHILD_ROUTES } from './navigation/nav-request.js';
 import { renderNavIcon } from './lib/lucide-icon.js';
-
-/** Routes catégories accessibles via Explorer → l’onglet Explorer reste actif. */
-const EXPLORER_CHILD_ROUTES = new Set(
-  NAV_ITEMS
-    .map((item) => item.id)
-    .filter((id) => id !== 'accueil' && id !== 'carte'),
-);
+import { renderNavIconLoaderHtml } from './navigation/nav-refresh-indicator.js';
 
 function icon(name, strokeWidth) {
   return renderNavIcon(name, strokeWidth != null ? { strokeWidth } : {});
@@ -93,6 +88,7 @@ function renderRouteItem(routeId, label, iconName, activeId, routeIdForBadge = n
         <span class="bottom-nav-icon-glyph">
           ${icon(iconName, 1.75)}
         </span>
+        ${renderNavIconLoaderHtml()}
         ${badgeHtml}
       </span>
     </a>
@@ -130,7 +126,7 @@ export function renderBottomNav(container, { activeId = getActiveId() } = {}) {
           ${renderRouteItem(EXPLORER_ROUTE, 'Explorer', 'layout-grid', navActiveId, activeId)}
           <span class="bottom-nav-fab-anchor" aria-hidden="true"></span>
           ${renderRouteItem('carte', 'Carte', 'map', navActiveId)}
-          ${renderRouteItem('parametres', 'Réglages', 'settings', navActiveId)}
+          ${renderRouteItem('parametres', 'Profil', 'user', navActiveId)}
         </div>
       </div>
     </nav>
@@ -155,6 +151,7 @@ export function updateBottomNavActive(activeId = getActiveId()) {
 
 export function initBottomNav({ onNavigate, onAdd } = {}) {
   const fabBtn = document.getElementById('bottom-nav-fab');
+  let fabOpening = false;
 
   document.querySelectorAll('.bottom-nav-item[data-route]').forEach((item) => {
     item.addEventListener('click', (event) => {
@@ -166,13 +163,20 @@ export function initBottomNav({ onNavigate, onAdd } = {}) {
   });
 
   fabBtn?.addEventListener('click', () => {
+    if (fabOpening || !onAdd) return;
+    fabOpening = true;
+
     fabBtn.classList.add('is-pressed');
     if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
       navigator.vibrate(10);
     }
-    onAdd?.();
-    window.requestAnimationFrame(() => {
+
+    // Ouverture immédiate : le press chevauche la montée du sheet (pas de latence).
+    onAdd();
+
+    window.setTimeout(() => {
       fabBtn.classList.remove('is-pressed');
-    });
+      fabOpening = false;
+    }, 420);
   });
 }

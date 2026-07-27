@@ -74,6 +74,14 @@
   animation: love-heart-beat-strong 0.72s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+.splash-view.is-complete .splash-loader-progress {
+  filter: drop-shadow(0 0 7px var(--logo-heart-glow));
+}
+
+.splash-view.is-complete.is-love-pulsing .splash-loader-ring {
+  animation: splash-ring-complete-pulse 0.72s var(--ease-premium);
+}
+
 .splash-heart-ripples {
   position: absolute;
   inset: 0;
@@ -81,22 +89,44 @@
   z-index: 1;
 }
 
+/* Idle : pas d’anneaux permanents. Pulse (clic / fin de chargement) : visibles. */
 .splash-heart-ripple {
   border: none;
   background: none;
+  box-shadow: none;
+  animation: none;
+}
+
+.splash-view.is-love-pulsing .splash-heart-ripple.love-ripple {
+  animation: splash-ring-out 1.1s var(--ease-premium) forwards;
+  animation-delay: 0s;
+  background: none;
+  border: 1.5px solid color-mix(in srgb, var(--logo-heart) 40%, transparent);
   box-shadow: none;
 }
 
 .splash-loader-ring {
   position: absolute;
-  inset: -6px;
-  border-radius: 50%;
-  border: 2px solid transparent;
-  border-top-color: color-mix(in srgb, var(--logo-heart) 88%, transparent);
-  border-right-color: color-mix(in srgb, var(--logo-heart) 18%, transparent);
-  animation: splash-ring-spin 1.1s linear infinite;
+  inset: 6px;
+  width: auto;
+  height: auto;
+  transform: rotate(-90deg);
   pointer-events: none;
-  z-index: 0;
+  z-index: 1;
+  overflow: visible;
+}
+
+.splash-loader-track {
+  stroke: color-mix(in srgb, var(--logo-heart) 16%, transparent);
+  stroke-width: 2.75;
+}
+
+.splash-loader-progress {
+  stroke: var(--logo-heart);
+  stroke-width: 2.75;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.4s var(--ease-premium);
+  filter: drop-shadow(0 0 4px var(--logo-heart-soft));
 }
 
 .splash-title {
@@ -114,9 +144,35 @@
   56% { transform: scale(1); }
 }
 
-@keyframes splash-ring-spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+@keyframes splash-ring-out {
+  0% {
+    opacity: 0;
+    transform: scale(0.82);
+  }
+
+  12% {
+    opacity: 0.72;
+  }
+
+  42% {
+    opacity: 0.45;
+  }
+
+  72% {
+    opacity: 0.16;
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(2.2);
+  }
+}
+
+@keyframes splash-ring-complete-pulse {
+  0%, 100% { transform: rotate(-90deg) scale(1); }
+  18% { transform: rotate(-90deg) scale(1.06); }
+  38% { transform: rotate(-90deg) scale(0.98); }
+  58% { transform: rotate(-90deg) scale(1.03); }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -125,7 +181,11 @@
   }
 
   .splash-icon,
-  .splash-loader-ring {
+  .splash-view.is-complete.is-love-pulsing .splash-loader-ring {
     animation: none;
+  }
+
+  .splash-loader-progress {
+    transition-duration: 0.01s;
   }
 }

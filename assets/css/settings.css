@@ -6,6 +6,216 @@
   padding-bottom: 0;
   margin-top: 0;
   margin-bottom: 0;
+  transform: translate3d(0, 0, 0);
+  opacity: 1;
+  transition:
+    opacity var(--duration-page) var(--ease-out-expo),
+    transform var(--duration-page) var(--ease-out-expo);
+}
+
+.settings-page.is-view-leaving {
+  opacity: 0;
+  transform: translate3d(0, 8px, 0);
+  pointer-events: none;
+  transition-duration: var(--duration-page-leave);
+  transition-timing-function: var(--ease-page-leave);
+}
+
+.settings-page.is-view-entering {
+  opacity: 0;
+  transform: translate3d(0, 14px, 0);
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .settings-page,
+  .settings-page.is-view-leaving,
+  .settings-page.is-view-entering {
+    transition: none !important;
+    transform: none !important;
+  }
+
+  .settings-page.is-view-leaving,
+  .settings-page.is-view-entering {
+    opacity: 0;
+  }
+}
+
+.settings-hub,
+.settings-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.settings-panel-view {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.settings-panel-view[hidden],
+.settings-hub[hidden],
+.settings-detail[hidden] {
+  display: none;
+}
+
+/* ── Hero profil ── */
+.settings-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+  padding: 8px 8px 0;
+}
+
+.settings-hero-avatar {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--accent-deep) 0%, var(--accent) 100%);
+  color: #1e1828;
+  font-size: 1.9rem;
+  font-weight: 700;
+  box-shadow: var(--neu-up-sm), 0 0 24px color-mix(in srgb, var(--accent) 22%, transparent);
+  margin-bottom: 6px;
+}
+
+.settings-hero-avatar.has-animal svg {
+  width: 56px;
+  height: 56px;
+}
+
+.settings-hero-name {
+  margin: 0;
+  font-size: 1.65rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--text-primary);
+  line-height: 1.15;
+}
+
+.settings-hero-email {
+  margin: 0;
+  font-size: 0.86rem;
+  color: var(--text-secondary);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Menu réglages ── */
+.settings-menu {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius-md);
+  background: linear-gradient(160deg, var(--cat-bg) 0%, var(--surface) 55%);
+  border: 1px solid var(--cat-border);
+  box-shadow: var(--neu-up-sm);
+  overflow: hidden;
+}
+
+.settings-menu-link {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 16px 18px;
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.22s var(--ease-premium);
+}
+
+.settings-menu-link:last-child {
+  border-bottom: none;
+}
+
+.settings-menu-link:hover:not(.is-disabled) {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.settings-menu-link:active:not(.is-disabled) {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.settings-menu-link.is-disabled {
+  cursor: default;
+  opacity: 0.58;
+}
+
+.settings-menu-icon {
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 11px;
+  color: var(--accent);
+  background: var(--bg);
+  border: 1px solid color-mix(in srgb, var(--accent) 24%, transparent);
+  box-shadow: var(--neu-in);
+}
+
+.settings-menu-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.settings-menu-copy {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.settings-menu-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.settings-menu-value {
+  font-size: 0.74rem;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-menu-soon {
+  display: inline-flex;
+  align-self: flex-start;
+  margin-top: 2px;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  background: var(--bg);
+  box-shadow: var(--neu-in);
+}
+
+.settings-menu-chevron {
+  display: flex;
+  color: var(--text-placeholder);
+  flex-shrink: 0;
+}
+
+.settings-menu-chevron svg {
+  width: 18px;
+  height: 18px;
 }
 
 .settings-section {

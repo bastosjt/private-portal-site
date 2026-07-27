@@ -3,6 +3,7 @@ import { getSpaceTagline } from '../lib/space-settings.js';
 import { getRouteFromHash } from '../navigation/router.js';
 import { lockScroll, unlockScroll } from '../lib/scroll-lock.js';
 import { renderNavIcon } from '../lib/lucide-icon.js';
+import { renderNavIconLoaderHtml } from '../navigation/nav-refresh-indicator.js';
 
 const CLOSE_ICON = renderNavIcon('close', { strokeWidth: 2, width: 24, height: 24 });
 
@@ -18,7 +19,7 @@ function renderNavLink(item, activeId) {
   const isActive = item.id === activeId;
   return `
     <a href="${item.href}" class="sidebar-link${isActive ? ' is-active' : ''}" data-route="${item.id}"${item.theme ? ` data-theme="${item.theme}"` : ''}${isActive ? ' aria-current="page"' : ''}>
-      <span class="sidebar-link-icon">${icon(item.icon)}</span>
+      <span class="sidebar-link-icon">${icon(item.icon)}${renderNavIconLoaderHtml()}</span>
       <span class="sidebar-link-label">${item.label}</span>
     </a>
   `;
@@ -49,7 +50,7 @@ export function renderSidebar(container, { activeId = getActiveId() } = {}) {
         <div class="sidebar-bottom">
           <div class="sidebar-footer">
             <a href="${SETTINGS_ITEM.href}" class="sidebar-link${settingsActive ? ' is-active' : ''}" data-route="${SETTINGS_ITEM.id}"${settingsActive ? ' aria-current="page"' : ''}>
-              <span class="sidebar-link-icon">${icon(SETTINGS_ITEM.icon)}</span>
+              <span class="sidebar-link-icon">${icon(SETTINGS_ITEM.icon)}${renderNavIconLoaderHtml()}</span>
               <span class="sidebar-link-label">${SETTINGS_ITEM.label}</span>
             </a>
           </div>

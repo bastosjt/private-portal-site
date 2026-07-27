@@ -6,6 +6,8 @@ import {
   renderVersionBadgeHtml,
   COUPLE_START_DATE,
   getUserDisplayName,
+  SETTINGS_ITEM,
+  SETTINGS_THEME,
 } from '../../config.js';
 import { resetMapWarmup } from '../carte/map-warmup.js';
 import {
@@ -38,6 +40,16 @@ import { initProfileDisplayNamePicker } from '../../ui/profile-display-name-pick
 import { initProfilePartnerNicknamePicker } from '../../ui/profile-partner-nickname-picker.js';
 import { initSpaceTaglinePicker } from '../../ui/space-tagline-picker.js';
 import { updateSidebarTagline } from '../../ui/sidebar.js';
+import {
+  setPageHeader,
+  setPageHeaderBackHandler,
+  clearPageHeaderBackHandler,
+  beginPageHeaderSwap,
+  revealPageHeader,
+} from '../../ui/page-header.js';
+import { nextFrame, waitForTransition } from '../../lib/transitions.js';
+
+const VIEW_TRANSITION_MS = 220; // aligné sur --duration-page-leave
 
 let currentUser = null;
 let pageAbort = null;
@@ -50,8 +62,18 @@ let profileDisplayNamePicker = null;
 let profilePartnerNicknamePicker = null;
 let spaceTaglinePicker = null;
 let stopLocationListener = null;
+let activePanel = null;
+let viewTransitionToken = 0;
+let isViewTransitioning = false;
 
 const MEMBER_THEMES = ['slate', BASE_THEME];
+
+const PANEL_HEADERS = {
+  profile: { title: 'Mon profil', sub: 'Pseudo et photo de profil', icon: 'user' },
+  couple: { title: 'Notre couple', sub: 'Surnom et nom de votre espace', icon: 'heart' },
+  data: { title: 'Données', sub: 'Synchronisation Firestore', icon: 'database' },
+  app: { title: 'Application', sub: 'Version et session', icon: 'settings' },
+};
 
 function getDaysTogether(startDateStr) {
   const start = new Date(startDateStr);
@@ -85,34 +107,40 @@ function getTotalCachedItems() {
   return ITEM_COLLECTIONS.reduce((sum, collection) => sum + getCollectionCountFromCache(collection), 0);
 }
 
+function setText(id, text) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = text;
+}
+
 function renderProfile(user) {
   const displayName = getUserDisplayName(user) || 'Utilisateur';
-  const avatarEl = document.getElementById('settings-avatar');
-  const changeLabelEl = document.getElementById('settings-avatar-change-label');
-  const changeSubEl = document.getElementById('settings-avatar-change-sub');
-  const changeCardEl = document.getElementById('settings-avatar-change');
-  const changeIconEl = document.getElementById('settings-avatar-change-icon');
-  const nameCardSubEl = document.getElementById('settings-display-name-sub');
-  const nameCardEl = document.getElementById('settings-display-name-change');
-  const nameEl = document.getElementById('settings-display-name');
-  const emailEl = document.getElementById('settings-email');
-  const avatar = renderAvatarContent(user.uid, { email: user.email || '' });
+  const email = user.email || '';
+  const avatar = renderAvatarContent(user.uid, { email });
   const entry = getProfileAnimalEntry(user.uid);
   const animalId = entry?.animal ?? null;
 
-  paintAvatarElement(avatarEl, avatar);
-  if (changeLabelEl) {
-    changeLabelEl.textContent = avatar.hasAnimal ? 'Changer d\'animal' : 'Choisir un animal';
+  paintAvatarElement(document.getElementById('settings-avatar'), avatar);
+
+  setText('settings-display-name', displayName);
+  setText('settings-email', email);
+  setText('settings-display-name-sub', displayName);
+
+  const changeCardEl = document.getElementById('settings-avatar-change');
+  const changeIconEl = document.getElementById('settings-avatar-change-icon');
+  const nameCardEl = document.getElementById('settings-display-name-change');
+
+  if (entry) {
+    const animal = getProfileAnimalMeta(entry.animal);
+    const color = getProfileAnimalColorStyle(entry.color);
+    setText('settings-avatar-change-label', 'Changer d\'animal');
+    setText('settings-avatar-change-sub', `${animal?.label || 'Animal'} · ${color.label}`);
+    setText('settings-menu-profile-value', `${animal?.label || 'Animal'} · ${displayName}`);
+  } else {
+    setText('settings-avatar-change-label', 'Choisir un animal');
+    setText('settings-avatar-change-sub', 'Photo de profil');
+    setText('settings-menu-profile-value', displayName);
   }
-  if (changeSubEl) {
-    if (entry) {
-      const animal = getProfileAnimalMeta(entry.animal);
-      const color = getProfileAnimalColorStyle(entry.color);
-      changeSubEl.textContent = `${animal?.label || 'Animal'} · ${color.label}`;
-    } else {
-      changeSubEl.textContent = 'Photo de profil';
-    }
-  }
+
   if (changeCardEl) {
     changeCardEl.classList.toggle('has-animal', avatar.hasAnimal);
     changeCardEl.setAttribute(
@@ -122,6 +150,7 @@ function renderProfile(user) {
         : 'Choisir un animal de profil',
     );
   }
+
   if (changeIconEl) {
     if (animalId) {
       changeIconEl.innerHTML = renderNavIcon(animalId, { strokeWidth: 2, width: 20, height: 20 });
@@ -135,34 +164,29 @@ function renderProfile(user) {
       changeIconEl.style.boxShadow = '';
     }
   }
-  if (nameEl) nameEl.textContent = displayName;
-  if (nameCardSubEl) nameCardSubEl.textContent = displayName;
+
   if (nameCardEl) {
     nameCardEl.setAttribute('aria-label', `Changer le pseudo (${displayName})`);
   }
-  if (emailEl) emailEl.textContent = user.email || '';
 }
 
 function renderSpace(user) {
   const days = getDaysTogether(COUPLE_START_DATE);
-  const daysEl = document.getElementById('settings-days-count');
-  const labelEl = document.getElementById('settings-days-label');
-  const sinceEl = document.getElementById('settings-since-date');
-  const appNameEl = document.getElementById('settings-app-name');
-  const taglineEl = document.getElementById('settings-app-tagline');
-  const nicknameSubEl = document.getElementById('settings-partner-nickname-sub');
-  const nicknameCardEl = document.getElementById('settings-partner-nickname-change');
-  const spaceTaglineSubEl = document.getElementById('settings-space-tagline-sub');
-  const spaceTaglineCardEl = document.getElementById('settings-space-tagline-change');
   const partnerNickname = user ? getPartnerNickname(user.uid) : '';
   const partnerName = user ? getDisplayNameForUid(getPartnerUid(user.uid)) : '';
   const spaceTagline = getSpaceTagline();
 
-  if (daysEl) daysEl.textContent = String(days);
-  if (labelEl) labelEl.textContent = days <= 1 ? 'jour ensemble' : 'jours ensemble';
-  if (sinceEl) sinceEl.textContent = `Depuis le ${formatStartDate(COUPLE_START_DATE)}`;
-  if (appNameEl) appNameEl.textContent = APP_NAME;
-  if (taglineEl) taglineEl.textContent = spaceTagline;
+  setText('settings-days-count', String(days));
+  setText('settings-days-label', days <= 1 ? 'jour ensemble' : 'jours ensemble');
+  setText('settings-since-date', `Depuis le ${formatStartDate(COUPLE_START_DATE)}`);
+  setText('settings-app-name', APP_NAME);
+  setText('settings-app-tagline', spaceTagline);
+  setText('settings-space-tagline-sub', spaceTagline);
+
+  const nicknameSubEl = document.getElementById('settings-partner-nickname-sub');
+  const nicknameCardEl = document.getElementById('settings-partner-nickname-change');
+  const spaceTaglineCardEl = document.getElementById('settings-space-tagline-change');
+
   if (nicknameSubEl) {
     nicknameSubEl.textContent = partnerNickname
       ? `Pour ${partnerName} · ${partnerNickname}`
@@ -176,10 +200,11 @@ function renderSpace(user) {
         : `Choisir un surnom pour ${partnerName || 'votre copain adoré'}`,
     );
   }
-  if (spaceTaglineSubEl) spaceTaglineSubEl.textContent = spaceTagline;
   if (spaceTaglineCardEl) {
     spaceTaglineCardEl.setAttribute('aria-label', `Modifier le nom de notre espace (${spaceTagline})`);
   }
+
+  setText('settings-menu-couple-value', partnerNickname || spaceTagline || '—');
 }
 
 function renderMembers(user) {
@@ -217,14 +242,13 @@ function renderMembers(user) {
 }
 
 function renderDataStatus() {
-  const syncEl = document.getElementById('settings-sync-status');
-  const countEl = document.getElementById('settings-cache-count');
+  const syncText = formatSyncAge(getCacheAgeMs());
+  const total = getTotalCachedItems();
+  const countText = isPrefetchComplete() ? `${total} éléments` : '-';
 
-  if (syncEl) syncEl.textContent = formatSyncAge(getCacheAgeMs());
-  if (countEl) {
-    const total = getTotalCachedItems();
-    countEl.textContent = isPrefetchComplete() ? `${total} éléments` : '-';
-  }
+  setText('settings-sync-status', syncText);
+  setText('settings-cache-count', countText);
+  setText('settings-menu-data-value', syncText);
 }
 
 function renderAppInfo() {
@@ -233,6 +257,7 @@ function renderAppInfo() {
     versionEl.innerHTML = renderVersionBadgeHtml(APP_VERSION);
     versionEl.setAttribute('aria-label', `Version ${APP_VERSION}`);
   }
+  setText('settings-menu-app-value', `Version et session`);
 }
 
 function renderLocationStatus() {
@@ -339,6 +364,137 @@ async function handleClearCacheClick(button) {
   }
 }
 
+function getPageRoot() {
+  return document.querySelector('.settings-page');
+}
+
+function prefersReducedMotion() {
+  return typeof window !== 'undefined'
+    && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+function applyHubView() {
+  const page = getPageRoot();
+  const hub = document.getElementById('settings-hub');
+  const detail = document.getElementById('settings-detail');
+  if (!page || !hub || !detail) return false;
+
+  activePanel = null;
+  page.dataset.settingsView = 'hub';
+  hub.hidden = false;
+  detail.hidden = true;
+  detail.querySelectorAll('.settings-panel-view').forEach((panel) => {
+    panel.hidden = true;
+  });
+  clearPageHeaderBackHandler();
+  return true;
+}
+
+function applyPanelView(panelId) {
+  const page = getPageRoot();
+  const hub = document.getElementById('settings-hub');
+  const detail = document.getElementById('settings-detail');
+  const panel = detail?.querySelector(`.settings-panel-view[data-panel="${panelId}"]`);
+  if (!page || !hub || !detail || !panel) return false;
+
+  activePanel = panelId;
+  page.dataset.settingsView = 'detail';
+  hub.hidden = true;
+  detail.hidden = false;
+  detail.querySelectorAll('.settings-panel-view').forEach((el) => {
+    el.hidden = el !== panel;
+  });
+  setPageHeaderBackHandler(() => {
+    void showHub({ animate: true });
+  });
+  return true;
+}
+
+async function transitionSettingsView(applyFn, headerPatch, { animate = true } = {}) {
+  const page = getPageRoot();
+  if (!page) return;
+
+  const token = ++viewTransitionToken;
+  const canAnimate = animate && !prefersReducedMotion();
+
+  isViewTransitioning = true;
+
+  let headerSwapToken = null;
+  if (canAnimate) {
+    page.classList.remove('is-view-entering');
+    page.classList.add('is-view-leaving');
+    headerSwapToken = beginPageHeaderSwap();
+    await waitForTransition(page, VIEW_TRANSITION_MS);
+    if (token !== viewTransitionToken) {
+      isViewTransitioning = false;
+      return;
+    }
+  } else {
+    page.classList.remove('is-view-leaving', 'is-view-entering');
+  }
+
+  if (!applyFn()) {
+    page.classList.remove('is-view-leaving', 'is-view-entering');
+    if (headerSwapToken != null) revealPageHeader(headerSwapToken);
+    isViewTransitioning = false;
+    return;
+  }
+
+  await setPageHeader(headerPatch, { animate: false });
+  if (token !== viewTransitionToken) {
+    isViewTransitioning = false;
+    return;
+  }
+
+  window.scrollTo({ top: 0, behavior: 'auto' });
+
+  if (canAnimate) {
+    page.classList.remove('is-view-leaving');
+    page.classList.add('is-view-entering');
+    await nextFrame();
+    if (token !== viewTransitionToken) {
+      isViewTransitioning = false;
+      return;
+    }
+    page.classList.remove('is-view-entering');
+    revealPageHeader(headerSwapToken);
+  }
+
+  isViewTransitioning = false;
+}
+
+async function showHub({ animate = true } = {}) {
+  if (isViewTransitioning && animate) return;
+
+  await transitionSettingsView(
+    () => applyHubView(),
+    {
+      title: SETTINGS_ITEM.label,
+      sub: 'Votre compte · Our Space',
+      icon: SETTINGS_ITEM.icon,
+      theme: SETTINGS_THEME,
+      showBack: false,
+    },
+    { animate },
+  );
+}
+
+async function showPanel(panelId, { animate = true } = {}) {
+  const meta = PANEL_HEADERS[panelId];
+  if (!meta) return;
+  if (isViewTransitioning && animate) return;
+
+  await transitionSettingsView(
+    () => applyPanelView(panelId),
+    {
+      ...meta,
+      theme: SETTINGS_THEME,
+      showBack: true,
+    },
+    { animate },
+  );
+}
+
 export function initSettingsPage(user, { onLogout: logoutHandler, onDataSynced: dataSyncedHandler, onProfileUpdated: profileUpdatedHandler } = {}) {
   destroySettingsPage();
   currentUser = user;
@@ -349,6 +505,7 @@ export function initSettingsPage(user, { onLogout: logoutHandler, onDataSynced: 
   const { signal } = pageAbort;
 
   if (user) renderAll(user);
+  void showHub({ animate: false });
   startSyncStatusTimer();
 
   stopLocationListener = onUserLocationChange(() => renderLocationStatus());
@@ -402,10 +559,16 @@ export function initSettingsPage(user, { onLogout: logoutHandler, onDataSynced: 
   const openSpaceTaglinePicker = () => spaceTaglinePicker?.open();
   const openAnimalPicker = () => profileAnimalPicker?.open();
 
+  document.getElementById('settings-hub')?.addEventListener('click', (event) => {
+    const link = event.target.closest('.settings-menu-link[data-settings-panel]');
+    if (!link || link.classList.contains('is-disabled')) return;
+    const panelId = link.dataset.settingsPanel;
+    if (panelId) void showPanel(panelId);
+  }, { signal });
+
   document.getElementById('settings-space-tagline-change')?.addEventListener('click', openSpaceTaglinePicker, { signal });
   document.getElementById('settings-partner-nickname-change')?.addEventListener('click', openPartnerNicknamePicker, { signal });
   document.getElementById('settings-display-name-change')?.addEventListener('click', openDisplayNamePicker, { signal });
-  document.getElementById('settings-avatar-btn')?.addEventListener('click', openAnimalPicker, { signal });
   document.getElementById('settings-avatar-change')?.addEventListener('click', openAnimalPicker, { signal });
 
   document.getElementById('settings-clear-cache-btn')?.addEventListener('click', (event) => {
@@ -424,6 +587,8 @@ export function initSettingsPage(user, { onLogout: logoutHandler, onDataSynced: 
 }
 
 export function destroySettingsPage() {
+  viewTransitionToken += 1;
+  isViewTransitioning = false;
   pageAbort?.abort();
   pageAbort = null;
   profileAnimalPicker?.destroy();
@@ -437,6 +602,8 @@ export function destroySettingsPage() {
   stopLocationListener?.();
   stopLocationListener = null;
   stopSyncStatusTimer();
+  clearPageHeaderBackHandler();
+  activePanel = null;
   currentUser = null;
   onLogout = null;
   onDataSynced = null;
@@ -445,4 +612,9 @@ export function destroySettingsPage() {
 
 export function refreshSettingsPage() {
   if (currentUser) renderAll(currentUser);
+  if (activePanel) {
+    void showPanel(activePanel, { animate: false });
+  } else {
+    void showHub({ animate: false });
+  }
 }

@@ -28,6 +28,11 @@
   --fab-inset-x: var(--page-inset-x);
   --fab-inset-bottom: 18px;
 
+  /* Header / chrome barres */
+  --chrome-bar-pad-y: 15px;
+  --page-header-bar-height: calc(var(--chrome-bar-pad-y) * 2 + 46px);
+  --page-header-offset: calc(var(--page-header-bar-height) + env(safe-area-inset-top, 0px));
+
   /* Bottom navigation (mobile) */
   --bottom-nav-bar-height: 64px;
   --bottom-nav-icon-size: 46px;
@@ -44,6 +49,13 @@
   );
   --page-mobile-bottom: calc(var(--bottom-nav-offset) + env(safe-area-inset-bottom, 0px));
   --bottom-nav-active: var(--accent);
+  /* Sommet de la bottom-nav (même référentiel que la page carte) */
+  --bottom-nav-clearance: calc(
+    env(safe-area-inset-bottom, 0px)
+    + var(--bottom-nav-bottom-gap)
+    + var(--page-header-bar-height)
+    + var(--bottom-nav-shape-lift)
+  );
 
   --error: #f87171;
 
@@ -60,9 +72,11 @@
 
   --ease-premium: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-page-leave: cubic-bezier(0.4, 0, 1, 1);
   --duration-sidebar: 0.4s;
   --duration-overlay: 0.36s;
-  --duration-page: 0.34s;
+  --duration-page: 0.4s;
+  --duration-page-leave: 0.22s;
   --duration-step: 0.28s;
 
   --cat-on-accent: #0c1a22;

@@ -6,6 +6,7 @@ import {
   getMapMarkersFromCache,
 } from '../../data/appDataCache.js';
 import { initCustomOptions } from '../../lib/custom-types.js';
+import { getTravelLinkId, shouldShowInGlobalCategoryList } from '../../lib/travel-link.js';
 import { destroyCategoryDetailModals, initCategoryDetailModals } from '../../ui/category-detail-registry.js';
 import { initAddItem } from '../../ui/add-item.js';
 import {
@@ -20,6 +21,7 @@ import {
 } from './interactive-map.js';
 import { destroyMapFilters, initMapFilters, onMapLayerToggled, updateMapFilterBadge } from './map-filters.js';
 import { destroyMapSearch, initMapSearch } from './map-search.js';
+import { setPageHeaderSub } from '../../ui/page-header.js';
 import {
   clearSelectedMapMarker,
   getSelectedTravelId,
@@ -56,20 +58,17 @@ function countMapContextPlaces() {
     if (!travelId) return 0;
     return markers.filter((marker) => (
       (marker.categoryId === 'activities' || marker.categoryId === 'restaurants')
-      && marker.travelId === travelId
+      && getTravelLinkId({ travelId: marker.travelId }) === travelId
     )).length;
   }
 
   return markers.filter((marker) => (
     (marker.categoryId === 'activities' || marker.categoryId === 'restaurants')
-    && !marker.travelId
+    && shouldShowInGlobalCategoryList({ travelId: marker.travelId }, marker.categoryId)
   )).length;
 }
 
 function updateHeaderSub() {
-  const sub = document.getElementById('map-header-sub');
-  if (!sub) return;
-
   const placesCount = countMapContextPlaces();
   const placesLabel = formatPlacesCount(placesCount);
 
@@ -77,11 +76,11 @@ function updateHeaderSub() {
     const travel = findCachedItemById('travels', getSelectedTravelId());
     const label = travel?.destination?.trim();
     const modeLabel = label ? `Mode voyage - ${label}` : 'Mode voyage';
-    sub.textContent = placesLabel ? `${modeLabel} · ${placesLabel}` : modeLabel;
+    void setPageHeaderSub(placesLabel ? `${modeLabel} · ${placesLabel}` : modeLabel, { animate: false });
     return;
   }
 
-  sub.textContent = placesLabel || 'Activités, restaurants et voyages';
+  void setPageHeaderSub(placesLabel || 'Activités, restaurants et voyages', { animate: false });
 }
 
 function syncTravelModeUi() {

@@ -31,30 +31,33 @@
   <meta name="apple-mobile-web-app-title" content="Our Space">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="assets/css/variables.css?v=25">
+  <link rel="stylesheet" href="assets/css/variables.css?v=30">
   <link rel="stylesheet" href="assets/css/base.css?v=19">
   <link rel="stylesheet" href="assets/css/love-hearts.css?v=3">
-  <link rel="stylesheet" href="assets/css/splash.css?v=15">
+  <link rel="stylesheet" href="assets/css/splash.css?v=21">
   <link rel="stylesheet" href="assets/css/auth.css?v=9">
-  <link rel="stylesheet" href="assets/css/layout.css?v=21">
+  <link rel="stylesheet" href="assets/css/layout.css?v=31">
   <link rel="stylesheet" href="assets/css/home.css?v=65">
   <link rel="stylesheet" href="assets/css/activities.css?v=76">
   <link rel="stylesheet" href="assets/css/maplibre-gl.css?v=1">
-  <link rel="stylesheet" href="assets/css/map.css?v=19">
+  <link rel="stylesheet" href="assets/css/map.css?v=24">
   <link rel="stylesheet" href="assets/css/item-author.css?v=8">
-  <link rel="stylesheet" href="assets/css/add-item.css?v=24">
-  <link rel="stylesheet" href="assets/css/settings.css?v=17">
-  <link rel="stylesheet" href="assets/css/bottom-nav.css?v=32">
+  <link rel="stylesheet" href="assets/css/add-item.css?v=28">
+  <link rel="stylesheet" href="assets/css/settings.css?v=20">
+  <link rel="stylesheet" href="assets/css/bottom-nav.css?v=40">
 </head>
 <body class="splash-page">
-  <div id="splash-view" class="splash-view" role="status" aria-live="polite" aria-label="Chargement">
+  <div id="splash-view" class="splash-view" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Chargement">
     <div class="love-hearts-field love-hearts-field--splash splash-corner-hearts" id="splash-corner-hearts" aria-hidden="true"></div>
     <div class="splash-content">
       <button type="button" class="splash-icon-wrap splash-heart-trigger" id="splash-heart-trigger" aria-label="Réveiller les cœurs">
-        <span class="splash-loader-ring" aria-hidden="true"></span>
+        <svg class="splash-loader-ring" viewBox="0 0 100 100" aria-hidden="true">
+          <circle class="splash-loader-track" cx="50" cy="50" r="45" fill="none" pathLength="100" />
+          <circle class="splash-loader-progress" cx="50" cy="50" r="45" fill="none" pathLength="100"
+            stroke-dasharray="100"
+            stroke-dashoffset="100" />
+        </svg>
         <div class="splash-heart-ripples" aria-hidden="true">
-          <span class="splash-heart-ripple love-ripple"></span>
-          <span class="splash-heart-ripple love-ripple"></span>
           <span class="splash-heart-ripple love-ripple"></span>
         </div>
         <div class="splash-icon" id="splash-heart-icon">
@@ -129,11 +132,12 @@
 
   <div id="app-view" class="app-shell hidden">
     <div id="sidebar-root"></div>
+    <div id="page-header-root"></div>
     <div id="page-root" class="app-main"></div>
     <div id="bottom-nav-root"></div>
   </div>
 
   <script src="assets/js/vendor/maplibre-gl.js?v=1"></script>
-  <script type="module" src="assets/js/app.js?v=69"></script>
+  <script type="module" src="assets/js/app.js?v=75"></script>
 </body>
 </html>

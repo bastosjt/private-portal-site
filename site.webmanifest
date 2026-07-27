@@ -15,8 +15,20 @@
       "purpose": "any"
     },
     {
+      "src": "assets/icons/apple-touch-icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
       "src": "assets/icons/favicon.png",
       "sizes": "283x283",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icons/favicon.png",
+      "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     }

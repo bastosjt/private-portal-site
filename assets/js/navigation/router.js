@@ -62,7 +62,12 @@ export function navigate(routeId, { replace = false } = {}) {
   const target = routeHref(id);
 
   if (window.location.hash === target) {
-    window.dispatchEvent(new HashChangeEvent('hashchange'));
+    return id;
+  }
+
+  const [currentRoutePart] = window.location.hash.replace(/^#\/?/, '').split('?');
+  if (currentRoutePart === id) {
+    window.location.hash = id;
     return id;
   }
 

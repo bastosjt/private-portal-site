@@ -86,7 +86,7 @@ export function renderListOnlyPanel({ listPanelId, listId }) {
 export function renderCategoryListPageView({
   theme,
   pageRootClass = 'activities-page',
-  headerHtml,
+  headerHtml = '',
   listSectionHtml,
   includePick = true,
 }) {

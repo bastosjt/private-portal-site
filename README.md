@@ -6,7 +6,7 @@ Application web privée partagée à deux. Centralise idées, lieux et envies co
 |                 |                                                                        |
 | --------------- | ---------------------------------------------------------------------- |
 | **Produit**     | Our Space - *À nous deux*                                              |
-| **Version**     | `2.3.1` (`APP_VERSION` · `[assets/js/config.js](assets/js/config.js)`) |
+| **Version**     | `2.6.0` (`APP_VERSION` · `[assets/js/config.js](assets/js/config.js)`) |
 | **Runtime**     | Single Page App (ESM), sans framework ni bundler                       |
 | **Backend**     | Firebase Auth + Cloud Firestore                                        |
 | **Hébergement** | GitHub Pages (CI)                                                      |
@@ -22,8 +22,8 @@ Application web privée partagée à deux. Centralise idées, lieux et envies co
 - **Carte interactive** — MapLibre GL, pins géolocalisés, recherche, filtres, deep-links vers un lieu
 - **Mode voyage** — focus carte sur un voyage (pin, zone, lieux liés), choix persisté ; au départ recentrage géoloc ou tous les lieux locaux
 - **Accueil** — compteur de jours, suggestions / tirages, aperçu carte, accès rapide
-- **Profils & espace** — noms affichés, avatars, tagline, préférences
-- **UX mobile / desktop** — sidebar, bottom navigation, transitions, installable (web manifest)
+- **Profils & espace** — page Profil (hub) avec section **Notre espace**, avatars, tagline, réglages en sous-écrans
+- **UX mobile / desktop** — header unifié, sidebar, bottom navigation, transitions premium, modal ajout en sheet, installable (web manifest)
 
 ---
 
@@ -51,7 +51,7 @@ L’entrée unique est `index.html`. La navigation repose sur le hash (`#accueil
 | `assets/js/data/`       | Cache applicatif et synchronisation UI                |
 | `assets/js/navigation/` | Routing hash et deep-links carte                      |
 | `assets/js/pages/`      | Vues métier                                           |
-| `assets/js/ui/`         | Modales, détails d’items, splash, chrome              |
+| `assets/js/ui/`         | Modales, détails d’items, splash, header chrome, bottom nav |
 | `assets/js/lib/`        | Adresses, géo, profils, utilitaires                   |
 | `assets/js/vendor/`     | Dépendances embarquées (MapLibre, Lucide, …)          |
 | `.github/workflows/`    | Build Pages + injection des secrets Firebase          |
@@ -197,3 +197,15 @@ Historique aligné sur les bumps de `APP_VERSION`. Le numérotage n’a pas touj
 - Prefetch : voyages + `activeTravelId` chargés en parallèle avec le reste des données
 - Activation mode voyage instantanée (persistance Firestore en arrière-plan)
 
+### 2.3.2
+
+- Transitions de page (crossfade / slide) + header unifié synchronisé (`page-header.js`)
+- Bottom nav animée (icône active, FAB, ouverture modal) + sheet d’ajout (picker ↔ formulaire)
+- Splash : anneau de progression + beat de fin ; retap onglet = refresh avec loader sur l’icône
+- Correctifs voyages : lieux liés exclus des listes globales ; préremplissage « Voyage associé » à l’ajout
+
+### 2.4.0
+
+- **Page Profil** — hub identité (avatar, pseudo) + section **Notre espace** (jours ensemble, membres) visible dès l’ouverture
+- **Réglages en sous-écrans** — Mon profil, Notre couple, Données, Thème (bientôt), Application ; transitions hub ↔ détail
+- Nav / bottom nav / header : libellé **Profil** + icône `user`

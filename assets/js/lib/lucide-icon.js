@@ -2,6 +2,7 @@ import { createElement } from '../vendor/lucide.mjs';
 import {
   ArrowLeft,
   ChevronLeft,
+  Bell,
   Bird,
   Bug,
   Cat,
@@ -16,6 +17,7 @@ import {
   Heart,
   House,
   Layers,
+  LoaderCircle,
   Luggage,
   Map,
   Menu,
@@ -33,8 +35,12 @@ import {
   Squirrel,
   Turtle,
   Undo2,
+  User,
   UserPen,
   Utensils,
+  ChevronRight,
+  Database,
+  Palette,
   Worm,
   X,
 } from '../vendor/lucide.mjs';
@@ -60,12 +66,14 @@ const NAV_ICON_COMPONENTS = {
   'arrow-left': ArrowLeft,
   'chevron-left': ChevronLeft,
   map: Map,
+  bell: Bell,
   activity: RollerCoaster,
   restaurant: Utensils,
   film: Clapperboard,
   travel: Plane,
   luggage: Luggage,
   wishlist: Heart,
+  heart: Heart,
   settings: Settings,
   'cloud-sync': CloudSync,
   cat: Cat,
@@ -83,7 +91,11 @@ const NAV_ICON_COMPONENTS = {
   rat: Rat,
   origami: Origami,
   'undo-2': Undo2,
+  user: User,
   'user-pen': UserPen,
+  'chevron-right': ChevronRight,
+  database: Database,
+  palette: Palette,
   close: X,
   check: Check,
   menu: Menu,
@@ -109,4 +121,9 @@ export function renderNavIcon(name, { strokeWidth, width, height, fill, ...attrs
     stroke: resolvedStroke,
     ...attrs,
   });
+}
+
+/** Loader circulaire (retap refresh nav). */
+export function renderLoaderCircleIcon({ strokeWidth = 2.25, width = 20, height = 20 } = {}) {
+  return renderLucideIcon(LoaderCircle, { strokeWidth, width, height });
 }

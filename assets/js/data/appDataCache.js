@@ -5,6 +5,7 @@ import { getStraightLineDistanceKm } from '../lib/geo-utils.js';
 import { hasActivityLimitedDuration } from '../pages/activites/scheduleDisplay.js';
 import { getItemLocationLabel } from '../lib/item-location.js';
 import { initSpaceSettings, clearSpaceSettingsCache } from '../lib/space-settings.js';
+import { shouldShowInGlobalCategoryList } from '../lib/travel-link.js';
 import { Timestamp } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js';
 
 export const ITEM_COLLECTIONS = HOME_CATEGORIES.map((cat) => cat.id);
@@ -25,6 +26,7 @@ let backgroundRefreshPromise = null;
 let cacheLoadedAt = 0;
 let lastRefreshStartedAt = 0;
 const secondaryPrefetchListeners = new Set();
+const prefetchProgressListeners = new Set();
 
 /** Cache périmé après 15 min — refresh silencieux au prochain trigger. */
 const CACHE_STALE_MS = 15 * 60 * 1000;
@@ -138,6 +140,18 @@ export function onSecondaryPrefetchDone(listener) {
   return () => secondaryPrefetchListeners.delete(listener);
 }
 
+function emitPrefetchProgress(completed, total) {
+  for (const listener of prefetchProgressListeners) {
+    listener(completed, total);
+  }
+}
+
+/** Écoute la progression du prefetch primaire (collections + pioches + settings). */
+export function onPrefetchProgress(listener) {
+  prefetchProgressListeners.add(listener);
+  return () => prefetchProgressListeners.delete(listener);
+}
+
 function getItemCreatedAtMs(item) {
   const createdAt = item?.createdAt;
   if (!createdAt) return 0;
@@ -164,7 +178,7 @@ export function findCachedItemById(collectionName, itemId) {
 export function getCollectionCountFromCache(collectionName, { excludeTravelLinked = false } = {}) {
   const items = itemsCache.get(collectionName) ?? [];
   if (!excludeTravelLinked) return items.length;
-  return items.filter((item) => !item.travelId).length;
+  return items.filter((item) => shouldShowInGlobalCategoryList(item, collectionName)).length;
 }
 
 export function getRecentItemsFromCache(collectionName, max = 3) {
@@ -269,6 +283,7 @@ export function getNearestMapPlacesFromCache(max = 4, originLngLat = null) {
   if (!Array.isArray(originLngLat) || originLngLat.length !== 2) return [];
 
   return getMapMarkersFromCache()
+    .filter((marker) => shouldShowInGlobalCategoryList({ travelId: marker.travelId }, marker.categoryId))
     .map((marker) => {
       const item = findCachedItemById(marker.categoryId, marker.id);
       const distanceKm = getStraightLineDistanceKm(originLngLat, marker.coordinates);
@@ -294,7 +309,7 @@ export function countGeolocatedPlacesFromCache() {
     const count = (itemsCache.get(collection) ?? []).filter((item) => {
       if (!hasMapCoordinates(item)) return false;
       if (collection === 'activities' || collection === 'restaurants') {
-        return !item.travelId;
+        return shouldShowInGlobalCategoryList(item, collection);
       }
       return true;
     }).length;
@@ -383,11 +398,23 @@ export function syncCachedItemWrite(collectionName, itemId, { deleted = false, p
 export function prefetchAppData() {
   if (prefetchPromise) return prefetchPromise;
 
-  prefetchPromise = Promise.all([
+  const tasks = [
     initSpaceSettings(),
     ...PRIMARY_COLLECTIONS.map((collection) => ensureItems(collection)),
     ...PRIMARY_PICK_SCOPES.map((scope) => loadDailyPicks(scope)),
-  ])
+  ];
+
+  const total = tasks.length;
+  let completed = 0;
+
+  const tracked = tasks.map((task) =>
+    Promise.resolve(task).finally(() => {
+      completed += 1;
+      emitPrefetchProgress(completed, total);
+    }),
+  );
+
+  prefetchPromise = Promise.all(tracked)
     .then(() => {
       markCacheFresh();
       scheduleSecondaryPrefetch();
