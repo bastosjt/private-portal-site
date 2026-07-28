@@ -8,6 +8,7 @@ import {
   BicepsFlexed,
   Castle,
   Church,
+  Flower2,
   Footprints,
   Landmark,
   Mountain,
@@ -17,12 +18,13 @@ import {
   Puzzle,
   RollerCoaster,
   Ship,
+  ShoppingBag,
   Sparkles,
   Tickets,
   Trees,
 } from '../../vendor/lucide.mjs';
 import { renderLucideIcon } from '../../lib/lucide-icon.js';
-import { BotanicalGarden, Fountain, Place } from './custom-type-icons.js';
+import { Bridge, Fountain, Monument, Place, Ruins } from './custom-type-icons.js';
 
 const ICON_REGISTRY = {
   landmark: Landmark,
@@ -39,7 +41,11 @@ const ICON_REGISTRY = {
   church: Church,
   fountain: Fountain,
   place: Place,
-  'botanical-garden': BotanicalGarden,
+  'flower-2': Flower2,
+  'shopping-bag': ShoppingBag,
+  monument: Monument,
+  bridge: Bridge,
+  ruins: Ruins,
   parasol: Parasol,
   ship: Ship,
   activity: RollerCoaster,
@@ -47,7 +53,6 @@ const ICON_REGISTRY = {
 
 const ACTIVITY_TYPE_ICONS = {
   musee: 'landmark',
-  site_touristique: 'landmark',
   chateau: 'castle',
   expo: 'tickets',
   balade: 'footprints',
@@ -58,7 +63,11 @@ const ACTIVITY_TYPE_ICONS = {
   sport: 'biceps-flexed',
   sommet: 'mountain',
   parc: 'trees',
-  jardin_botanique: 'botanical-garden',
+  jardin_botanique: 'flower-2',
+  centre_commercial: 'shopping-bag',
+  monument: 'monument',
+  pont: 'bridge',
+  site_historique: 'ruins',
   eglise: 'church',
   cathedrale: 'church',
   eglise_cathedrale: 'church',

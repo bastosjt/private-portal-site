@@ -263,7 +263,7 @@ function setLayerToggle(map, root, layerId, visible) {
   const control = MAP_LAYER_CONTROLS.find((entry) => entry.id === layerId);
   if (!control) return;
 
-  setMapLayerVisible(map, layerId, visible);
+  setMapLayerVisible(map, layerId, visible, { animate: true });
   syncMapLayerButtons(root);
   showLocateFeedback(root, formatLayerFeedbackMessage(control.label, visible));
   onLayerToggled?.();

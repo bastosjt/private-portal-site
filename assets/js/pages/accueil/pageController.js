@@ -4,9 +4,6 @@ import {
   getNearestMapPlacesFromCache,
   countGeolocatedPlacesFromCache,
   getCachedItems,
-  getWeekItemsCountFromCache,
-  getCollectionCountFromCache,
-  ITEM_COLLECTIONS,
 } from '../../data/appDataCache.js';
 import { getUserLocationLngLat, onUserLocationChange } from '../../lib/user-location.js';
 import { MAP_FALLBACK_CENTER } from '../carte/map-markers.js';
@@ -26,12 +23,12 @@ import { renderActivityTypeIcon } from '../activites/IconsType.js';
 import { renderRestaurantTypeIcon } from '../restaurants/IconsType.js';
 import { renderTravelTypeIcon } from '../voyages/IconsType.js';
 import { isTravelLinkedItem } from '../../lib/travel-link.js';
-
-const COLLECTION_IDS = ITEM_COLLECTIONS;
+import { getDisplayNameForUid, getPartnerUid } from '../../lib/user-profile.js';
 
 const HOME_DETAIL_CATEGORIES = ['activities', 'restaurants', 'movies', 'travels', 'wishlist'];
 
 let currentUserName = '';
+let currentUserUid = '';
 let addItemModal = null;
 let stopNearbyLocationListener = null;
 let detailModals = {};
@@ -65,24 +62,28 @@ function getGreeting() {
   return 'Bonsoir';
 }
 
-function buildHeaderSubtitle(total, weekCount) {
-  if (weekCount === 1) return '1 nouvelle idée cette semaine';
-  if (weekCount > 1) return `${weekCount} nouvelles idées cette semaine`;
-  if (total === 0) return 'Bienvenue dans Our Space';
-  return `${total} idée${total > 1 ? 's' : ''} enregistrée${total > 1 ? 's' : ''}`;
-}
-
 function getGreetingLabel() {
   const base = getGreeting();
   return currentUserName ? `${base} ${currentUserName}` : base;
 }
 
-function refreshHomeHeader(total = null, weekCount = null) {
+function getPartnerDisplayName(viewerUid) {
+  const partnerUid = getPartnerUid(viewerUid);
+  if (!partnerUid) return '';
+  const name = getDisplayNameForUid(partnerUid);
+  const firstName = name.split(/\s+/).filter(Boolean)[0];
+  return firstName || '';
+}
+
+function buildHomeHeaderSubtitle() {
+  const partnerName = getPartnerDisplayName(currentUserUid);
+  if (!partnerName) return 'Votre espace à deux';
+  return `Votre espace à deux avec ${partnerName}`;
+}
+
+function refreshHomeHeader() {
   void setPageHeaderTitle(getGreetingLabel(), { animate: false });
-  void setPageHeaderSub(
-    total === null ? 'Chargement…' : buildHeaderSubtitle(total, weekCount),
-    { animate: false },
-  );
+  void setPageHeaderSub(buildHomeHeaderSubtitle(), { animate: false });
 }
 
 const SHORTCUT_CATEGORIES = [
@@ -172,20 +173,15 @@ function renderNearbyDistanceBadge(distanceLabel) {
   `;
 }
 
-function buildNearbySubtitle(totalPlaces, nearestCount) {
-  if (totalPlaces === 0) return 'Aucun lieu enregistré';
-  if (nearestCount === 0) {
-    return totalPlaces === 1 ? '1 lieu enregistré' : `${totalPlaces} lieux enregistrés`;
-  }
+function buildNearbySubtitle(nearestCount) {
+  if (nearestCount === 0) return 'Aucun lieu à proximité';
 
   const proximityHint = getUserLocationLngLat() ? 'depuis vous' : 'à vol d\'oiseau';
-  if (totalPlaces === 1) return `1 lieu · le plus proche ${proximityHint}`;
-  return `${totalPlaces} lieux · ${nearestCount} plus proches ${proximityHint}`;
+  if (nearestCount === 1) return `Le plus proche ${proximityHint}`;
+  return `${nearestCount} plus proches ${proximityHint}`;
 }
 
-function renderNearbyMapPreview(totalPlaces) {
-  const countLabel = totalPlaces === 1 ? '1 lieu sur la carte' : `${totalPlaces} lieux sur la carte`;
-
+function renderNearbyMapPreview() {
   return `
     <a href="#carte" class="home-nearby-map-link" aria-label="Ouvrir la carte interactive">
       <div class="home-nearby-map-preview" data-theme="${MAP_THEME}">
@@ -194,7 +190,7 @@ function renderNearbyMapPreview(totalPlaces) {
         <span class="home-nearby-map-preview-grid" aria-hidden="true"></span>
         <span class="home-nearby-map-preview-copy">
           <span class="home-nearby-map-preview-title">Carte interactive</span>
-          <span class="home-nearby-map-preview-text">${countLabel}</span>
+          <span class="home-nearby-map-preview-text">Voir la carte</span>
         </span>
       </div>
     </a>
@@ -213,15 +209,17 @@ function renderNearbySection() {
     return;
   }
 
-  const totalPlaces = countGeolocatedPlacesFromCache();
-  const places = getNearestMapPlacesFromCache(4, getNearbyOriginLngLat());
+  const totalPlaces = countGeolocatedPlacesFromCache({ includeTravelLinked: true });
+  const places = getNearestMapPlacesFromCache(4, getNearbyOriginLngLat(), {
+    includeTravelLinked: true,
+  });
 
   if (subEl) {
-    subEl.textContent = buildNearbySubtitle(totalPlaces, places.length);
+    subEl.textContent = buildNearbySubtitle(places.length);
   }
 
   const mapPreview = totalPlaces > 0
-    ? renderNearbyMapPreview(totalPlaces)
+    ? renderNearbyMapPreview()
     : `
       <div class="home-nearby-map">
         <div class="act-map-placeholder home-nearby-map-placeholder">
@@ -348,6 +346,7 @@ export async function initHomePage(user, { addItemModal: sharedModal } = {}) {
   await initCustomOptions();
 
   currentUserName = getUserDisplayName(user);
+  currentUserUid = user?.uid || '';
   addItemModal = sharedModal ?? initAddItem({ user, onAdded: () => loadHomeData() });
   initDetailModals();
   refreshHomeHeader();
@@ -404,9 +403,7 @@ async function loadHomeData() {
   await initCustomOptions();
   await ensurePrefetch();
 
-  const total = COLLECTION_IDS.reduce((sum, id) => sum + getCollectionCountFromCache(id), 0);
-  const weekCount = getWeekItemsCountFromCache(COLLECTION_IDS);
-  refreshHomeHeader(total, weekCount);
+  refreshHomeHeader();
 
   const nearbyInner = document.getElementById('home-nearby-inner');
 

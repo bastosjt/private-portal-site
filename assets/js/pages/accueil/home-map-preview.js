@@ -13,6 +13,7 @@ import {
   MAP_FALLBACK_CENTER,
   MAP_LOCAL_RADIUS_KM,
   refreshMapMarkers,
+  setIncludeTravelLinkedMarkers,
 } from '../carte/map-markers.js';
 import {
   getUserLocationLngLat,
@@ -71,6 +72,7 @@ export function destroyHomeMapPreview() {
   stopLocationListener = null;
   resizeObserver?.disconnect();
   resizeObserver = null;
+  setIncludeTravelLinkedMarkers(null, false);
   if (previewMap) {
     destroyMapUserLocationLayer(previewMap);
     previewMap.remove();
@@ -118,6 +120,7 @@ async function mountHomeMapPreview(token) {
     previewMap.resize();
     fitPreviewMap(previewMap);
     syncPreviewUserLocation(previewMap);
+    setIncludeTravelLinkedMarkers(previewMap, true);
     refreshMapMarkers(previewMap, {
       onUpdated: () => syncPreviewUserLocation(previewMap),
     });

@@ -164,13 +164,15 @@ export function initListFilters({
             <path d="m6 9 6 6 6-6"/>
           </svg>
         </button>
-        <div class="filter-check-list-wrap" id="filter-panel-${section.id}"${expanded ? '' : ' hidden'}>
-          <div
-            class="filter-check-list"
-            role="group"
-            aria-label="${escapeHtml(section.label)}"
-          >
-            ${getSectionOptions(section).map((opt) => renderCheckItem(section, opt)).join('')}
+        <div class="filter-check-list-wrap" id="filter-panel-${section.id}" aria-hidden="${expanded ? 'false' : 'true'}">
+          <div class="filter-check-list-inner">
+            <div
+              class="filter-check-list"
+              role="group"
+              aria-label="${escapeHtml(section.label)}"
+            >
+              ${getSectionOptions(section).map((opt) => renderCheckItem(section, opt)).join('')}
+            </div>
           </div>
         </div>
       </section>
@@ -180,7 +182,9 @@ export function initListFilters({
   function renderBody() {
     bodyEl.innerHTML = `
       <div class="filter-modal-content">
-        ${getVisibleSections().map((section) => renderSection(section)).join('')}
+        <div class="filter-modal-scroll">
+          ${getVisibleSections().map((section) => renderSection(section)).join('')}
+        </div>
         <div class="filter-modal-actions">
           <button type="button" class="filter-reset-btn" id="list-filter-reset">Réinitialiser</button>
           <button type="button" class="filter-apply-btn" id="list-filter-apply">Appliquer</button>
@@ -317,7 +321,7 @@ export function initListFilters({
 
     sectionEl.classList.toggle('is-expanded', willExpand);
     toggle.setAttribute('aria-expanded', willExpand ? 'true' : 'false');
-    panel.toggleAttribute('hidden', !willExpand);
+    panel.setAttribute('aria-hidden', willExpand ? 'false' : 'true');
   }
 
   overlay.addEventListener('click', (event) => {

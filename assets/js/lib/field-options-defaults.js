@@ -2,7 +2,6 @@
 export const DEFAULT_FIELD_OPTIONS = {
   'activities.categorie': [
     { value: 'musee', label: 'Musée' },
-    { value: 'site_touristique', label: 'Site touristique' },
     { value: 'chateau', label: 'Château' },
     { value: 'expo', label: 'Exposition' },
     { value: 'balade', label: 'Balade' },
@@ -13,6 +12,10 @@ export const DEFAULT_FIELD_OPTIONS = {
     { value: 'sport', label: 'Sport' },
     { value: 'parc', label: 'Parc' },
     { value: 'jardin_botanique', label: 'Jardin botanique' },
+    { value: 'centre_commercial', label: 'Centre commercial' },
+    { value: 'monument', label: 'Monument' },
+    { value: 'pont', label: 'Pont' },
+    { value: 'site_historique', label: 'Site historique' },
     { value: 'eglise', label: 'Église' },
     { value: 'cathedrale', label: 'Cathédrale' },
     { value: 'fontaine', label: 'Fontaine' },

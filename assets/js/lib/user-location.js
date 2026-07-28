@@ -125,48 +125,28 @@ function requestUserPosition({ enableHighAccuracy = false, timeout = 12000, maxi
   });
 }
 
-function watchUserPositionOnce({ enableHighAccuracy = false, timeout = 12000, maximumAge = 300000 } = {}) {
-  return new Promise((resolve, reject) => {
-    let watchId = null;
-    const timer = window.setTimeout(() => {
-      if (watchId != null) navigator.geolocation.clearWatch(watchId);
-      reject({ code: 3, message: 'timeout' });
-    }, timeout);
-
-    watchId = navigator.geolocation.watchPosition(
-      (position) => {
-        window.clearTimeout(timer);
-        navigator.geolocation.clearWatch(watchId);
-        resolve(position);
-      },
-      (error) => {
-        window.clearTimeout(timer);
-        if (watchId != null) navigator.geolocation.clearWatch(watchId);
-        reject(error);
-      },
-      { enableHighAccuracy, maximumAge },
-    );
-  });
-}
-
+/**
+ * Une passe « soft », puis éventuellement un retry sur timeout.
+ * Pas de watchPosition / high-accuracy en chaîne : sur macOS, POSITION_UNAVAILABLE
+ * (kCLErrorLocationUnknown) spammerait CoreLocation dans la console.
+ */
 async function resolveUserPosition() {
-  const attempts = [
-    () => requestUserPosition({ enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }),
-    () => requestUserPosition({ enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }),
-    () => watchUserPositionOnce({ enableHighAccuracy: false, timeout: 12000, maximumAge: 300000 }),
-  ];
-
-  let lastError;
-  for (const attempt of attempts) {
-    try {
-      return await attempt();
-    } catch (error) {
-      lastError = error;
-      if (error?.code === 1) throw error;
-    }
+  try {
+    return await requestUserPosition({
+      enableHighAccuracy: false,
+      timeout: 12000,
+      maximumAge: 300000,
+    });
+  } catch (error) {
+    // 1 = permission refusée, 2 = position indisponible (souvent Mac sans fix)
+    if (error?.code === 1 || error?.code === 2) throw error;
   }
 
-  throw lastError;
+  return requestUserPosition({
+    enableHighAccuracy: false,
+    timeout: 15000,
+    maximumAge: 0,
+  });
 }
 
 export async function refreshUserLocation({ silent = false } = {}) {
