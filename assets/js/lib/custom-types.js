@@ -70,13 +70,14 @@ async function mergeMissingDefaultOptions() {
   await Promise.all(updates);
 }
 
-/** Retire l’ancienne option combinée « Église / Cathédrale ». */
+/** Retire les anciennes options d’activités obsolètes. */
 async function removeRetiredActivityCategories() {
   const storageKey = 'activities.categorie';
   const existing = cache[storageKey];
   if (!existing?.length) return;
 
-  const next = existing.filter((opt) => opt.value !== 'eglise_cathedrale');
+  const retired = new Set(['eglise_cathedrale', 'site_touristique']);
+  const next = existing.filter((opt) => !retired.has(opt.value));
   if (next.length === existing.length) return;
 
   cache[storageKey] = next;

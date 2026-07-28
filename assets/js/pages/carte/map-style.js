@@ -68,17 +68,17 @@ const ROAD = {
   tunnel: '#5c6472',
 };
 
-/** Vert naturel — prairies (clair) vs forêts (légèrement plus soutenu). */
-const GREEN_OPACITY = 0.75;
-const FOREST_OPACITY = 0.8;
+/** Vert naturel — sage / olive mat (premium, pas « prairie saturée »). */
+const GREEN_OPACITY = 0.68;
+const FOREST_OPACITY = 0.74;
 
 const GREEN = {
-  main: '#5c9070',
-  light: '#689878',
-  soft: '#528a68',
-  earth: '#4a7860',
-  meadow: '#6a9e78',
-  forest: '#4a8060',
+  main: '#4a7260',
+  light: '#557a68',
+  soft: '#416858',
+  earth: '#385a4c',
+  meadow: '#5a7f6c',
+  forest: '#3a6452',
 };
 
 /** Tissu urbain — violet-gris type Apple Plans. */
@@ -86,6 +86,17 @@ const URBAN = {
   subtle: '#3a3848',
   main: '#46425a',
   light: '#524e66',
+};
+
+/** Eau — bleu encre / saphir (profond, pas cyan flashy). */
+const WATER = {
+  deep: '#1a4568',
+  mid: '#215a82',
+  near: '#286890',
+  line: '#458eb4',
+  lineSoft: '#3a7fa6',
+  label: '#7ab4d4',
+  labelHalo: '#102c44',
 };
 
 function greenMeadow() {
@@ -105,23 +116,23 @@ function greenForest() {
     ['linear'],
     ['zoom'],
     0, GREEN.forest,
-    8, '#528a68',
-    14, GREEN.soft,
+    8, GREEN.soft,
+    14, GREEN.earth,
   ];
 }
 
-/** Campagne & relief — champs, roche, neige, zones humides. */
+/** Campagne & relief — tons terre / glace accordés au vert-bleu. */
 const NATURE = {
-  farmland: '#6e6042',
-  farmlandLight: '#786848',
-  farmlandMid: '#7a8450',
-  farmlandGreen: '#6a9060',
+  farmland: '#635848',
+  farmlandLight: '#6e6250',
+  farmlandMid: '#6a7254',
+  farmlandGreen: '#5a7a5e',
   rock: '#524a44',
   rockLight: '#6a5e54',
   rockBright: '#7a6c5e',
-  ice: '#9ab8cc',
-  wetland: '#6a9a88',
-  wetlandLight: '#7aaa92',
+  ice: '#8aaec4',
+  wetland: '#4e7a70',
+  wetlandLight: '#5a8a7e',
   sand: '#6a5c48',
   peak: '#c4b4a4',
 };
@@ -146,12 +157,12 @@ export const OUR_SPACE_MAP_STYLE = {
           ['linear'],
           ['zoom'],
           0, GREEN.meadow,
-          3, '#5a8868',
-          5, '#4a7860',
-          7, '#343c3a',
-          9, '#2f3438',
-          11, '#2c3036',
-          13, '#282c35',
+          3, GREEN.light,
+          5, GREEN.earth,
+          7, '#32383a',
+          9, '#2e3338',
+          11, '#2a2f36',
+          13, '#262b33',
         ],
       },
     },
@@ -165,13 +176,10 @@ export const OUR_SPACE_MAP_STYLE = {
           'interpolate',
           ['linear'],
           ['zoom'],
-          2, '#182e40',
-          4, '#1a3348',
-          7, '#1e3848',
-          9, '#213a46',
-          11, '#243442',
-          13, '#26363e',
-          14, '#283840',
+          2, WATER.deep,
+          6, WATER.mid,
+          11, WATER.near,
+          14, '#2f7298',
         ],
         'fill-antialias': true,
         'fill-opacity': appear(1, 1.5),
@@ -188,9 +196,9 @@ export const OUR_SPACE_MAP_STYLE = {
           'interpolate',
           ['linear'],
           ['zoom'],
-          3, '#3d6a88',
-          10, '#456a82',
-          14, '#3a5868',
+          3, WATER.lineSoft,
+          10, WATER.line,
+          14, '#52a0c4',
         ],
         'line-width': zoomEase(3, 0.5, 6, 0.8, 10, 1.2, 14, 2, 17, 3.2),
         'line-opacity': appear(1, 2.4),
@@ -219,11 +227,11 @@ export const OUR_SPACE_MAP_STYLE = {
           ['linear'],
           ['zoom'],
           0, NATURE.farmlandGreen,
-          4, '#728858',
+          4, '#66785a',
           7, NATURE.farmlandMid,
           10, NATURE.farmlandLight,
           13, NATURE.farmland,
-          15, '#645838',
+          15, '#5a5040',
         ],
         'fill-opacity': appear(0.72, 0),
         'fill-antialias': true,
@@ -283,7 +291,7 @@ export const OUR_SPACE_MAP_STYLE = {
           0, NATURE.wetlandLight,
           6, NATURE.wetland,
           12, NATURE.wetlandLight,
-          14, '#447068',
+          14, GREEN.earth,
         ],
         'fill-opacity': appear(0.72, 0),
         'fill-antialias': true,
@@ -654,8 +662,8 @@ export const OUR_SPACE_MAP_STYLE = {
         'text-letter-spacing': 0.04,
       },
       paint: {
-        'text-color': '#8eb0c8',
-        'text-halo-color': '#1a2838',
+        'text-color': WATER.label,
+        'text-halo-color': WATER.labelHalo,
         'text-halo-width': 1.4,
         'text-opacity': appear(1, 0.5),
       },
@@ -674,8 +682,8 @@ export const OUR_SPACE_MAP_STYLE = {
         'symbol-spacing': 250,
       },
       paint: {
-        'text-color': '#7a9bb0',
-        'text-halo-color': '#1a2838',
+        'text-color': WATER.label,
+        'text-halo-color': WATER.labelHalo,
         'text-halo-width': 1.2,
         'text-opacity': appear(1, 3.8),
       },

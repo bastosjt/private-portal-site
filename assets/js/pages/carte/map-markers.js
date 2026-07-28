@@ -53,33 +53,86 @@ const MARKERS_SYMBOL_LAYER_ID = 'map-markers-symbols';
 const MARKERS_DONE_BADGE_LAYER_ID = 'map-markers-done-badge';
 const MARKERS_LIMITED_BADGE_LAYER_ID = 'map-markers-limited-badge';
 const MARKER_SORT_KEY = ['-', 0, ['get', 'lat']];
+
+const DONE_PIN_OPACITY = 0.6;
+const FADE_PROP = ['coalesce', ['to-number', ['get', 'fade']], 1];
+const MARKER_ICON_OPACITY = [
+  '*',
+  ['case', ['==', ['get', 'done'], 1], DONE_PIN_OPACITY, 1],
+  FADE_PROP,
+];
+const BADGE_ICON_OPACITY = FADE_PROP;
+/** zoom doit rester l’entrée top-level de interpolate (contrainte MapLibre). */
+const MARKER_ICON_SIZE = [
+  'interpolate',
+  ['linear'],
+  ['zoom'],
+  9, ['*', 0.7, FADE_PROP],
+  12, ['*', 0.88, FADE_PROP],
+  15, ['*', 1.05, FADE_PROP],
+  18, ['*', 1.25, FADE_PROP],
+];
+const SELECTED_MARKER_ICON_SIZE = [
+  'interpolate',
+  ['linear'],
+  ['zoom'],
+  9, ['*', 0.84, FADE_PROP],
+  12, ['*', 1.05, FADE_PROP],
+  15, ['*', 1.26, FADE_PROP],
+  18, ['*', 1.5, FADE_PROP],
+];
+
+/** Pins : fade à l’apparition / disparition (filtres, couches, mode voyage). */
+const PIN_FADE_CATEGORIES = new Set(['activities', 'restaurants', 'travels']);
+const PIN_FADE_MS = 340;
+const PIN_FADE_EASE = (t) => 1 - ((1 - t) ** 3);
+
+let renderedPinEntries = new Map();
+let pinAnimToken = 0;
+let markersEverSynced = false;
+let scheduledSyncMap = null;
+let scheduledSyncAnimate = false;
+let scheduledSyncRaf = 0;
+
 const MARKER_LAYER_IDS = [
   MARKERS_SYMBOL_LAYER_ID,
   MARKERS_DONE_BADGE_LAYER_ID,
   MARKERS_LIMITED_BADGE_LAYER_ID,
 ];
-const INTERACTIVE_MARKER_LAYER_IDS = [...MARKER_LAYER_IDS, 'map-marker-selected'];
-
-const BASE_ICON_SIZE = ['interpolate', ['linear'], ['zoom'], 9, 0.7, 12, 0.88, 15, 1.05, 18, 1.25];
-const SELECTED_ICON_SIZE = ['interpolate', ['linear'], ['zoom'], 9, 0.84, 12, 1.05, 15, 1.26, 18, 1.5];
-const DONE_PIN_OPACITY = 0.6;
-const MARKER_ICON_OPACITY = ['case', ['==', ['get', 'done'], 1], DONE_PIN_OPACITY, 1];
-const DONE_BADGE_FILTER = ['==', ['get', 'done'], 1];
+const INTERACTIVE_MARKER_LAYER_IDS = [
+  ...MARKER_LAYER_IDS,
+  'map-marker-selected',
+];
+const DONE_BADGE_FILTER = [
+  'all',
+  ['==', ['get', 'kind'], 'point'],
+  ['==', ['get', 'done'], 1],
+];
 const LIMITED_BADGE_FILTER = [
   'all',
+  ['==', ['get', 'kind'], 'point'],
   ['==', ['get', 'limitedDuration'], 1],
   ['==', ['get', 'done'], 0],
 ];
-const SHOW_UNSELECTED_FILTER = ['==', ['get', 'isSelected'], 0];
+const SHOW_UNSELECTED_FILTER = [
+  'all',
+  ['==', ['get', 'kind'], 'point'],
+  ['==', ['get', 'isSelected'], 0],
+];
 
 export function setMapMarkerClickHandler(handler) {
   markerClickHandler = handler ?? null;
 }
 
 function bindMapMarkerInteractions(map) {
-  if (!map || markerInteractionsBound || !markerClickHandler) return;
+  if (!map || markerInteractionsBound) return;
 
-  for (const layerId of INTERACTIVE_MARKER_LAYER_IDS) {
+  const hoverLayers = [
+    ...MARKER_LAYER_IDS,
+    'map-marker-selected',
+  ];
+
+  for (const layerId of hoverLayers) {
     map.on('mouseenter', layerId, () => {
       map.getCanvas().style.cursor = 'pointer';
     });
@@ -89,11 +142,13 @@ function bindMapMarkerInteractions(map) {
   }
 
   map.on('click', (event) => {
-    const features = map.queryRenderedFeatures(event.point, { layers: INTERACTIVE_MARKER_LAYER_IDS });
+    const features = map.queryRenderedFeatures(event.point, {
+      layers: INTERACTIVE_MARKER_LAYER_IDS.filter((id) => map.getLayer(id)),
+    });
     const feature = features[0];
-    if (!feature) return;
+    if (!feature || !markerClickHandler) return;
 
-    markerClickHandler?.({
+    markerClickHandler({
       categoryId: feature.properties.categoryId,
       itemId: feature.properties.itemId,
       coordinates: feature.geometry.coordinates,
@@ -132,6 +187,8 @@ function isTravelLinkedMarker(marker) {
 
 let travelMode = false;
 let selectedTravelId = '';
+/** Aperçu accueil : afficher aussi restos / activités liés à un voyage. */
+let includeTravelLinkedMarkers = false;
 
 function isMarkerDisplayed(marker) {
   if (isMarkerHidden(marker)) return false;
@@ -139,11 +196,8 @@ function isMarkerDisplayed(marker) {
   if (travelMode) {
     if (!selectedTravelId) return false;
 
-    if (marker.categoryId === 'travels') {
-      if (marker.id !== selectedTravelId) return false;
-      if (!layerVisibility.travels) return false;
-      return markerMatchesFilters(marker);
-    }
+    // Mode voyage : zone + lieux liés, pas le pin voyage lui-même
+    if (marker.categoryId === 'travels') return false;
 
     if (isTravelLinkedMarker(marker)) {
       if (getTravelLinkId({ travelId: marker.travelId }) !== selectedTravelId) return false;
@@ -154,8 +208,12 @@ function isMarkerDisplayed(marker) {
     return false;
   }
 
-  // Hors mode voyage : les lieux liés à un voyage restent masqués
-  if (isTravelLinkedMarker(marker)) return false;
+  // Hors mode voyage : liés masqués, sauf aperçu « Autour de nous »
+  if (isTravelLinkedMarker(marker)) {
+    if (!includeTravelLinkedMarkers) return false;
+    if (!layerVisibility[marker.categoryId]) return false;
+    return markerMatchesFilters(marker);
+  }
 
   if (marker.categoryId === 'travels') {
     if (!layerVisibility.travels) return false;
@@ -218,26 +276,202 @@ function getMarkersSymbolLayerFilter() {
   return SHOW_UNSELECTED_FILTER;
 }
 
-function buildFeatureCollection() {
-  const markers = getDisplayedMarkers();
+function getMarkerFeatureKey(marker) {
+  return `${marker.categoryId}:${marker.id}`;
+}
 
+function shouldAnimatePinCategory(categoryId) {
+  return PIN_FADE_CATEGORIES.has(categoryId);
+}
+
+function prefersReducedPinMotion() {
+  return Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches);
+}
+
+function buildPointFeature(entry) {
+  const { marker, fade = 1 } = entry;
+  const coords = marker.coordinates;
   return {
-    type: 'FeatureCollection',
-    features: markers.map((marker) => ({
-      type: 'Feature',
-      geometry: { type: 'Point', coordinates: marker.coordinates },
-      properties: {
-        categoryId: marker.categoryId,
-        itemId: marker.id,
-        title: marker.title,
-        iconImage: getMarkerIconImageId(marker),
-        done: marker.done ? 1 : 0,
-        limitedDuration: marker.limitedDuration ? 1 : 0,
-        isSelected: isMarkerSelected(marker) ? 1 : 0,
-        lat: marker.coordinates[1],
-      },
-    })),
+    type: 'Feature',
+    geometry: { type: 'Point', coordinates: coords },
+    properties: {
+      kind: 'point',
+      categoryId: marker.categoryId,
+      itemId: marker.id,
+      title: marker.title,
+      iconImage: getMarkerIconImageId(marker),
+      done: marker.done ? 1 : 0,
+      limitedDuration: marker.limitedDuration ? 1 : 0,
+      isSelected: isMarkerSelected(marker) ? 1 : 0,
+      lat: coords[1],
+      fade,
+    },
   };
+}
+
+function buildFeatureCollectionFromEntries(entries) {
+  const features = [];
+  for (const entry of entries.values()) {
+    features.push(buildPointFeature(entry));
+  }
+  return { type: 'FeatureCollection', features };
+}
+
+function buildFeatureCollection() {
+  return buildFeatureCollectionFromEntries(renderedPinEntries);
+}
+
+function pushMarkerFeatures(map) {
+  const source = map?.getSource('map-markers');
+  if (!source) return;
+  source.setData(buildFeatureCollectionFromEntries(renderedPinEntries));
+}
+
+function cancelPinFadeAnimation() {
+  pinAnimToken += 1;
+}
+
+function buildNextRenderEntries(markers) {
+  const next = new Map();
+  for (const marker of markers) {
+    next.set(getMarkerFeatureKey(marker), {
+      marker,
+      fade: 1,
+    });
+  }
+  return next;
+}
+
+function commitRenderEntries(nextEntries) {
+  renderedPinEntries = new Map(
+    [...nextEntries.entries()].map(([key, entry]) => [
+      key,
+      { marker: entry.marker, fade: 1 },
+    ]),
+  );
+}
+
+function runPinFadeTransition(map, nextEntries, fadeInKeys, fadeOutEntries) {
+  cancelPinFadeAnimation();
+  const token = pinAnimToken;
+  const startedAt = performance.now();
+
+  const working = new Map();
+  for (const [key, entry] of nextEntries) {
+    working.set(key, {
+      marker: entry.marker,
+      fade: fadeInKeys.has(key) ? 0 : 1,
+    });
+  }
+  for (const [key, snapshot] of fadeOutEntries) {
+    if (working.has(key)) continue;
+    working.set(key, {
+      marker: snapshot.marker,
+      fade: snapshot.fade ?? 1,
+    });
+  }
+
+  renderedPinEntries = working;
+  pushMarkerFeatures(map);
+  syncLayerVisibility(map);
+
+  const step = (now) => {
+    if (token !== pinAnimToken || !map.getSource('map-markers')) return;
+    const progress = Math.min(1, (now - startedAt) / PIN_FADE_MS);
+    const eased = PIN_FADE_EASE(progress);
+
+    for (const [key, entry] of renderedPinEntries) {
+      if (fadeInKeys.has(key)) {
+        entry.fade = eased;
+      } else if (fadeOutEntries.has(key)) {
+        const from = fadeOutEntries.get(key)?.fade ?? 1;
+        entry.fade = from * (1 - eased);
+      }
+    }
+
+    pushMarkerFeatures(map);
+
+    if (progress < 1) {
+      requestAnimationFrame(step);
+      return;
+    }
+
+    commitRenderEntries(nextEntries);
+    pushMarkerFeatures(map);
+    syncLayerVisibility(map);
+  };
+
+  requestAnimationFrame(step);
+}
+
+function syncMarkerSourceNow(map, { animate = false } = {}) {
+  if (!map?.getSource('map-markers')) return;
+
+  const selectionCleared = pruneSelectedMarkerIfHidden();
+  const nextMarkers = getDisplayedMarkers();
+  const nextEntries = buildNextRenderEntries(nextMarkers);
+
+  const canAnimate = animate && markersEverSynced && !prefersReducedPinMotion();
+
+  if (!canAnimate) {
+    cancelPinFadeAnimation();
+    commitRenderEntries(nextEntries);
+    markersEverSynced = true;
+    pushMarkerFeatures(map);
+    syncLayerVisibility(map);
+    if (selectionCleared) onSelectionPruned?.();
+    return;
+  }
+
+  const prevEntries = renderedPinEntries;
+  const fadeInKeys = new Set();
+  const fadeOutEntries = new Map();
+
+  for (const [key, entry] of nextEntries) {
+    if (prevEntries.has(key)) continue;
+    if (shouldAnimatePinCategory(entry.marker.categoryId)) {
+      fadeInKeys.add(key);
+    }
+  }
+
+  for (const [key, entry] of prevEntries) {
+    if (nextEntries.has(key)) continue;
+    if (shouldAnimatePinCategory(entry.marker.categoryId)) {
+      fadeOutEntries.set(key, {
+        marker: entry.marker,
+        fade: entry.fade ?? 1,
+      });
+    }
+  }
+
+  if (!fadeInKeys.size && !fadeOutEntries.size) {
+    cancelPinFadeAnimation();
+    commitRenderEntries(nextEntries);
+    pushMarkerFeatures(map);
+    syncLayerVisibility(map);
+    if (selectionCleared) onSelectionPruned?.();
+    return;
+  }
+
+  runPinFadeTransition(map, nextEntries, fadeInKeys, fadeOutEntries);
+  if (selectionCleared) onSelectionPruned?.();
+}
+
+/** Coalesce les syncs du même frame (filtres + couches). */
+function syncMarkerSource(map, { animate = false } = {}) {
+  if (!map) return;
+  scheduledSyncMap = map;
+  scheduledSyncAnimate = scheduledSyncAnimate || animate;
+  if (scheduledSyncRaf) return;
+
+  scheduledSyncRaf = requestAnimationFrame(() => {
+    scheduledSyncRaf = 0;
+    const target = scheduledSyncMap;
+    const shouldAnimate = scheduledSyncAnimate;
+    scheduledSyncMap = null;
+    scheduledSyncAnimate = false;
+    if (target) syncMarkerSourceNow(target, { animate: shouldAnimate });
+  });
 }
 
 function syncLayerVisibility(map) {
@@ -255,7 +489,15 @@ function syncLayerVisibility(map) {
 }
 
 function getTravelMarkersForZones() {
-  return getDisplayedMarkers().filter((marker) => marker.categoryId === 'travels');
+  return getMapMarkersFromCache().filter((marker) => {
+    if (marker.categoryId !== 'travels') return false;
+    if (!layerVisibility.travels) return false;
+    if (!markerMatchesFilters(marker)) return false;
+    if (travelMode) {
+      return Boolean(selectedTravelId) && marker.id === selectedTravelId;
+    }
+    return true;
+  });
 }
 
 async function syncTravelMapZones(map) {
@@ -269,14 +511,6 @@ async function syncTravelMapZones(map) {
 export async function refreshTravelMapZones(map) {
   if (!map) return;
   await syncTravelMapZones(map);
-}
-
-function syncMarkerSource(map) {
-  if (!map?.getSource('map-markers')) return;
-  const selectionCleared = pruneSelectedMarkerIfHidden();
-  map.getSource('map-markers').setData(buildFeatureCollection());
-  syncLayerVisibility(map);
-  if (selectionCleared) onSelectionPruned?.();
 }
 
 export function setSelectedMapMarker(map, selection) {
@@ -406,6 +640,8 @@ function ensureMarkersSymbolLayer(map) {
     map.setFilter(MARKERS_SYMBOL_LAYER_ID, getMarkersSymbolLayerFilter());
     map.setLayoutProperty(MARKERS_SYMBOL_LAYER_ID, 'symbol-sort-key', MARKER_SORT_KEY);
     map.setLayoutProperty(MARKERS_SYMBOL_LAYER_ID, 'symbol-z-order', 'auto');
+    map.setLayoutProperty(MARKERS_SYMBOL_LAYER_ID, 'icon-size', MARKER_ICON_SIZE);
+    map.setPaintProperty(MARKERS_SYMBOL_LAYER_ID, 'icon-opacity', MARKER_ICON_OPACITY);
     return;
   }
 
@@ -416,7 +652,7 @@ function ensureMarkersSymbolLayer(map) {
     filter: getMarkersSymbolLayerFilter(),
     layout: {
       'icon-image': ['get', 'iconImage'],
-      'icon-size': BASE_ICON_SIZE,
+      'icon-size': MARKER_ICON_SIZE,
       'icon-anchor': 'bottom',
       'icon-allow-overlap': true,
       'icon-ignore-placement': true,
@@ -434,6 +670,8 @@ function ensureDoneBadgeLayer(map) {
     map.setFilter(MARKERS_DONE_BADGE_LAYER_ID, DONE_BADGE_FILTER);
     map.setLayoutProperty(MARKERS_DONE_BADGE_LAYER_ID, 'symbol-sort-key', MARKER_SORT_KEY);
     map.setLayoutProperty(MARKERS_DONE_BADGE_LAYER_ID, 'symbol-z-order', 'auto');
+    map.setLayoutProperty(MARKERS_DONE_BADGE_LAYER_ID, 'icon-size', MARKER_ICON_SIZE);
+    map.setPaintProperty(MARKERS_DONE_BADGE_LAYER_ID, 'icon-opacity', BADGE_ICON_OPACITY);
     return;
   }
 
@@ -444,7 +682,7 @@ function ensureDoneBadgeLayer(map) {
     filter: DONE_BADGE_FILTER,
     layout: {
       'icon-image': MAP_MARKER_DONE_BADGE_ID,
-      'icon-size': BASE_ICON_SIZE,
+      'icon-size': MARKER_ICON_SIZE,
       'icon-anchor': 'bottom',
       'icon-allow-overlap': true,
       'icon-ignore-placement': true,
@@ -452,7 +690,7 @@ function ensureDoneBadgeLayer(map) {
       'symbol-z-order': 'auto',
     },
     paint: {
-      'icon-opacity': 1,
+      'icon-opacity': BADGE_ICON_OPACITY,
     },
   });
 }
@@ -462,6 +700,8 @@ function ensureLimitedBadgeLayer(map) {
     map.setFilter(MARKERS_LIMITED_BADGE_LAYER_ID, LIMITED_BADGE_FILTER);
     map.setLayoutProperty(MARKERS_LIMITED_BADGE_LAYER_ID, 'symbol-sort-key', MARKER_SORT_KEY);
     map.setLayoutProperty(MARKERS_LIMITED_BADGE_LAYER_ID, 'symbol-z-order', 'auto');
+    map.setLayoutProperty(MARKERS_LIMITED_BADGE_LAYER_ID, 'icon-size', MARKER_ICON_SIZE);
+    map.setPaintProperty(MARKERS_LIMITED_BADGE_LAYER_ID, 'icon-opacity', BADGE_ICON_OPACITY);
     return;
   }
 
@@ -472,7 +712,7 @@ function ensureLimitedBadgeLayer(map) {
     filter: LIMITED_BADGE_FILTER,
     layout: {
       'icon-image': MAP_MARKER_LIMITED_BADGE_ID,
-      'icon-size': BASE_ICON_SIZE,
+      'icon-size': MARKER_ICON_SIZE,
       'icon-anchor': 'bottom',
       'icon-allow-overlap': true,
       'icon-ignore-placement': true,
@@ -480,15 +720,28 @@ function ensureLimitedBadgeLayer(map) {
       'symbol-z-order': 'auto',
     },
     paint: {
-      'icon-opacity': 1,
+      'icon-opacity': BADGE_ICON_OPACITY,
     },
   });
 }
 
+function removeLegacyClusterLayers(map) {
+  for (const layerId of ['map-marker-clusters', 'map-marker-cluster-count']) {
+    if (map.getLayer(layerId)) map.removeLayer(layerId);
+  }
+}
+
 function ensureSelectedMarkerLayer(map) {
   if (map.getLayer('map-marker-selected')) {
+    map.setFilter('map-marker-selected', [
+      'all',
+      ['==', ['get', 'kind'], 'point'],
+      ['==', ['get', 'isSelected'], 1],
+    ]);
     map.setLayoutProperty('map-marker-selected', 'symbol-sort-key', MARKER_SORT_KEY);
     map.setLayoutProperty('map-marker-selected', 'symbol-z-order', 'auto');
+    map.setLayoutProperty('map-marker-selected', 'icon-size', SELECTED_MARKER_ICON_SIZE);
+    map.setPaintProperty('map-marker-selected', 'icon-opacity', MARKER_ICON_OPACITY);
     return;
   }
 
@@ -496,10 +749,14 @@ function ensureSelectedMarkerLayer(map) {
     id: 'map-marker-selected',
     type: 'symbol',
     source: 'map-markers',
-    filter: ['==', ['get', 'isSelected'], 1],
+    filter: [
+      'all',
+      ['==', ['get', 'kind'], 'point'],
+      ['==', ['get', 'isSelected'], 1],
+    ],
     layout: {
       'icon-image': ['get', 'iconImage'],
-      'icon-size': SELECTED_ICON_SIZE,
+      'icon-size': SELECTED_MARKER_ICON_SIZE,
       'icon-anchor': 'bottom',
       'icon-allow-overlap': true,
       'icon-ignore-placement': true,
@@ -520,10 +777,14 @@ export async function ensureMapMarkerLayers(map) {
     markerInteractionsBound = false;
   }
 
-  if (markersSourceReady && markersAreMounted(map)) return Promise.resolve();
+  if (markersSourceReady && markersAreMounted(map)) {
+    removeLegacyClusterLayers(map);
+    return Promise.resolve();
+  }
 
   if (markersAreMounted(map)) {
     markersSourceReady = true;
+    removeLegacyClusterLayers(map);
     ensureMarkersSymbolLayer(map);
     ensureDoneBadgeLayer(map);
     ensureLimitedBadgeLayer(map);
@@ -549,6 +810,7 @@ export async function ensureMapMarkerLayers(map) {
         });
       }
 
+      removeLegacyClusterLayers(map);
       ensureMarkersSymbolLayer(map);
       ensureDoneBadgeLayer(map);
       ensureLimitedBadgeLayer(map);
@@ -602,11 +864,11 @@ export function isMapLayerVisible(categoryId) {
   return layerVisibility[categoryId] ?? true;
 }
 
-export function setMapLayerVisible(map, categoryId, visible) {
+export function setMapLayerVisible(map, categoryId, visible, { animate = false } = {}) {
   if (!(categoryId in layerVisibility)) return;
   layerVisibility[categoryId] = visible;
   if (map?.isStyleLoaded()) {
-    syncMarkerSource(map);
+    syncMarkerSource(map, { animate });
     if (categoryId === 'travels') {
       syncTravelMapZones(map).catch((err) => {
         devWarn('syncTravelMapZones:', err.message);
@@ -615,13 +877,13 @@ export function setMapLayerVisible(map, categoryId, visible) {
   }
 }
 
-export function setMapMarkerFilters(next = {}, map = null) {
+export function setMapMarkerFilters(next = {}, map = null, { animate = false } = {}) {
   markerFilters.status = next.status ?? 'all';
   markerFilters.activityType = [...(next.activityType || [])];
   markerFilters.restaurantType = [...(next.restaurantType || [])];
   markerFilters.restaurantCuisine = [...(next.restaurantCuisine || [])];
   markerFilters.travelType = [...(next.travelType || [])];
-  if (map?.isStyleLoaded()) syncMarkerSource(map);
+  if (map?.isStyleLoaded()) syncMarkerSource(map, { animate });
 }
 
 export function getMapMarkerFilters() {
@@ -642,6 +904,12 @@ export function getSelectedTravelId() {
   return selectedTravelId;
 }
 
+/** Affiche les lieux liés aux voyages hors mode voyage (aperçu accueil). */
+export function setIncludeTravelLinkedMarkers(map, enabled = false) {
+  includeTravelLinkedMarkers = Boolean(enabled);
+  if (map?.isStyleLoaded()) syncMarkerSource(map);
+}
+
 export function setTravelModeState(map, { active = false, travelId = '' } = {}) {
   travelMode = Boolean(active);
   selectedTravelId = travelMode ? String(travelId || '') : '';
@@ -653,7 +921,7 @@ export function setTravelModeState(map, { active = false, travelId = '' } = {}) 
   }
 
   if (map?.isStyleLoaded()) {
-    syncMarkerSource(map);
+    syncMarkerSource(map, { animate: true });
     syncTravelMapZones(map).catch((err) => {
       devWarn('syncTravelMapZones:', err.message);
     });
@@ -661,6 +929,15 @@ export function setTravelModeState(map, { active = false, travelId = '' } = {}) 
 }
 
 export function resetMapMarkersState() {
+  cancelPinFadeAnimation();
+  if (scheduledSyncRaf) {
+    cancelAnimationFrame(scheduledSyncRaf);
+    scheduledSyncRaf = 0;
+  }
+  scheduledSyncMap = null;
+  scheduledSyncAnimate = false;
+  renderedPinEntries = new Map();
+  markersEverSynced = false;
   markersSourceReady = false;
   markerInteractionsBound = false;
   markersLayersPromise = null;
@@ -671,6 +948,7 @@ export function resetMapMarkersState() {
   initialFitDone = false;
   travelMode = false;
   selectedTravelId = '';
+  includeTravelLinkedMarkers = false;
   resetTravelZonesState();
   layerVisibility.activities = true;
   layerVisibility.restaurants = true;

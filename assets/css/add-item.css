@@ -875,8 +875,13 @@ body.route-no-fab .fab {
 
   /* Le gap bas est déjà sur .add-modal — éviter le double safe-area */
   .add-form-footer,
-  .act-detail-actions {
+  .act-detail-actions,
+  .filter-modal-actions {
     padding-bottom: 18px;
+  }
+
+  .add-modal.filter-modal {
+    height: min(94dvh, 100%);
   }
 }
 

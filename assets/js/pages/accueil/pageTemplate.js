@@ -66,7 +66,7 @@ export const HOME_VIEW_HTML = `
       <div class="section-head">
         <div>
           <h2 id="home-nearby-heading">Autour de nous</h2>
-          <p id="home-nearby-sub">Lieux enregistrés</p>
+          <p id="home-nearby-sub">Plus proches depuis vous</p>
         </div>
       </div>
       <article class="home-nearby-card" data-theme="${BASE_THEME}">

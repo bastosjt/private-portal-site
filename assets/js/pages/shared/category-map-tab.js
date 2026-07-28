@@ -102,9 +102,9 @@ export function createCategoryMapTab({
   }
 
   function applyLayerVisibility() {
-    setMapLayerVisible(map, 'activities', categoryId === 'activities');
-    setMapLayerVisible(map, 'restaurants', categoryId === 'restaurants');
-    setMapLayerVisible(map, 'travels', categoryId === 'travels');
+    setMapLayerVisible(map, 'activities', categoryId === 'activities', { animate: true });
+    setMapLayerVisible(map, 'restaurants', categoryId === 'restaurants', { animate: true });
+    setMapLayerVisible(map, 'travels', categoryId === 'travels', { animate: true });
   }
 
   function applyFilters(filterState) {
@@ -115,7 +115,7 @@ export function createCategoryMapTab({
       restaurantType: next.restaurantType ?? [],
       restaurantCuisine: next.restaurantCuisine ?? [],
       travelType: next.travelType ?? [],
-    }, map);
+    }, map, { animate: true });
     applyLayerVisibility();
   }
 

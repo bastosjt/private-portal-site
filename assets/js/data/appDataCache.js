@@ -279,11 +279,16 @@ export function formatPlaceDistanceKm(distanceKm) {
   return `${Math.round(distanceKm)} km`;
 }
 
-export function getNearestMapPlacesFromCache(max = 4, originLngLat = null) {
+export function getNearestMapPlacesFromCache(max = 4, originLngLat = null, {
+  includeTravelLinked = false,
+} = {}) {
   if (!Array.isArray(originLngLat) || originLngLat.length !== 2) return [];
 
   return getMapMarkersFromCache()
-    .filter((marker) => shouldShowInGlobalCategoryList({ travelId: marker.travelId }, marker.categoryId))
+    .filter((marker) => {
+      if (includeTravelLinked) return true;
+      return shouldShowInGlobalCategoryList({ travelId: marker.travelId }, marker.categoryId);
+    })
     .map((marker) => {
       const item = findCachedItemById(marker.categoryId, marker.id);
       const distanceKm = getStraightLineDistanceKm(originLngLat, marker.coordinates);
@@ -303,12 +308,19 @@ export function getNearestMapPlacesFromCache(max = 4, originLngLat = null) {
     .slice(0, max);
 }
 
-/** Lieux visibles sur la carte hors mode voyage : locaux + pins voyages (liés exclus). */
-export function countGeolocatedPlacesFromCache() {
+/**
+ * Compte les lieux géolocalisés.
+ * Par défaut : locaux + pins voyages (liés exclus, aligné carte hors mode voyage).
+ * `includeTravelLinked` : aussi restos / activités rattachés à un voyage (accueil « Autour de nous »).
+ */
+export function countGeolocatedPlacesFromCache({ includeTravelLinked = false } = {}) {
   return MAP_MARKER_SOURCES.reduce((sum, { collection }) => {
     const count = (itemsCache.get(collection) ?? []).filter((item) => {
       if (!hasMapCoordinates(item)) return false;
-      if (collection === 'activities' || collection === 'restaurants') {
+      if (
+        !includeTravelLinked
+        && (collection === 'activities' || collection === 'restaurants')
+      ) {
         return shouldShowInGlobalCategoryList(item, collection);
       }
       return true;

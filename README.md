@@ -6,7 +6,7 @@ Application web privée partagée à deux. Centralise idées, lieux et envies co
 |                 |                                                                        |
 | --------------- | ---------------------------------------------------------------------- |
 | **Produit**     | Our Space - *À nous deux*                                              |
-| **Version**     | `2.4.1` (`APP_VERSION` · `[assets/js/config.js](assets/js/config.js)`) |
+| **Version**     | `2.4.2` (`APP_VERSION` · `[assets/js/config.js](assets/js/config.js)`) |
 | **Runtime**     | Single Page App (ESM), sans framework ni bundler                       |
 | **Backend**     | Firebase Auth + Cloud Firestore                                        |
 | **Hébergement** | GitHub Pages (CI)                                                      |
@@ -20,7 +20,7 @@ Application web privée partagée à deux. Centralise idées, lieux et envies co
 - **Catalogues partagés** — activités, restaurants, films & séries, voyages, wishlist
 - **CRUD unifié** — formulaires dynamiques par catégorie, édition / suppression, statut et métadonnées
 - **Carte interactive** — MapLibre GL, pins géolocalisés, recherche, filtres, deep-links vers un lieu
-- **Mode voyage** — focus carte sur un voyage (pin, zone, lieux liés), choix persisté ; au départ recentrage géoloc ou tous les lieux locaux
+- **Mode voyage** — focus carte sur un voyage (zone, lieux liés), choix persisté ; pin voyage masqué en mode focus ; au départ recentrage géoloc ou tous les lieux locaux
 - **Accueil** — compteur de jours, suggestions / tirages, aperçu carte, accès rapide
 - **Profils & espace** — page Profil (hub) avec section **Notre espace**, avatars, tagline, réglages en sous-écrans
 - **UX mobile / desktop** — header unifié, sidebar, bottom navigation, transitions premium, modal ajout en sheet, installable (web manifest)
@@ -215,3 +215,12 @@ Historique aligné sur les bumps de `APP_VERSION`. Le numérotage n’a pas touj
 - Splash mobile : centrage correct du cœur et de l’anneau de progression
 - Paramètres : mémorisation de la position de scroll au retour hub depuis un sous-écran
 - Desktop (≥901px) : plus de chrome header (sidebar suffit) ; retour inline dans les sous-écrans Profil
+
+### 2.4.2
+
+- Carte : animations fade des pins (activités, restos, voyages) à l’apparition / disparition (filtres, couches, mode voyage)
+- Mode voyage : pin bleu du voyage masqué (zone + lieux liés conservés)
+- Accueil « Autour de nous » : lieux liés aux voyages inclus ; sous-titre partenaire ; CTA carte clarifié
+- Modal filtres : scroll + footer fixe ; accordéons Type / Cuisine animés (dépliage + fondu)
+- Types d’activités / icônes (monument, pont, site historique, centre commercial, …) ; palette eau / verts carte revue
+- Géoloc : moins de retries inutiles (`kCLErrorLocationUnknown`)
