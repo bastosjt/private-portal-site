@@ -3,6 +3,7 @@ import { devWarn, devError } from '../lib/dev-log.js';
 import { updateItem, deleteItem } from '../firebase/firestore.js';
 import { syncCachedItemWrite } from '../data/appDataCache.js';
 import { formatItemPrice, hasItemPrice } from '../lib/price-format.js';
+import { renderItemTagChipsHtml } from '../lib/item-tags.js';
 import { getFieldOptionLabel, initCustomOptions } from '../lib/custom-types.js';
 import { renderActivityScheduleNote } from '../pages/activites/scheduleDisplay.js';
 import { waitForTransition, nextFrame } from '../lib/transitions.js';
@@ -52,6 +53,8 @@ export function initActivityDetail({ onChanged, onEdit, onMovePin, onClose, them
     if (hasItemPrice(item)) {
       chips.push(`<span class="act-chip act-chip--muted">${escapeHtml(formatItemPrice(item))}</span>`);
     }
+    const tagChips = renderItemTagChipsHtml('activities', item.tags, escapeHtml);
+    if (tagChips) chips.push(tagChips);
 
     bodyEl.innerHTML = wrapDetailContentHtml(`
         <h3 class="act-detail-name">${escapeHtml(item.nom)}</h3>

@@ -3,7 +3,7 @@ import { devWarn, devError } from '../lib/dev-log.js';
 import { HOME_CATEGORIES, getCategoryById } from '../config.js';
 import { addItem, updateItem } from '../firebase/firestore.js';
 import { patchCachedItem, upsertCachedItem, ensureItems, findCachedItemById } from '../data/appDataCache.js';
-import { getActiveTravelId, setActiveTravelId } from '../lib/space-settings.js';
+import { setActiveTravelId } from '../lib/space-settings.js';
 import { Timestamp } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js';
 import { sidebarIcon } from './sidebar.js';
 import { initFormAddressFields } from './address-autocomplete.js';
@@ -41,6 +41,13 @@ import {
 import { lockScroll, unlockScroll } from '../lib/scroll-lock.js';
 import { sanitizeHttpsUrl } from '../lib/safe-url.js';
 import { MODAL_DRAG_HANDLE_HTML, wireModalDragClose } from '../lib/modal-drag-close.js';
+import {
+  initFormMultiSelectFields,
+  getMultiSelectFieldValues,
+  renderMultiSelectField,
+  setMultiSelectFieldValues,
+} from './multi-select-field.js';
+import { normalizeItemTags } from '../lib/item-tags.js';
 
 function renderField(field, categoryId) {
   const id = `add-field-${field.name}`;
@@ -58,6 +65,10 @@ function renderField(field, categoryId) {
 
   if (field.type === 'select') {
     return renderSelectField(field, categoryId);
+  }
+
+  if (field.type === 'multiSelect') {
+    return renderMultiSelectField(field, categoryId);
   }
 
   if (field.type === 'priceRange') {
@@ -148,6 +159,7 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
   let isSubmitting = false;
   let addressCleanup = null;
   let selectCleanup = null;
+  let multiSelectCleanup = null;
   let draftCleanup = null;
   let formDraftBaseline = null;
   let bodyTransitionToken = 0;
@@ -230,6 +242,11 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
         continue;
       }
 
+      if (field.type === 'multiSelect') {
+        setMultiSelectFieldValues(form, field, category.id, normalizeItemTags(item[field.name]));
+        continue;
+      }
+
       const el = form.elements[field.name];
       if (!el) continue;
       el.value = value;
@@ -266,6 +283,8 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
     addressCleanup = null;
     selectCleanup?.();
     selectCleanup = null;
+    multiSelectCleanup?.();
+    multiSelectCleanup = null;
     draftCleanup?.();
     draftCleanup = null;
   }
@@ -340,6 +359,11 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
 
       if (field.type === 'select') {
         setSelectFieldValue(form, field, '', '', category.id);
+        continue;
+      }
+
+      if (field.type === 'multiSelect') {
+        setMultiSelectFieldValues(form, field, category.id, []);
         continue;
       }
 
@@ -423,31 +447,6 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
     };
   }
 
-  async function applyDefaultTravelLink(form, category) {
-    if (editingItemId) return;
-
-    const travelField = category.fields.find((field) => field.name === 'travelId' && field.optionsFrom === 'travels');
-    if (!travelField) return;
-
-    const currentValue = await getSelectFieldValue(form, travelField, category.id);
-    if (currentValue && currentValue !== PLACEHOLDER_OPTION_VALUE) return;
-
-    const activeTravelId = getActiveTravelId();
-    if (!activeTravelId) return;
-
-    await ensureItems('travels');
-    const travel = findCachedItemById('travels', activeTravelId);
-    if (!travel) return;
-
-    setSelectFieldValue(
-      form,
-      travelField,
-      activeTravelId,
-      travel.destination,
-      category.id,
-    );
-  }
-
   async function persistFormData(category, data) {
     const sessionUser = await ensureAuthSession();
     if (editingItemId) {
@@ -494,7 +493,7 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
 
     addressCleanup = initFormAddressFields(form, category);
     selectCleanup = await initFormSelectFields(form, category);
-    await applyDefaultTravelLink(form, category);
+    multiSelectCleanup = await initFormMultiSelectFields(form, category);
 
     // Baseline = état initial (vide ou item édité), avant restauration d'un brouillon.
     formDraftBaseline = captureFormSnapshot(form, category);
@@ -503,6 +502,14 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
     if (draft) {
       applyFormDraft(form, category, draft);
       for (const field of category.fields) {
+        if (field.type === 'multiSelect') {
+          const raw = draft.fields[field.name];
+          const values = Array.isArray(raw)
+            ? raw
+            : (raw ? normalizeItemTags(raw) : []);
+          setMultiSelectFieldValues(form, field, categoryId, values);
+          continue;
+        }
         if (field.type !== 'select') continue;
         const value = draft.fields[field.name];
         if (!value || value === PLACEHOLDER_OPTION_VALUE) continue;
@@ -726,6 +733,11 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
 
       if (field.type === 'select') {
         value = await getSelectFieldValue(form, field, category.id);
+      } else if (field.type === 'multiSelect') {
+        const values = getMultiSelectFieldValues(form, field);
+        if (values.length) data[field.name] = values;
+        else if (editingItemId || field.optional) data[field.name] = [];
+        continue;
       } else {
         const el = form.elements[field.name];
         if (!el) continue;

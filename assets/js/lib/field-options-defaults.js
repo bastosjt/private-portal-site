@@ -4,7 +4,6 @@ export const DEFAULT_FIELD_OPTIONS = {
     { value: 'musee', label: 'Musée' },
     { value: 'chateau', label: 'Château' },
     { value: 'expo', label: 'Exposition' },
-    { value: 'balade', label: 'Balade' },
     { value: 'escape_game', label: 'Escape game' },
     { value: 'concert', label: 'Concert' },
     { value: 'cinema', label: 'Cinéma' },
@@ -32,7 +31,17 @@ export const DEFAULT_FIELD_OPTIONS = {
     { value: 'patisserie', label: 'Pâtisserie' },
     { value: 'marchand_de_cookie', label: 'Marchand de cookie' },
     { value: 'glacier', label: 'Glacier' },
+    { value: 'steak_house', label: 'Steak house' },
+    { value: 'restaurant_de_nouilles', label: 'Restaurant de nouilles' },
     { value: 'fast_food', label: 'Restauration rapide' },
+  ],
+  'activities.tags': [
+    { value: 'vue_panoramique', label: 'Vue panoramique' },
+    { value: 'chat', label: 'Chat' },
+  ],
+  'restaurants.tags': [
+    { value: 'vue_panoramique', label: 'Vue panoramique' },
+    { value: 'chat', label: 'Chat' },
   ],
   'restaurants.cuisine': [
     { value: 'chinoise', label: 'Chinois' },

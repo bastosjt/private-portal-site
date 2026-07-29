@@ -633,6 +633,11 @@
   background: color-mix(in srgb, #0ea5e9 14%, var(--bg));
 }
 
+.act-chip--tag {
+  color: var(--cat-color);
+  background: color-mix(in srgb, var(--cat-color) 14%, var(--bg));
+}
+
 .act-schedule-note {
   display: flex;
   align-items: flex-start;

@@ -7,7 +7,7 @@ import {
 } from '../../data/appDataCache.js';
 import { getUserLocationLngLat, onUserLocationChange } from '../../lib/user-location.js';
 import { MAP_FALLBACK_CENTER } from '../carte/map-markers.js';
-import { initCustomOptions } from '../../lib/custom-types.js';
+import { initCustomOptions, getFieldOptionLabel } from '../../lib/custom-types.js';
 import { escapeHtml } from '../../lib/escape-html.js';
 import { renderNavIcon } from '../../lib/lucide-icon.js';
 import { mapPlaceHref, mapPlaceMoveHref } from '../../navigation/router.js';
@@ -162,6 +162,22 @@ function renderNearbyPlaceIcon(categoryId, item) {
   }
 }
 
+function getNearbyPlaceTag(categoryId, item) {
+  const cat = getCategoryById(categoryId);
+  const fallback = cat?.label?.replace(' & Séries', '') || 'Lieu';
+
+  if (categoryId === 'activities') {
+    return getFieldOptionLabel('activities', 'categorie', item?.categorie) || fallback;
+  }
+  if (categoryId === 'restaurants') {
+    return getFieldOptionLabel('restaurants', 'type', item?.type) || fallback;
+  }
+  if (categoryId === 'travels') {
+    return getFieldOptionLabel('travels', 'type', item?.type) || fallback;
+  }
+  return fallback;
+}
+
 function renderNearbyDistanceBadge(distanceLabel) {
   return `
     <span class="act-list-status home-nearby-place-distance-badge">
@@ -242,7 +258,7 @@ function renderNearbySection() {
   const placesHtml = places.map(({ categoryId, item, title, location, distanceLabel }) => {
     const cat = getCategoryById(categoryId);
     const theme = cat?.theme || BASE_THEME;
-    const tag = cat?.label?.replace(' & Séries', '') || 'Lieu';
+    const tag = getNearbyPlaceTag(categoryId, item);
 
     return `
       <a

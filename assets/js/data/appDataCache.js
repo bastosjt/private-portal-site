@@ -6,6 +6,7 @@ import { hasActivityLimitedDuration } from '../pages/activites/scheduleDisplay.j
 import { getItemLocationLabel } from '../lib/item-location.js';
 import { initSpaceSettings, clearSpaceSettingsCache } from '../lib/space-settings.js';
 import { shouldShowInGlobalCategoryList } from '../lib/travel-link.js';
+import { normalizeItemTags } from '../lib/item-tags.js';
 import { Timestamp } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js';
 
 export const ITEM_COLLECTIONS = HOME_CATEGORIES.map((cat) => cat.id);
@@ -225,6 +226,7 @@ export function getMapMarkersFromCache() {
       done: getItemDoneState(item),
       limitedDuration: hasActivityLimitedDuration(item),
       travelId: item.travelId || '',
+      tags: normalizeItemTags(item.tags),
       activityType: item.categorie || '',
       restaurantType: '',
       restaurantCuisine: '',
@@ -242,6 +244,7 @@ export function getMapMarkersFromCache() {
       done: getItemDoneState(item),
       limitedDuration: false,
       travelId: item.travelId || '',
+      tags: normalizeItemTags(item.tags),
       activityType: '',
       restaurantType: item.type || '',
       restaurantCuisine: item.cuisine || '',

@@ -1,5 +1,12 @@
 import { createElement, Check, Clock } from '../../vendor/lucide.mjs';
 import { renderLucideIcon } from '../../lib/lucide-icon.js';
+import {
+  GENERIC_TAG_BADGE,
+  getPinTagBadgeDef,
+  getTagBadgeImageId,
+  PIN_TAG_BADGE_DEFS,
+  TAG_BADGE_CATEGORIES,
+} from '../../lib/item-tags.js';
 import { getActivityTypeLucideIcon } from '../activites/IconsType.js';
 import { getRestaurantTypeLucideIcon } from '../restaurants/IconsType.js';
 import { getTravelTypeLucideIcon } from '../voyages/IconsType.js';
@@ -255,6 +262,18 @@ function buildLimitedBadgeSvg() {
   });
 }
 
+function buildTagBadgeSvg(tagValue, categoryId) {
+  const def = getPinTagBadgeDef(tagValue);
+  const Icon = def?.Icon || GENERIC_TAG_BADGE.Icon;
+  const slug = def?.value || 'generic';
+  const filterId = `map-pin-tag-shadow-${categoryId}-${slug}`.replace(/[^a-z0-9_-]/gi, '-');
+  return buildOverlayBadgeSvg({
+    filterId,
+    color: getMapMarkerCategoryColor(categoryId),
+    iconMarkup: getIconMarkup(Icon),
+  });
+}
+
 function svgToImage(svgString) {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -304,11 +323,47 @@ async function addCachedImageToMap(map, imageId, buildSvg) {
   }
 }
 
+function collectTagBadgeImageTasks(buildImage) {
+  const tasks = [];
+  for (const categoryId of TAG_BADGE_CATEGORIES) {
+    for (const def of PIN_TAG_BADGE_DEFS) {
+      tasks.push(buildImage(
+        getTagBadgeImageId(def.value, categoryId),
+        () => buildTagBadgeSvg(def.value, categoryId),
+      ));
+    }
+    tasks.push(buildImage(
+      getTagBadgeImageId('generic', categoryId),
+      () => buildTagBadgeSvg('generic', categoryId),
+    ));
+  }
+  return tasks;
+}
+
 export async function preloadMapMarkerImages(markers = []) {
   const descriptors = collectMarkerImageDescriptors(markers);
+  const tagCategories = new Set(
+    markers
+      .map((marker) => marker.categoryId)
+      .filter((categoryId) => TAG_BADGE_CATEGORIES.includes(categoryId)),
+  );
+  if (tagCategories.size === 0) {
+    TAG_BADGE_CATEGORIES.forEach((categoryId) => tagCategories.add(categoryId));
+  }
+
   await Promise.all([
     getOrBuildCachedImage(MAP_MARKER_DONE_BADGE_ID, buildDoneBadgeSvg),
     getOrBuildCachedImage(MAP_MARKER_LIMITED_BADGE_ID, buildLimitedBadgeSvg),
+    ...[...tagCategories].flatMap((categoryId) => [
+      ...PIN_TAG_BADGE_DEFS.map((def) => getOrBuildCachedImage(
+        getTagBadgeImageId(def.value, categoryId),
+        () => buildTagBadgeSvg(def.value, categoryId),
+      )),
+      getOrBuildCachedImage(
+        getTagBadgeImageId('generic', categoryId),
+        () => buildTagBadgeSvg('generic', categoryId),
+      ),
+    ]),
     ...descriptors.map((descriptor) => getOrBuildCachedImage(
       descriptor.imageId,
       () => buildMarkerSvg(descriptor),
@@ -324,10 +379,18 @@ export async function ensureMapMarkerLimitedBadge(map) {
   await addCachedImageToMap(map, MAP_MARKER_LIMITED_BADGE_ID, buildLimitedBadgeSvg);
 }
 
+export async function ensureMapMarkerTagBadges(map) {
+  if (!map) return;
+  await Promise.all(collectTagBadgeImageTasks((imageId, buildSvg) => (
+    addCachedImageToMap(map, imageId, buildSvg)
+  )));
+}
+
 export async function ensureMapMarkerOverlayBadges(map) {
   await Promise.all([
     ensureMapMarkerDoneBadge(map),
     ensureMapMarkerLimitedBadge(map),
+    ensureMapMarkerTagBadges(map),
   ]);
 }
 
