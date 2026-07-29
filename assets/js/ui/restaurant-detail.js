@@ -4,6 +4,7 @@ import { updateItem, deleteItem } from '../firebase/firestore.js';
 import { syncCachedItemWrite } from '../data/appDataCache.js';
 import { formatItemPrice, hasItemPrice } from '../lib/price-format.js';
 import { getFieldOptionLabel, initCustomOptions } from '../lib/custom-types.js';
+import { renderItemTagChipsHtml } from '../lib/item-tags.js';
 import { waitForTransition, nextFrame } from '../lib/transitions.js';
 import { lockScroll, unlockScroll } from '../lib/scroll-lock.js';
 import { escapeHtml } from '../lib/escape-html.js';
@@ -55,6 +56,8 @@ export function initRestaurantDetail({ onChanged, onEdit, onMovePin, onClose, th
     if (hasItemPrice(item)) {
       chips.push(`<span class="act-chip act-chip--muted">${escapeHtml(formatItemPrice(item))}</span>`);
     }
+    const tagChips = renderItemTagChipsHtml('restaurants', item.tags, escapeHtml);
+    if (tagChips) chips.push(tagChips);
 
     bodyEl.innerHTML = wrapDetailContentHtml(`
         <h3 class="act-detail-name">${escapeHtml(item.nom)}</h3>

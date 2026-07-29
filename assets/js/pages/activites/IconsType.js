@@ -6,10 +6,10 @@
  */
 import {
   BicepsFlexed,
+  Binoculars,
   Castle,
   Church,
   Flower2,
-  Footprints,
   Landmark,
   Mountain,
   Music,
@@ -30,7 +30,7 @@ const ICON_REGISTRY = {
   landmark: Landmark,
   castle: Castle,
   tickets: Tickets,
-  footprints: Footprints,
+  binoculars: Binoculars,
   puzzle: Puzzle,
   music: Music,
   popcorn: Popcorn,
@@ -55,7 +55,6 @@ const ACTIVITY_TYPE_ICONS = {
   musee: 'landmark',
   chateau: 'castle',
   expo: 'tickets',
-  balade: 'footprints',
   escape_game: 'puzzle',
   concert: 'music',
   cinema: 'popcorn',
@@ -75,6 +74,7 @@ const ACTIVITY_TYPE_ICONS = {
   place: 'place',
   plage: 'parasol',
   port: 'ship',
+  vue_panoramique: 'binoculars',
 };
 
 export function getActivityTypeLucideIcon(categoryValue) {

@@ -6,6 +6,10 @@ function getStorageKey(categoryId, itemId = null) {
 }
 
 function isMeaningfulFieldValue(field, value) {
+  if (field.type === 'multiSelect') {
+    return Array.isArray(value) && value.length > 0;
+  }
+
   if (field.type === 'priceRange') {
     const min = String(value?.min ?? value?.prixMin ?? '').trim();
     const max = String(value?.max ?? value?.prixMax ?? '').trim();
@@ -52,6 +56,13 @@ export function captureFormSnapshot(form, category) {
       continue;
     }
 
+    if (field.type === 'multiSelect') {
+      fields[field.name] = [...form.querySelectorAll(`input[name="${field.name}"]:checked`)]
+        .map((input) => input.value)
+        .filter(Boolean);
+      continue;
+    }
+
     const el = form.elements[field.name];
     if (!el) continue;
 
@@ -67,6 +78,7 @@ export function captureFormSnapshot(form, category) {
 }
 
 function normalizeSnapshotValue(value) {
+  if (Array.isArray(value)) return JSON.stringify([...value].sort());
   return String(value ?? '').trim();
 }
 
@@ -159,6 +171,10 @@ export function applyFormDraft(form, category, draft) {
       if (form.elements.prixMax && draft.fields.prixMax != null) {
         form.elements.prixMax.value = draft.fields.prixMax;
       }
+      continue;
+    }
+
+    if (field.type === 'multiSelect') {
       continue;
     }
 

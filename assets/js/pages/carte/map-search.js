@@ -1,7 +1,9 @@
 import { getCategoryById } from '../../config.js';
 import { findCachedItemById } from '../../data/appDataCache.js';
+import { getFieldOptionLabel } from '../../lib/custom-types.js';
 import { escapeHtml } from '../../lib/escape-html.js';
 import { getItemLocationLabel } from '../../lib/item-location.js';
+import { normalizeItemTags } from '../../lib/item-tags.js';
 import { normalizeSearchText } from '../../lib/normalize-search.js';
 import { getDisplayedMarkers } from './map-markers.js';
 import { renderMapMarkerTypeIcon } from './map-marker-images.js';
@@ -13,8 +15,48 @@ function getCategoryShortLabel(categoryId) {
   return getCategoryById(categoryId)?.label?.replace(' & Séries', '') || categoryId;
 }
 
+function getPlaceTypeLabel(categoryId, item, marker) {
+  if (categoryId === 'activities') {
+    const value = item?.categorie || marker.activityType;
+    return value ? getFieldOptionLabel('activities', 'categorie', value) : '';
+  }
+  if (categoryId === 'restaurants') {
+    const value = item?.type || marker.restaurantType;
+    return value ? getFieldOptionLabel('restaurants', 'type', value) : '';
+  }
+  if (categoryId === 'travels') {
+    const value = item?.type || marker.travelType;
+    return value ? getFieldOptionLabel('travels', 'type', value) : '';
+  }
+  return '';
+}
+
+function getPlaceCuisineLabel(item, marker) {
+  const value = item?.cuisine || marker.restaurantCuisine;
+  return value ? getFieldOptionLabel('restaurants', 'cuisine', value) : '';
+}
+
+function getPlaceTagLabels(categoryId, item, marker) {
+  if (categoryId !== 'activities' && categoryId !== 'restaurants') return [];
+  return normalizeItemTags(item?.tags ?? marker.tags)
+    .map((value) => getFieldOptionLabel(categoryId, 'tags', value))
+    .filter(Boolean);
+}
+
+function getEntryMetaLabel(entry) {
+  return entry.placeTypeLabel || entry.categoryLabel;
+}
+
 function getSearchEntriesSignature(markers) {
-  return markers.map((marker) => `${marker.categoryId}:${marker.id}:${marker.title}`).join('|');
+  return markers.map((marker) => [
+    marker.categoryId,
+    marker.id,
+    marker.title,
+    marker.activityType,
+    marker.restaurantType,
+    marker.restaurantCuisine,
+    ...(marker.tags || []),
+  ].join(':')).join('|');
 }
 
 let cachedSearchEntries = null;
@@ -32,20 +74,50 @@ function buildSearchEntries() {
     const item = findCachedItemById(marker.categoryId, marker.id);
     const categoryLabel = getCategoryShortLabel(marker.categoryId);
     const location = getItemLocationLabel(marker.categoryId, item);
+    const placeTypeLabel = getPlaceTypeLabel(marker.categoryId, item, marker);
+    const cuisineLabel = marker.categoryId === 'restaurants'
+      ? getPlaceCuisineLabel(item, marker)
+      : '';
+    const tagLabels = getPlaceTagLabels(marker.categoryId, item, marker);
 
     return {
       categoryId: marker.categoryId,
       itemId: marker.id,
       title: marker.title,
       categoryLabel,
+      placeTypeLabel,
+      cuisineLabel,
+      tagLabels,
       location,
       activityType: marker.activityType,
       restaurantType: marker.restaurantType,
       travelType: marker.travelType,
-      searchText: normalizeSearchText([marker.title, location, categoryLabel].filter(Boolean).join(' ')),
+      searchText: normalizeSearchText([
+        marker.title,
+        location,
+        categoryLabel,
+        placeTypeLabel,
+        cuisineLabel,
+        ...tagLabels,
+      ].filter(Boolean).join(' ')),
     };
   });
   return cachedSearchEntries;
+}
+
+function scoreFieldMatch(normalizedQuery, tokens, fieldNorm, { exact = 50, partial = 28, token = 6 } = {}) {
+  if (!fieldNorm) return 0;
+
+  let score = 0;
+  if (fieldNorm === normalizedQuery) score += exact;
+  else if (fieldNorm.startsWith(normalizedQuery)) score += partial + 8;
+  else if (fieldNorm.includes(normalizedQuery)) score += partial;
+
+  for (const tokenValue of tokens) {
+    if (fieldNorm.includes(tokenValue)) score += token;
+  }
+
+  return score;
 }
 
 function rankSearchResults(entries, query) {
@@ -57,6 +129,9 @@ function rankSearchResults(entries, query) {
   return entries
     .map((entry) => {
       const titleNorm = normalizeSearchText(entry.title);
+      const typeNorm = normalizeSearchText(entry.placeTypeLabel);
+      const cuisineNorm = normalizeSearchText(entry.cuisineLabel);
+      const tagsNorm = normalizeSearchText(entry.tagLabels.join(' '));
       let score = 0;
 
       if (titleNorm === normalizedQuery) score += 100;
@@ -64,6 +139,10 @@ function rankSearchResults(entries, query) {
       else if (titleNorm.includes(normalizedQuery)) score += 40;
 
       if (entry.searchText.includes(normalizedQuery)) score += 20;
+
+      score += scoreFieldMatch(normalizedQuery, tokens, typeNorm);
+      score += scoreFieldMatch(normalizedQuery, tokens, cuisineNorm);
+      score += scoreFieldMatch(normalizedQuery, tokens, tagsNorm, { exact: 45, partial: 24, token: 7 });
 
       for (const token of tokens) {
         if (titleNorm.includes(token)) score += 8;
@@ -134,7 +213,7 @@ export function initMapSearch({ signal, onSelect } = {}) {
         <span class="map-search-option-copy">
           <span class="map-search-option-title">${escapeHtml(entry.title)}</span>
           <span class="map-search-option-meta">
-            ${escapeHtml(entry.categoryLabel)}${entry.location ? ` · ${escapeHtml(entry.location)}` : ''}
+            ${escapeHtml(getEntryMetaLabel(entry))}${entry.location ? ` · ${escapeHtml(entry.location)}` : ''}
           </span>
         </span>
       </li>

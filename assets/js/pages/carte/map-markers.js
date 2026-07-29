@@ -1,4 +1,5 @@
 import { getMapMarkersFromCache } from '../../data/appDataCache.js';
+import { getPinTagValue, getTagBadgeImageId } from '../../lib/item-tags.js';
 import { getTravelLinkId, isTravelLinkedItem } from '../../lib/travel-link.js';
 import { devWarn } from '../../lib/dev-log.js';
 import { getLngLatDeltaForRadiusKm } from '../../lib/geo-utils.js';
@@ -52,6 +53,7 @@ let initialFitDone = false;
 const MARKERS_SYMBOL_LAYER_ID = 'map-markers-symbols';
 const MARKERS_DONE_BADGE_LAYER_ID = 'map-markers-done-badge';
 const MARKERS_LIMITED_BADGE_LAYER_ID = 'map-markers-limited-badge';
+const MARKERS_TAG_BADGE_LAYER_ID = 'map-markers-tag-badge';
 const MARKER_SORT_KEY = ['-', 0, ['get', 'lat']];
 
 const DONE_PIN_OPACITY = 0.6;
@@ -98,6 +100,7 @@ const MARKER_LAYER_IDS = [
   MARKERS_SYMBOL_LAYER_ID,
   MARKERS_DONE_BADGE_LAYER_ID,
   MARKERS_LIMITED_BADGE_LAYER_ID,
+  MARKERS_TAG_BADGE_LAYER_ID,
 ];
 const INTERACTIVE_MARKER_LAYER_IDS = [
   ...MARKER_LAYER_IDS,
@@ -113,6 +116,13 @@ const LIMITED_BADGE_FILTER = [
   ['==', ['get', 'kind'], 'point'],
   ['==', ['get', 'limitedDuration'], 1],
   ['==', ['get', 'done'], 0],
+];
+const TAG_BADGE_FILTER = [
+  'all',
+  ['==', ['get', 'kind'], 'point'],
+  ['!=', ['coalesce', ['get', 'tagBadgeImage'], ''], ''],
+  ['==', ['get', 'done'], 0],
+  ['==', ['get', 'limitedDuration'], 0],
 ];
 const SHOW_UNSELECTED_FILTER = [
   'all',
@@ -291,6 +301,8 @@ function prefersReducedPinMotion() {
 function buildPointFeature(entry) {
   const { marker, fade = 1 } = entry;
   const coords = marker.coordinates;
+  const pinTag = getPinTagValue(marker.tags);
+  const tagBadgeImage = pinTag ? getTagBadgeImageId(pinTag, marker.categoryId) : '';
   return {
     type: 'Feature',
     geometry: { type: 'Point', coordinates: coords },
@@ -302,6 +314,7 @@ function buildPointFeature(entry) {
       iconImage: getMarkerIconImageId(marker),
       done: marker.done ? 1 : 0,
       limitedDuration: marker.limitedDuration ? 1 : 0,
+      tagBadgeImage,
       isSelected: isMarkerSelected(marker) ? 1 : 0,
       lat: coords[1],
       fade,
@@ -725,6 +738,36 @@ function ensureLimitedBadgeLayer(map) {
   });
 }
 
+function ensureTagBadgeLayer(map) {
+  if (map.getLayer(MARKERS_TAG_BADGE_LAYER_ID)) {
+    map.setFilter(MARKERS_TAG_BADGE_LAYER_ID, TAG_BADGE_FILTER);
+    map.setLayoutProperty(MARKERS_TAG_BADGE_LAYER_ID, 'symbol-sort-key', MARKER_SORT_KEY);
+    map.setLayoutProperty(MARKERS_TAG_BADGE_LAYER_ID, 'symbol-z-order', 'auto');
+    map.setLayoutProperty(MARKERS_TAG_BADGE_LAYER_ID, 'icon-size', MARKER_ICON_SIZE);
+    map.setPaintProperty(MARKERS_TAG_BADGE_LAYER_ID, 'icon-opacity', BADGE_ICON_OPACITY);
+    return;
+  }
+
+  map.addLayer({
+    id: MARKERS_TAG_BADGE_LAYER_ID,
+    type: 'symbol',
+    source: 'map-markers',
+    filter: TAG_BADGE_FILTER,
+    layout: {
+      'icon-image': ['get', 'tagBadgeImage'],
+      'icon-size': MARKER_ICON_SIZE,
+      'icon-anchor': 'bottom',
+      'icon-allow-overlap': true,
+      'icon-ignore-placement': true,
+      'symbol-sort-key': MARKER_SORT_KEY,
+      'symbol-z-order': 'auto',
+    },
+    paint: {
+      'icon-opacity': BADGE_ICON_OPACITY,
+    },
+  });
+}
+
 function removeLegacyClusterLayers(map) {
   for (const layerId of ['map-marker-clusters', 'map-marker-cluster-count']) {
     if (map.getLayer(layerId)) map.removeLayer(layerId);
@@ -779,6 +822,7 @@ export async function ensureMapMarkerLayers(map) {
 
   if (markersSourceReady && markersAreMounted(map)) {
     removeLegacyClusterLayers(map);
+    ensureTagBadgeLayer(map);
     return Promise.resolve();
   }
 
@@ -788,6 +832,7 @@ export async function ensureMapMarkerLayers(map) {
     ensureMarkersSymbolLayer(map);
     ensureDoneBadgeLayer(map);
     ensureLimitedBadgeLayer(map);
+    ensureTagBadgeLayer(map);
     ensureSelectedMarkerLayer(map);
     syncLayerVisibility(map);
     bindMapMarkerInteractions(map);
@@ -814,6 +859,7 @@ export async function ensureMapMarkerLayers(map) {
       ensureMarkersSymbolLayer(map);
       ensureDoneBadgeLayer(map);
       ensureLimitedBadgeLayer(map);
+      ensureTagBadgeLayer(map);
       ensureSelectedMarkerLayer(map);
 
       markersSourceReady = true;

@@ -6,7 +6,7 @@ Application web privée partagée à deux. Centralise idées, lieux et envies co
 |                 |                                                                        |
 | --------------- | ---------------------------------------------------------------------- |
 | **Produit**     | Our Space - *À nous deux*                                              |
-| **Version**     | `2.4.2` (`APP_VERSION` · `[assets/js/config.js](assets/js/config.js)`) |
+| **Version**     | `2.4.3` (`APP_VERSION` · `[assets/js/config.js](assets/js/config.js)`) |
 | **Runtime**     | Single Page App (ESM), sans framework ni bundler                       |
 | **Backend**     | Firebase Auth + Cloud Firestore                                        |
 | **Hébergement** | GitHub Pages (CI)                                                      |
@@ -19,7 +19,7 @@ Application web privée partagée à deux. Centralise idées, lieux et envies co
 - **Espace restreint** — authentification Firebase, accès limité aux comptes autorisés
 - **Catalogues partagés** — activités, restaurants, films & séries, voyages, wishlist
 - **CRUD unifié** — formulaires dynamiques par catégorie, édition / suppression, statut et métadonnées
-- **Carte interactive** — MapLibre GL, pins géolocalisés, recherche, filtres, deep-links vers un lieu
+- **Carte interactive** — MapLibre GL, pins géolocalisés, recherche (nom, type, cuisine, tag), filtres, deep-links vers un lieu
 - **Mode voyage** — focus carte sur un voyage (zone, lieux liés), choix persisté ; pin voyage masqué en mode focus ; au départ recentrage géoloc ou tous les lieux locaux
 - **Accueil** — compteur de jours, suggestions / tirages, aperçu carte, accès rapide
 - **Profils & espace** — page Profil (hub) avec section **Notre espace**, avatars, tagline, réglages en sous-écrans
@@ -224,3 +224,10 @@ Historique aligné sur les bumps de `APP_VERSION`. Le numérotage n’a pas touj
 - Modal filtres : scroll + footer fixe ; accordéons Type / Cuisine animés (dépliage + fondu)
 - Types d’activités / icônes (monument, pont, site historique, centre commercial, …) ; palette eau / verts carte revue
 - Géoloc : moins de retries inutiles (`kCLErrorLocationUnknown`)
+
+### 2.4.3
+
+- **Tags** activités / restos : champ optionnel (1 tag max), même UI que les selects custom ; badge pin sur la carte (couleur de la catégorie) ; chip dans les fiches détail
+- **Carte — recherche** : résultats affichent le type concret (ex. Musée, Brasserie) ; recherche aussi par type, cuisine ou tag
+- **Accueil « Autour de nous »** : libellé de type concret sur les lieux proches
+- **Formulaires** : « Voyage associé » laissé sur « - » à l’ajout (plus de préremplissage du voyage actif)

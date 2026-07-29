@@ -3,6 +3,7 @@
  * Valeur = nom Lucide (voir https://lucide.dev/icons).
  */
 import {
+  Beef,
   Beer,
   CakeSlice,
   Coffee,
@@ -14,17 +15,20 @@ import {
   UtensilsCrossed,
 } from '../../vendor/lucide.mjs';
 import { renderLucideIcon } from '../../lib/lucide-icon.js';
+import { Ramen } from './custom-type-icons.js';
 
 const ICON_REGISTRY = {
   'utensils-crossed': UtensilsCrossed,
   'paper-bag': PaperBag,
   beer: Beer,
+  beef: Beef,
   coffee: Coffee,
   martini: Martini,
   croissant: Croissant,
   'cake-slice': CakeSlice,
   cookie: Cookie,
   'ice-cream-cone': IceCreamCone,
+  ramen: Ramen,
 };
 
 const RESTAURANT_TYPE_ICONS = {
@@ -36,6 +40,8 @@ const RESTAURANT_TYPE_ICONS = {
   patisserie: 'cake-slice',
   marchand_de_cookie: 'cookie',
   glacier: 'ice-cream-cone',
+  steak_house: 'beef',
+  restaurant_de_nouilles: 'ramen',
   fast_food: 'paper-bag',
   restauration_rapide: 'paper-bag',
 };
