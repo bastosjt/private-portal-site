@@ -33,10 +33,3 @@ export async function upsertActiveTravelId(activeTravelId) {
     updatedAt: Timestamp.now(),
   }, { merge: true });
 }
-
-export async function upsertSpaceTheme(theme) {
-  await setDoc(doc(db, SPACE_COLLECTION, SPACE_SETTINGS_DOC), {
-    theme,
-    updatedAt: Timestamp.now(),
-  }, { merge: true });
-}

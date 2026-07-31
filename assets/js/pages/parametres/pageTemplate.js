@@ -73,7 +73,7 @@ export const SETTINGS_VIEW_HTML = `
           ${renderMenuLink({ id: 'profile', icon: 'user', label: 'Mon profil', valueId: 'settings-menu-profile-value' })}
           ${renderMenuLink({ id: 'couple', icon: 'heart', label: 'Notre couple', valueId: 'settings-menu-couple-value' })}
           ${renderMenuLink({ id: 'data', icon: 'database', label: 'Données', valueId: 'settings-menu-data-value' })}
-          ${renderMenuLink({ id: 'theme', icon: 'palette', label: 'Thème', valueId: 'settings-menu-theme-value' })}
+          ${renderMenuLink({ id: 'theme', icon: 'palette', label: 'Ton thème', valueId: 'settings-menu-theme-value' })}
           ${renderMenuLink({ id: 'app', icon: 'settings', label: 'Application', valueId: 'settings-menu-app-value' })}
         </nav>
       </section>
@@ -194,12 +194,12 @@ export const SETTINGS_VIEW_HTML = `
       <section class="settings-panel-view" data-panel="theme" hidden aria-labelledby="settings-theme-heading">
         <div class="section-head">
           <div>
-            <h2 id="settings-theme-heading">Thème</h2>
-            <p>Apparence de l'application</p>
+            <h2 id="settings-theme-heading">Ton thème</h2>
+            <p>Apparence personnelle — chaque membre a son propre thème.</p>
           </div>
         </div>
 
-        <div class="settings-theme-grid" id="settings-theme-grid" role="radiogroup" aria-label="Thème de l'application"></div>
+        <div class="settings-theme-grid" id="settings-theme-grid" role="radiogroup" aria-label="Ton thème"></div>
       </section>
 
       <section class="settings-panel-view" data-panel="app" hidden aria-labelledby="settings-app-heading">

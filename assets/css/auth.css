@@ -2,10 +2,12 @@
 .auth-page {
   min-height: 100vh;
   min-height: 100dvh;
-  background: var(--bg);
+  background: transparent;
 }
 
 #auth-view {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: center;

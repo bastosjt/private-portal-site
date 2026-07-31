@@ -28,8 +28,8 @@ import {
   getPartnerNickname,
   getPartnerUid,
 } from '../../lib/user-profile.js';
-import { getSpaceTagline, getSpaceTheme, setSpaceTheme } from '../../lib/space-settings.js';
-import { applyAppTheme, getAppThemeMeta } from '../../lib/app-theme.js';
+import { getSpaceTagline } from '../../lib/space-settings.js';
+import { getAppTheme, getAppThemeMeta, setAppTheme } from '../../lib/app-theme.js';
 import { renderNavIcon } from '../../lib/lucide-icon.js';
 import {
   getUserLocationConsent,
@@ -75,7 +75,7 @@ const PANEL_HEADERS = {
   profile: { title: 'Mon profil', sub: 'Pseudo et photo de profil', icon: 'user' },
   couple: { title: 'Notre couple', sub: 'Surnom et nom de votre espace', icon: 'heart' },
   data: { title: 'Données', sub: 'Synchronisation Firestore', icon: 'database' },
-  theme: { title: 'Thème', sub: 'Apparence de l\'application', icon: 'palette' },
+  theme: { title: 'Ton thème', sub: 'Apparence personnelle', icon: 'palette' },
   app: { title: 'Application', sub: 'Version et session', icon: 'settings' },
 };
 
@@ -298,7 +298,7 @@ async function handleLocationSwitchChange(event) {
 }
 
 function renderTheme() {
-  const current = getSpaceTheme();
+  const current = getAppTheme(currentUser?.uid);
   const meta = getAppThemeMeta(current);
   setText('settings-menu-theme-value', meta.label);
 
@@ -329,15 +329,14 @@ function renderTheme() {
 }
 
 async function handleThemeSelect(themeId) {
-  if (!themeId || themeId === getSpaceTheme()) return;
+  if (!currentUser?.uid || !themeId || themeId === getAppTheme(currentUser.uid)) return;
 
   const card = document.querySelector(`.settings-theme-card[data-theme-id="${themeId}"]`);
   card?.classList.add('is-saving');
   card?.setAttribute('aria-busy', 'true');
 
-  const ok = await setSpaceTheme(themeId);
+  const ok = await setAppTheme(themeId, currentUser.uid);
   if (ok) {
-    applyAppTheme(themeId);
     renderTheme();
   } else {
     card?.classList.remove('is-saving');

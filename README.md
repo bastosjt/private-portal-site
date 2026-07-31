@@ -23,7 +23,7 @@ Application web privée partagée à deux. Centralise idées, lieux et envies co
 - **Mode voyage** — focus carte sur un voyage (zone, lieux liés), choix persisté ; pin voyage masqué en mode focus ; au départ recentrage géoloc ou tous les lieux locaux
 - **Accueil** — compteur de jours, suggestions / tirages, aperçu carte, accès rapide
 - **Profils & espace** — page Profil (hub) avec section **Notre espace**, avatars, tagline, réglages en sous-écrans
-- **Thèmes liquid glass** — DA globale par thème (mesh WebGL, chrome glass, modales) ; choix dans Paramètres → Thème de l’espace
+- **Thèmes liquid glass** — DA personnelle par membre (mesh WebGL, chrome glass, modales) ; choix dans Paramètres → **Ton thème** ; écran de connexion toujours navy
 - **UX mobile / desktop** — header unifié, sidebar, bottom navigation, transitions premium, modal ajout en sheet, installable (web manifest)
 
 ---
@@ -235,13 +235,16 @@ Historique aligné sur les bumps de `APP_VERSION`. Le numérotage n’a pas touj
 
 ### 2.5.0
 
-- **Thèmes liquid glass** — sélection dans Paramètres → Thème de l’espace : Navy, Red Cherry, Orange, Vert nature, Violet, Minuit
+- **Thèmes liquid glass** — sélection dans Paramètres → Thème : Navy, Red Cherry, Orange, Vert nature, Violet, Minuit
 - Fond mesh WebGL par thème (gradient animé + grain), chrome glass (header, bottom nav, cartes, modales) harmonisé à chaque palette
-- Splash sans flash navy : hint synchrone (`localStorage` / Firestore) avant le premier paint ; `theme-color` aligné
+- Splash sans flash navy : hint synchrone (`localStorage`) avant le premier paint ; `theme-color` aligné
 - Thème **Pink** conservé en interne (non proposé dans la grille) ; carte MapLibre indépendante du thème app
 - Aperçus thème dans les réglages (pastilles 35×35)
 
 ### 2.5.1
 
-- **Barre de statut mobile** : `theme-color` et fond `<html>` synchronisés avec la couleur chrome du thème actif (plus de bandeau navy figé)
-- `chromeColor` par thème dans la config ; `viewport-fit=cover` pour iOS
+- **Thème par utilisateur** — `appTheme` sur le profil Firestore `users/{uid}` (plus sur `space/settings`) ; chaque membre a sa DA indépendante
+- Paramètres renommés **Ton thème** — apparence personnelle, non partagée entre les deux comptes
+- **Connexion** — écran login / auth toujours en navy (mesh + grain), quel que soit le thème choisi une fois connecté
+- **Barre de statut mobile** — `theme-color` et fond `<html>` synchronisés à chaud avec la couleur chrome du thème (`chromeColor`, recréation de la meta, `viewport-fit=cover`, `black-translucent` iOS)
+- `localStorage` par utilisateur (`app-theme:{uid}`) pour le splash du dernier compte connu sur l’appareil

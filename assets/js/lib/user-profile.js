@@ -1,3 +1,4 @@
+import { DEFAULT_APP_THEME, normalizeAppTheme } from '../config.js';
 import { fetchAllUserProfiles, upsertUserProfile } from '../firebase/userProfiles.js';
 import { devWarn } from '../lib/dev-log.js';
 import {
@@ -20,6 +21,11 @@ export const DEFAULT_PARTNER_NICKNAME_LABEL = 'Votre copain adoré';
 
 const profilesByUid = new Map();
 let initPromise = null;
+let currentViewerUid = null;
+
+export function getCurrentUserUid() {
+  return currentViewerUid;
+}
 
 function readLegacyAnimalStore() {
   try {
@@ -63,6 +69,7 @@ function normalizeProfile(uid, raw = {}) {
     partnerNickname: typeof raw.partnerNickname === 'string' ? raw.partnerNickname.trim() : '',
     profileAnimal,
     listPreferences,
+    appTheme: normalizeAppTheme(raw.appTheme || DEFAULT_APP_THEME),
   };
 }
 
@@ -211,6 +218,29 @@ export function saveListPreferences(uid, categoryId, settings) {
   });
 }
 
+export function getUserAppTheme(uid = currentViewerUid) {
+  if (!uid) return DEFAULT_APP_THEME;
+  return getCachedProfile(uid)?.appTheme || DEFAULT_APP_THEME;
+}
+
+export async function setUserAppTheme(uid, themeId) {
+  if (!uid) return false;
+
+  const next = normalizeAppTheme(themeId);
+  const profile = getCachedProfile(uid) ?? normalizeProfile(uid, {});
+  if (profile.appTheme === next) return true;
+
+  setCachedProfile(uid, { ...profile, appTheme: next });
+
+  try {
+    await upsertUserProfile(uid, { appTheme: next });
+    return true;
+  } catch (err) {
+    devWarn('setUserAppTheme:', err.message);
+    return false;
+  }
+}
+
 export async function setUserDisplayName(uid, displayName) {
   if (!uid) return false;
 
@@ -267,6 +297,7 @@ async function migrateLegacyAnimals(remoteProfiles) {
 }
 
 export async function initUserProfiles(currentUid) {
+  currentViewerUid = currentUid || null;
   if (initPromise) return initPromise;
 
   initPromise = (async () => {
@@ -300,4 +331,5 @@ export async function initUserProfiles(currentUid) {
 export function clearUserProfilesCache() {
   profilesByUid.clear();
   initPromise = null;
+  currentViewerUid = null;
 }
