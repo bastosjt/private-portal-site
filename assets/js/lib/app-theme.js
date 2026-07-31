@@ -89,13 +89,16 @@ function setThemeColorMeta(color) {
 }
 
 function syncBrowserChrome(themeId) {
-  const color = getAppThemeChromeColor(themeId);
-  setThemeColorMeta(color);
-  document.documentElement.style.backgroundColor = color;
+  const theme = getAppThemeMeta(themeId);
+  const chromeColor = getAppThemeChromeColor(themeId);
+  const pageColor = theme.themeColor || '#062045';
+  setThemeColorMeta(chromeColor);
+  /* Fond html = themeColor (pas chromeColor) — évite la bande bleue sous les modales iOS */
+  document.documentElement.style.backgroundColor = pageColor;
 
   requestAnimationFrame(() => {
-    setThemeColorMeta(color);
-    document.documentElement.style.backgroundColor = color;
+    setThemeColorMeta(chromeColor);
+    document.documentElement.style.backgroundColor = pageColor;
   });
 }
 
