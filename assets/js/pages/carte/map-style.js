@@ -59,87 +59,422 @@ export function fadeInOutScaled(peak, start, inEnd, outStart, end) {
   return fadeInOut(start, inEnd, outStart, end, peak);
 }
 
-/** Couleurs routes — du plus visible (autoroutes) au plus discret (rues). */
-const ROAD = {
-  highway: '#c2c9d4',
-  major: '#8a939f',
-  minor: '#4a5160',
-  path: '#383e48',
-  tunnel: '#5c6472',
-};
-
-/** Vert naturel — sage / olive mat (premium, pas « prairie saturée »). */
-const GREEN_OPACITY = 0.68;
-const FOREST_OPACITY = 0.74;
-
-const GREEN = {
-  main: '#4a7260',
-  light: '#557a68',
-  soft: '#416858',
-  earth: '#385a4c',
-  meadow: '#5a7f6c',
-  forest: '#3a6452',
-};
-
-/** Tissu urbain — violet-gris type Apple Plans. */
-const URBAN = {
-  subtle: '#3a3848',
-  main: '#46425a',
-  light: '#524e66',
-};
-
-/** Eau — bleu encre / saphir (profond, pas cyan flashy). */
-const WATER = {
-  deep: '#1a4568',
-  mid: '#215a82',
-  near: '#286890',
-  line: '#458eb4',
-  lineSoft: '#3a7fa6',
-  label: '#7ab4d4',
-  labelHalo: '#102c44',
-};
-
-function greenMeadow() {
-  return [
-    'interpolate',
-    ['linear'],
-    ['zoom'],
-    0, GREEN.meadow,
-    8, GREEN.light,
-    14, GREEN.main,
-  ];
-}
-
-function greenForest() {
-  return [
-    'interpolate',
-    ['linear'],
-    ['zoom'],
-    0, GREEN.forest,
-    8, GREEN.soft,
-    14, GREEN.earth,
-  ];
-}
-
-/** Campagne & relief — tons terre / glace accordés au vert-bleu. */
-const NATURE = {
-  farmland: '#635848',
-  farmlandLight: '#6e6250',
-  farmlandMid: '#6a7254',
-  farmlandGreen: '#5a7a5e',
-  rock: '#524a44',
-  rockLight: '#6a5e54',
-  rockBright: '#7a6c5e',
-  ice: '#8aaec4',
-  wetland: '#4e7a70',
-  wetlandLight: '#5a8a7e',
-  sand: '#6a5c48',
-  peak: '#c4b4a4',
-};
-
-export const OUR_SPACE_MAP_STYLE = {
-  version: 8,
+/** Palette basemap — vert sage (indépendante du thème app). */
+const DEFAULT_PALETTE = {
   name: 'Our Space — Carte simple',
+  greenOpacity: 0.68,
+  forestOpacity: 0.74,
+  labelHalo: '#282c35',
+  road: {
+    highway: '#c2c9d4',
+    major: '#8a939f',
+    minor: '#4a5160',
+    path: '#383e48',
+    tunnel: '#5c6472',
+  },
+  green: {
+    main: '#4a7260',
+    light: '#557a68',
+    soft: '#416858',
+    earth: '#385a4c',
+    meadow: '#5a7f6c',
+    forest: '#3a6452',
+  },
+  urban: {
+    subtle: '#3a3848',
+    main: '#46425a',
+    light: '#524e66',
+  },
+  water: {
+    deep: '#1a4568',
+    mid: '#215a82',
+    near: '#286890',
+    zoom14: '#2f7298',
+    line: '#458eb4',
+    lineSoft: '#3a7fa6',
+    lineZoom14: '#52a0c4',
+    label: '#7ab4d4',
+    labelHalo: '#102c44',
+  },
+  nature: {
+    farmland: '#635848',
+    farmlandLight: '#6e6250',
+    farmlandMid: '#6a7254',
+    farmlandGreen: '#5a7a5e',
+    farmlandZoom4: '#66785a',
+    farmlandZoom15: '#5a5040',
+    rock: '#524a44',
+    rockLight: '#6a5e54',
+    rockBright: '#7a6c5e',
+    rockZoom11: '#7a6c60',
+    rockZoom15: '#8a7a6c',
+    ice: '#8aaec4',
+    iceZoom4: '#7a9cb0',
+    iceZoom12: '#b0ccd8',
+    wetland: '#4e7a70',
+    wetlandLight: '#5a8a7e',
+    sand: '#6a5c48',
+    peak: '#c4b4a4',
+    volcano: '#a87858',
+    volcanoLabel: '#d4a080',
+  },
+  background: [
+    0, '#5a7f6c',
+    3, '#557a68',
+    5, '#385a4c',
+    7, '#32383a',
+    9, '#2e3338',
+    11, '#2a2f36',
+    13, '#262b33',
+  ],
+  building: {
+    fill: ['#383648', '#3e3c50', '#46445a', '#4e4c62'],
+    outline: ['#44425a', '#4a4862', '#56546e', '#626078'],
+    top: '#524e66',
+    topOutline: '#68647c',
+  },
+  boundary: {
+    country: '#9aa3b0',
+    region: '#787f8c',
+    department: '#636a78',
+  },
+  labelRoad: {
+    highway: '#b8c0cc',
+    major: '#a8b0bc',
+    minor: '#8a919c',
+  },
+  labelPlace: {
+    suburb: '#e4e8ee',
+    town: '#f0f2f5',
+    city: '#f0f2f5',
+    region: '#e8ebf0',
+    country: '#f0f2f5',
+  },
+};
+
+/** Navy — fond / urbain navy ; végétation verte et eau bleue lisibles. */
+const NAVY_PALETTE = {
+  name: 'Our Space — Carte navy',
+  greenOpacity: 0.68,
+  forestOpacity: 0.74,
+  labelHalo: '#031428',
+  road: {
+    highway: '#9cb8d4',
+    major: '#6a94b8',
+    minor: '#4a7094',
+    path: '#3a6080',
+    tunnel: '#5a88a8',
+  },
+  green: {
+    main: '#4a7260',
+    light: '#557a68',
+    soft: '#416858',
+    earth: '#385a4c',
+    meadow: '#5a7f6c',
+    forest: '#3a6452',
+  },
+  urban: {
+    subtle: '#0a2848',
+    main: '#0e3258',
+    light: '#123c68',
+  },
+  water: {
+    deep: '#1a4568',
+    mid: '#215a82',
+    near: '#286890',
+    zoom14: '#2f7298',
+    line: '#458eb4',
+    lineSoft: '#3a7fa6',
+    lineZoom14: '#52a0c4',
+    label: '#7ab4d4',
+    labelHalo: '#102c44',
+  },
+  nature: {
+    farmland: '#1e3d58',
+    farmlandLight: '#255580',
+    farmlandMid: '#1a4268',
+    farmlandGreen: '#5a7a5e',
+    farmlandZoom4: '#66785a',
+    farmlandZoom15: '#163d62',
+    rock: '#3a4a5c',
+    rockLight: '#4a5a6c',
+    rockBright: '#5a6a7c',
+    rockZoom11: '#5a6a78',
+    rockZoom15: '#6a7a88',
+    ice: '#6a9cb8',
+    iceZoom4: '#5a8ca8',
+    iceZoom12: '#8ab4cc',
+    wetland: '#4e7a70',
+    wetlandLight: '#5a8a7e',
+    sand: '#4a5868',
+    peak: '#a8b8c8',
+    volcano: '#8a6858',
+    volcanoLabel: '#c4a890',
+  },
+  background: [
+    0, '#0c4088',
+    3, '#0a3268',
+    5, '#082850',
+    7, '#062045',
+    9, '#051a38',
+    11, '#041830',
+    13, '#031428',
+  ],
+  building: {
+    fill: ['#123558', '#163d62', '#1a466e', '#1e5078'],
+    outline: ['#1a4268', '#1e4a72', '#22527c', '#265a86'],
+    top: '#255580',
+    topOutline: '#2f6694',
+  },
+  boundary: {
+    country: '#7a9cb8',
+    region: '#5a88a8',
+    department: '#4a7898',
+  },
+  labelRoad: {
+    highway: '#b8d0e4',
+    major: '#a8c4dc',
+    minor: '#8aaccc',
+  },
+  labelPlace: {
+    suburb: '#dce8f4',
+    town: '#eef4fa',
+    city: '#eef4fa',
+    region: '#e4eef8',
+    country: '#eef4fa',
+  },
+};
+
+/** Red cherry — fond / urbain brûlé ; végétation verte et eau bleue lisibles. */
+const ORANGE_PALETTE = {
+  name: 'Our Space — Carte orange',
+  greenOpacity: 0.68,
+  forestOpacity: 0.74,
+  labelHalo: '#240e05',
+  road: {
+    highway: '#d4a888',
+    major: '#b88868',
+    minor: '#986848',
+    path: '#785038',
+    tunnel: '#a87858',
+  },
+  green: {
+    main: '#4a7260',
+    light: '#557a68',
+    soft: '#416858',
+    earth: '#385a4c',
+    meadow: '#5a7f6c',
+    forest: '#3a6452',
+  },
+  urban: {
+    subtle: '#4a1808',
+    main: '#321208',
+    light: '#5c200a',
+  },
+  water: {
+    deep: '#1a4568',
+    mid: '#215a82',
+    near: '#286890',
+    zoom14: '#2f7298',
+    line: '#458eb4',
+    lineSoft: '#3a7fa6',
+    lineZoom14: '#52a0c4',
+    label: '#7ab4d4',
+    labelHalo: '#102c44',
+  },
+  nature: {
+    farmland: '#5c2818',
+    farmlandLight: '#6a3018',
+    farmlandMid: '#4a2010',
+    farmlandGreen: '#5a7a5e',
+    farmlandZoom4: '#66785a',
+    farmlandZoom15: '#3a1808',
+    rock: '#4a3830',
+    rockLight: '#5a4840',
+    rockBright: '#6a5850',
+    rockZoom11: '#6a5048',
+    rockZoom15: '#7a6058',
+    ice: '#8ab4cc',
+    iceZoom4: '#7aa4bc',
+    iceZoom12: '#b0ccd8',
+    wetland: '#4e7a70',
+    wetlandLight: '#5a8a7e',
+    sand: '#6a5040',
+    peak: '#c8a890',
+    volcano: '#a86848',
+    volcanoLabel: '#d49878',
+  },
+  background: [
+    0, '#6a2410',
+    3, '#4a1808',
+    5, '#3a1408',
+    7, '#321208',
+    9, '#2a1006',
+    11, '#240e05',
+    13, '#1e0c04',
+  ],
+  building: {
+    fill: ['#5c2818', '#6a3018', '#783818', '#864020'],
+    outline: ['#4a2010', '#582810', '#663018', '#743820'],
+    top: '#8a4828',
+    topOutline: '#a85830',
+  },
+  boundary: {
+    country: '#d4a888',
+    region: '#b88868',
+    department: '#a87858',
+  },
+  labelRoad: {
+    highway: '#f0d8c8',
+    major: '#e8c8b0',
+    minor: '#d8b898',
+  },
+  labelPlace: {
+    suburb: '#f8ece4',
+    town: '#fff4ec',
+    city: '#fff4ec',
+    region: '#f8ece4',
+    country: '#fff4ec',
+  },
+};
+
+/** Orange brûlé — fond chaud ; végétation verte et eau bleue lisibles. */
+const SUNSET_PALETTE = {
+  name: 'Our Space — Carte orange',
+  greenOpacity: 0.68,
+  forestOpacity: 0.74,
+  labelHalo: '#4a1808',
+  road: {
+    highway: '#f0c8a0',
+    major: '#e0a878',
+    minor: '#c89058',
+    path: '#a87848',
+    tunnel: '#d0a070',
+  },
+  green: {
+    main: '#4a7260',
+    light: '#557a68',
+    soft: '#416858',
+    earth: '#385a4c',
+    meadow: '#5a7f6c',
+    forest: '#3a6452',
+  },
+  urban: {
+    subtle: '#b85014',
+    main: '#8a3a0c',
+    light: '#c86020',
+  },
+  water: {
+    deep: '#1a4568',
+    mid: '#215a82',
+    near: '#286890',
+    zoom14: '#2f7298',
+    line: '#458eb4',
+    lineSoft: '#3a7fa6',
+    lineZoom14: '#52a0c4',
+    label: '#7ab4d4',
+    labelHalo: '#102c44',
+  },
+  nature: {
+    farmland: '#8a4820',
+    farmlandLight: '#985028',
+    farmlandMid: '#7a4018',
+    farmlandGreen: '#5a7a5e',
+    farmlandZoom4: '#66785a',
+    farmlandZoom15: '#6e2e08',
+    rock: '#5a4840',
+    rockLight: '#6a5850',
+    rockBright: '#7a6860',
+    rockZoom11: '#7a6058',
+    rockZoom15: '#8a7068',
+    ice: '#8ab4cc',
+    iceZoom4: '#7aa4bc',
+    iceZoom12: '#b0ccd8',
+    wetland: '#4e7a70',
+    wetlandLight: '#5a8a7e',
+    sand: '#8a6848',
+    peak: '#e8c0a0',
+    volcano: '#c87848',
+    volcanoLabel: '#e8a878',
+  },
+  background: [
+    0, '#d06822',
+    3, '#b85014',
+    5, '#963a0e',
+    7, '#8a3a0c',
+    9, '#742e0a',
+    11, '#5e2408',
+    13, '#4a1c06',
+  ],
+  building: {
+    fill: ['#a85828', '#b86030', '#c86838', '#d07040'],
+    outline: ['#884818', '#985020', '#a85828', '#b86030'],
+    top: '#d87840',
+    topOutline: '#e88850',
+  },
+  boundary: {
+    country: '#f0c8a0',
+    region: '#e0a878',
+    department: '#d09868',
+  },
+  labelRoad: {
+    highway: '#fff0e0',
+    major: '#ffe8d0',
+    minor: '#f0d0b0',
+  },
+  labelPlace: {
+    suburb: '#fff4ec',
+    town: '#fff8f0',
+    city: '#fff8f0',
+    region: '#fff4ec',
+    country: '#fff8f0',
+  },
+};
+
+function greenMeadow(green) {
+  return [
+    'interpolate',
+    ['linear'],
+    ['zoom'],
+    0, green.meadow,
+    8, green.light,
+    14, green.main,
+  ];
+}
+
+function greenForest(green) {
+  return [
+    'interpolate',
+    ['linear'],
+    ['zoom'],
+    0, green.forest,
+    8, green.soft,
+    14, green.earth,
+  ];
+}
+
+function backgroundColor(palette) {
+  const [z0, c0, z3, c3, z5, c5, z7, c7, z9, c9, z11, c11, z13, c13] = palette.background;
+  return [
+    'interpolate',
+    ['linear'],
+    ['zoom'],
+    z0, c0,
+    z3, c3,
+    z5, c5,
+    z7, c7,
+    z9, c9,
+    z11, c11,
+    z13, c13,
+  ];
+}
+
+function createOurSpaceMapStyle(palette) {
+  const { road, green, urban, water, nature, building, boundary, labelRoad, labelPlace } = palette;
+
+  return {
+  version: 8,
+  name: palette.name,
   sources: {
     carto: {
       type: 'vector',
@@ -152,18 +487,7 @@ export const OUR_SPACE_MAP_STYLE = {
       id: 'background',
       type: 'background',
       paint: {
-        'background-color': [
-          'interpolate',
-          ['linear'],
-          ['zoom'],
-          0, GREEN.meadow,
-          3, GREEN.light,
-          5, GREEN.earth,
-          7, '#32383a',
-          9, '#2e3338',
-          11, '#2a2f36',
-          13, '#262b33',
-        ],
+        'background-color': backgroundColor(palette),
       },
     },
     {
@@ -176,10 +500,10 @@ export const OUR_SPACE_MAP_STYLE = {
           'interpolate',
           ['linear'],
           ['zoom'],
-          2, WATER.deep,
-          6, WATER.mid,
-          11, WATER.near,
-          14, '#2f7298',
+          2, water.deep,
+          6, water.mid,
+          11, water.near,
+          14, water.zoom14,
         ],
         'fill-antialias': true,
         'fill-opacity': appear(1, 1.5),
@@ -196,9 +520,9 @@ export const OUR_SPACE_MAP_STYLE = {
           'interpolate',
           ['linear'],
           ['zoom'],
-          3, WATER.lineSoft,
-          10, WATER.line,
-          14, '#52a0c4',
+          3, water.lineSoft,
+          10, water.line,
+          14, water.lineZoom14,
         ],
         'line-width': zoomEase(3, 0.5, 6, 0.8, 10, 1.2, 14, 2, 17, 3.2),
         'line-opacity': appear(1, 2.4),
@@ -210,7 +534,7 @@ export const OUR_SPACE_MAP_STYLE = {
       source: 'carto',
       'source-layer': 'landcover',
       paint: {
-        'fill-color': greenMeadow(),
+        'fill-color': greenMeadow(green),
         'fill-opacity': appear(0.35, 0),
         'fill-antialias': true,
       },
@@ -226,12 +550,12 @@ export const OUR_SPACE_MAP_STYLE = {
           'interpolate',
           ['linear'],
           ['zoom'],
-          0, NATURE.farmlandGreen,
-          4, '#66785a',
-          7, NATURE.farmlandMid,
-          10, NATURE.farmlandLight,
-          13, NATURE.farmland,
-          15, '#5a5040',
+          0, nature.farmlandGreen,
+          4, nature.farmlandZoom4,
+          7, nature.farmlandMid,
+          10, nature.farmlandLight,
+          13, nature.farmland,
+          15, nature.farmlandZoom15,
         ],
         'fill-opacity': appear(0.72, 0),
         'fill-antialias': true,
@@ -244,8 +568,8 @@ export const OUR_SPACE_MAP_STYLE = {
       'source-layer': 'landcover',
       filter: ['==', ['get', 'class'], 'grass'],
       paint: {
-        'fill-color': greenMeadow(),
-        'fill-opacity': appear(GREEN_OPACITY, 3),
+        'fill-color': greenMeadow(green),
+        'fill-opacity': appear(palette.greenOpacity, 3),
         'fill-antialias': true,
       },
     },
@@ -260,8 +584,8 @@ export const OUR_SPACE_MAP_STYLE = {
         ['in', ['get', 'subclass'], ['literal', ['meadow', 'grassland', 'heath', 'fell', 'tundra', 'grass']]],
       ],
       paint: {
-        'fill-color': greenMeadow(),
-        'fill-opacity': appear(GREEN_OPACITY, 8),
+        'fill-color': greenMeadow(green),
+        'fill-opacity': appear(palette.greenOpacity, 8),
         'fill-antialias': true,
       },
     },
@@ -272,8 +596,8 @@ export const OUR_SPACE_MAP_STYLE = {
       'source-layer': 'landcover',
       filter: ['==', ['get', 'class'], 'wood'],
       paint: {
-        'fill-color': greenForest(),
-        'fill-opacity': appear(FOREST_OPACITY, 4),
+        'fill-color': greenForest(green),
+        'fill-opacity': appear(palette.forestOpacity, 4),
         'fill-antialias': true,
       },
     },
@@ -288,10 +612,10 @@ export const OUR_SPACE_MAP_STYLE = {
           'interpolate',
           ['linear'],
           ['zoom'],
-          0, NATURE.wetlandLight,
-          6, NATURE.wetland,
-          12, NATURE.wetlandLight,
-          14, GREEN.earth,
+          0, nature.wetlandLight,
+          6, nature.wetland,
+          12, nature.wetlandLight,
+          14, green.earth,
         ],
         'fill-opacity': appear(0.72, 0),
         'fill-antialias': true,
@@ -308,10 +632,10 @@ export const OUR_SPACE_MAP_STYLE = {
           'interpolate',
           ['linear'],
           ['zoom'],
-          4, NATURE.rockBright,
-          7, NATURE.rockLight,
-          11, '#7a6c60',
-          15, '#8a7a6c',
+          4, nature.rockBright,
+          7, nature.rockLight,
+          11, nature.rockZoom11,
+          15, nature.rockZoom15,
         ],
         'fill-opacity': appear(0.72, 4),
         'fill-antialias': true,
@@ -328,9 +652,9 @@ export const OUR_SPACE_MAP_STYLE = {
           'interpolate',
           ['linear'],
           ['zoom'],
-          4, '#7a9cb0',
-          8, NATURE.ice,
-          12, '#b0ccd8',
+          4, nature.iceZoom4,
+          8, nature.ice,
+          12, nature.iceZoom12,
         ],
         'fill-opacity': appear(0.75, 3),
         'fill-antialias': true,
@@ -343,7 +667,7 @@ export const OUR_SPACE_MAP_STYLE = {
       'source-layer': 'landcover',
       filter: ['==', ['get', 'class'], 'sand'],
       paint: {
-        'fill-color': NATURE.sand,
+        'fill-color': nature.sand,
         'fill-opacity': appear(0.55, 9),
         'fill-antialias': true,
       },
@@ -359,8 +683,8 @@ export const OUR_SPACE_MAP_STYLE = {
         ['literal', ['park', 'grass', 'scrub', 'orchard', 'vineyard', 'cemetery', 'allotments']],
       ],
       paint: {
-        'fill-color': greenMeadow(),
-        'fill-opacity': appear(GREEN_OPACITY, 5),
+        'fill-color': greenMeadow(green),
+        'fill-opacity': appear(palette.greenOpacity, 5),
         'fill-antialias': true,
       },
     },
@@ -371,8 +695,8 @@ export const OUR_SPACE_MAP_STYLE = {
       'source-layer': 'landuse',
       filter: ['in', ['get', 'class'], ['literal', ['forest', 'wood']]],
       paint: {
-        'fill-color': greenForest(),
-        'fill-opacity': appear(FOREST_OPACITY, 5),
+        'fill-color': greenForest(green),
+        'fill-opacity': appear(palette.forestOpacity, 5),
         'fill-antialias': true,
       },
     },
@@ -383,8 +707,8 @@ export const OUR_SPACE_MAP_STYLE = {
       'source-layer': 'landuse',
       filter: ['in', ['get', 'class'], ['literal', ['scrub', 'orchard', 'vineyard']]],
       paint: {
-        'fill-color': greenMeadow(),
-        'fill-opacity': appear(GREEN_OPACITY, 6),
+        'fill-color': greenMeadow(green),
+        'fill-opacity': appear(palette.greenOpacity, 6),
         'fill-antialias': true,
       },
     },
@@ -395,8 +719,8 @@ export const OUR_SPACE_MAP_STYLE = {
       'source-layer': 'landuse',
       filter: ['in', ['get', 'class'], ['literal', ['park', 'grass', 'cemetery', 'allotments']]],
       paint: {
-        'fill-color': greenMeadow(),
-        'fill-opacity': appear(GREEN_OPACITY, 6),
+        'fill-color': greenMeadow(green),
+        'fill-opacity': appear(palette.greenOpacity, 6),
         'fill-antialias': true,
       },
     },
@@ -415,9 +739,9 @@ export const OUR_SPACE_MAP_STYLE = {
           'interpolate',
           ['linear'],
           ['zoom'],
-          5, URBAN.subtle,
-          9, URBAN.main,
-          13, URBAN.light,
+          5, urban.subtle,
+          9, urban.main,
+          13, urban.light,
         ],
         'fill-opacity': appear(0.62, 6),
         'fill-antialias': true,
@@ -433,19 +757,19 @@ export const OUR_SPACE_MAP_STYLE = {
           'interpolate',
           ['linear'],
           ['zoom'],
-          10, '#383648',
-          11, '#3e3c50',
-          13, '#46445a',
-          16, '#4e4c62',
+          10, building.fill[0],
+          11, building.fill[1],
+          13, building.fill[2],
+          16, building.fill[3],
         ],
         'fill-outline-color': [
           'interpolate',
           ['linear'],
           ['zoom'],
-          10, '#44425a',
-          11, '#4a4862',
-          13, '#56546e',
-          16, '#626078',
+          10, building.outline[0],
+          11, building.outline[1],
+          13, building.outline[2],
+          16, building.outline[3],
         ],
         'fill-opacity': appear(0.88, 13),
         'fill-antialias': true,
@@ -457,8 +781,8 @@ export const OUR_SPACE_MAP_STYLE = {
       source: 'carto',
       'source-layer': 'building',
       paint: {
-        'fill-color': '#524e66',
-        'fill-outline-color': '#68647c',
+        'fill-color': building.top,
+        'fill-outline-color': building.topOutline,
         'fill-opacity': appear(0.72, 14.5),
         'fill-translate': zoomEase(12, ['literal', [0, 0]], 15, ['literal', [-1.5, -1.5]], 17, ['literal', [-2, -2]]),
         'fill-antialias': true,
@@ -476,7 +800,7 @@ export const OUR_SPACE_MAP_STYLE = {
       ],
       layout: { 'line-cap': 'round', 'line-join': 'round' },
       paint: {
-        'line-color': ROAD.path,
+        'line-color': road.path,
         'line-width': zoomEase(14, 0, 14.7, 0.2, 15.5, 0.45, 18, 1.0),
         'line-dasharray': [2, 2],
         'line-opacity': appear(0.65, 14),
@@ -494,7 +818,7 @@ export const OUR_SPACE_MAP_STYLE = {
       ],
       layout: { 'line-cap': 'round', 'line-join': 'round' },
       paint: {
-        'line-color': ROAD.minor,
+        'line-color': road.minor,
         'line-width': zoomEase(12, 0, 12.7, 0.2, 14, 0.45, 16, 0.9, 18, 1.6),
         'line-opacity': appear(0.88, 12),
       },
@@ -511,7 +835,7 @@ export const OUR_SPACE_MAP_STYLE = {
       ],
       layout: { 'line-cap': 'round', 'line-join': 'round' },
       paint: {
-        'line-color': ROAD.major,
+        'line-color': road.major,
         'line-width': zoomEase(8, 0, 8.8, 0.12, 10, 0.45, 13, 1.4, 16, 2.4, 18, 3.2),
         'line-opacity': appear(0.85, 8),
       },
@@ -528,7 +852,7 @@ export const OUR_SPACE_MAP_STYLE = {
       ],
       layout: { 'line-cap': 'round', 'line-join': 'round' },
       paint: {
-        'line-color': ROAD.highway,
+        'line-color': road.highway,
         'line-width': zoomEase(4, 0.45, 7, 0.9, 10, 1.6, 13, 2.6, 16, 4.0, 18, 5.0),
         'line-opacity': appear(0.97, 4),
       },
@@ -541,7 +865,7 @@ export const OUR_SPACE_MAP_STYLE = {
       filter: ['==', ['get', 'brunnel'], 'tunnel'],
       layout: { 'line-cap': 'round', 'line-join': 'round' },
       paint: {
-        'line-color': ROAD.tunnel,
+        'line-color': road.tunnel,
         'line-width': zoomEase(13, 0, 13.8, 0.1, 14.5, 0.28, 16, 0.8, 17, 1.6),
         'line-dasharray': [3, 3],
         'line-opacity': appear(0.58, 13),
@@ -555,7 +879,7 @@ export const OUR_SPACE_MAP_STYLE = {
       filter: ['all', ['==', ['get', 'admin_level'], 2], ['==', ['get', 'maritime'], 0]],
       layout: { 'line-cap': 'round', 'line-join': 'round' },
       paint: {
-        'line-color': '#9aa3b0',
+        'line-color': boundary.country,
         'line-width': zoomEase(2, 1, 5, 1.4, 8, 1.8, 12, 2.2),
         'line-opacity': appear(0.75, 0.8),
       },
@@ -568,7 +892,7 @@ export const OUR_SPACE_MAP_STYLE = {
       filter: ['all', ['==', ['get', 'admin_level'], 4], ['==', ['get', 'maritime'], 0]],
       layout: { 'line-cap': 'round', 'line-join': 'round' },
       paint: {
-        'line-color': '#787f8c',
+        'line-color': boundary.region,
         'line-width': zoomEase(4, 0.7, 8, 1, 12, 1.3),
         'line-dasharray': [5, 3],
         'line-opacity': appear(0.65, 2.8),
@@ -582,7 +906,7 @@ export const OUR_SPACE_MAP_STYLE = {
       filter: ['all', ['==', ['get', 'admin_level'], 6], ['==', ['get', 'maritime'], 0]],
       layout: { 'line-cap': 'round', 'line-join': 'round' },
       paint: {
-        'line-color': '#636a78',
+        'line-color': boundary.department,
         'line-width': zoomEase(5, 0.55, 9, 0.85, 13, 1.3),
         'line-dasharray': [3, 2],
         'line-opacity': appear(0.5, 4.5),
@@ -602,8 +926,8 @@ export const OUR_SPACE_MAP_STYLE = {
         'text-max-angle': 30,
       },
       paint: {
-        'text-color': '#b8c0cc',
-        'text-halo-color': '#282c35',
+        'text-color': labelRoad.highway,
+        'text-halo-color': palette.labelHalo,
         'text-halo-width': 1.2,
         'text-opacity': appear(0.88, 9),
       },
@@ -622,8 +946,8 @@ export const OUR_SPACE_MAP_STYLE = {
         'text-max-angle': 30,
       },
       paint: {
-        'text-color': '#a8b0bc',
-        'text-halo-color': '#282c35',
+        'text-color': labelRoad.major,
+        'text-halo-color': palette.labelHalo,
         'text-halo-width': 1.2,
         'text-opacity': appear(0.78, 11),
       },
@@ -642,8 +966,8 @@ export const OUR_SPACE_MAP_STYLE = {
         'text-max-angle': 30,
       },
       paint: {
-        'text-color': '#8a919c',
-        'text-halo-color': '#282c35',
+        'text-color': labelRoad.minor,
+        'text-halo-color': palette.labelHalo,
         'text-halo-width': 1.1,
         'text-opacity': appear(0.72, 14),
       },
@@ -662,8 +986,8 @@ export const OUR_SPACE_MAP_STYLE = {
         'text-letter-spacing': 0.04,
       },
       paint: {
-        'text-color': WATER.label,
-        'text-halo-color': WATER.labelHalo,
+        'text-color': water.label,
+        'text-halo-color': water.labelHalo,
         'text-halo-width': 1.4,
         'text-opacity': appear(1, 0.5),
       },
@@ -682,8 +1006,8 @@ export const OUR_SPACE_MAP_STYLE = {
         'symbol-spacing': 250,
       },
       paint: {
-        'text-color': WATER.label,
-        'text-halo-color': WATER.labelHalo,
+        'text-color': water.label,
+        'text-halo-color': water.labelHalo,
         'text-halo-width': 1.2,
         'text-opacity': appear(1, 3.8),
       },
@@ -703,8 +1027,8 @@ export const OUR_SPACE_MAP_STYLE = {
         'text-anchor': 'center',
       },
       paint: {
-        'text-color': '#e4e8ee',
-        'text-halo-color': '#282c35',
+        'text-color': labelPlace.suburb,
+        'text-halo-color': palette.labelHalo,
         'text-halo-width': 1.3,
         'text-opacity': appear(1, 10),
       },
@@ -724,8 +1048,8 @@ export const OUR_SPACE_MAP_STYLE = {
         'text-anchor': 'center',
       },
       paint: {
-        'text-color': '#f0f2f5',
-        'text-halo-color': '#282c35',
+        'text-color': labelPlace.town,
+        'text-halo-color': palette.labelHalo,
         'text-halo-width': 1.4,
         'text-opacity': appear(1, 7),
       },
@@ -743,8 +1067,8 @@ export const OUR_SPACE_MAP_STYLE = {
         'text-anchor': 'center',
       },
       paint: {
-        'text-color': '#f0f2f5',
-        'text-halo-color': '#282c35',
+        'text-color': labelPlace.city,
+        'text-halo-color': palette.labelHalo,
         'text-halo-width': 1.6,
         'text-opacity': appear(1, 2.8),
       },
@@ -764,8 +1088,8 @@ export const OUR_SPACE_MAP_STYLE = {
         'text-letter-spacing': 0.06,
       },
       paint: {
-        'text-color': '#e8ebf0',
-        'text-halo-color': '#282c35',
+        'text-color': labelPlace.region,
+        'text-halo-color': palette.labelHalo,
         'text-halo-width': 1.4,
         'text-opacity': appear(1, 2),
       },
@@ -785,8 +1109,8 @@ export const OUR_SPACE_MAP_STYLE = {
         'text-letter-spacing': 0.08,
       },
       paint: {
-        'text-color': '#f0f2f5',
-        'text-halo-color': '#282c35',
+        'text-color': labelPlace.country,
+        'text-halo-color': palette.labelHalo,
         'text-halo-width': 1.5,
         'text-opacity': appear(1, 0.5),
       },
@@ -802,11 +1126,11 @@ export const OUR_SPACE_MAP_STYLE = {
         'circle-color': [
           'match',
           ['get', 'class'],
-          'volcano', '#a87858',
-          NATURE.rockLight,
+          'volcano', nature.volcano,
+          nature.rockLight,
         ],
         'circle-stroke-width': 1.2,
-        'circle-stroke-color': NATURE.peak,
+        'circle-stroke-color': nature.peak,
         'circle-opacity': appear(0.78, 8),
       },
     },
@@ -829,13 +1153,20 @@ export const OUR_SPACE_MAP_STYLE = {
         'text-color': [
           'match',
           ['get', 'class'],
-          'volcano', '#d4a080',
-          NATURE.peak,
+          'volcano', nature.volcanoLabel,
+          nature.peak,
         ],
-        'text-halo-color': '#282c35',
+        'text-halo-color': palette.labelHalo,
         'text-halo-width': 1.4,
         'text-opacity': appear(0.9, 8),
       },
     },
   ],
-};
+  };
+}
+
+export const OUR_SPACE_MAP_STYLE = createOurSpaceMapStyle(DEFAULT_PALETTE);
+/** Style basemap — palette fixe (vert sage), indépendante du thème app. */
+export function getOurSpaceMapStyle() {
+  return OUR_SPACE_MAP_STYLE;
+}

@@ -2,6 +2,7 @@ import { escapeHtml } from '../../lib/escape-html.js';
 import {
   APP_NAME,
   APP_VERSION,
+  getSelectableAppThemes,
   BASE_THEME,
   renderVersionBadgeHtml,
   COUPLE_START_DATE,
@@ -27,7 +28,8 @@ import {
   getPartnerNickname,
   getPartnerUid,
 } from '../../lib/user-profile.js';
-import { getSpaceTagline } from '../../lib/space-settings.js';
+import { getSpaceTagline, getSpaceTheme, setSpaceTheme } from '../../lib/space-settings.js';
+import { applyAppTheme, getAppThemeMeta } from '../../lib/app-theme.js';
 import { renderNavIcon } from '../../lib/lucide-icon.js';
 import {
   getUserLocationConsent,
@@ -73,6 +75,7 @@ const PANEL_HEADERS = {
   profile: { title: 'Mon profil', sub: 'Pseudo et photo de profil', icon: 'user' },
   couple: { title: 'Notre couple', sub: 'Surnom et nom de votre espace', icon: 'heart' },
   data: { title: 'Données', sub: 'Synchronisation Firestore', icon: 'database' },
+  theme: { title: 'Thème', sub: 'Apparence de l\'application', icon: 'palette' },
   app: { title: 'Application', sub: 'Version et session', icon: 'settings' },
 };
 
@@ -294,6 +297,54 @@ async function handleLocationSwitchChange(event) {
   input.disabled = false;
 }
 
+function renderTheme() {
+  const current = getSpaceTheme();
+  const meta = getAppThemeMeta(current);
+  setText('settings-menu-theme-value', meta.label);
+
+  const grid = document.getElementById('settings-theme-grid');
+  if (!grid) return;
+
+  grid.innerHTML = getSelectableAppThemes().map((theme, index) => {
+    const isSelected = theme.id === current;
+    return `
+      <button
+        type="button"
+        class="settings-theme-card${isSelected ? ' is-selected' : ''}"
+        data-theme-id="${theme.id}"
+        role="radio"
+        aria-checked="${isSelected ? 'true' : 'false'}"
+        aria-label="${theme.label} — ${theme.description}"
+        style="--theme-card-delay: ${index * 40}ms"
+      >
+        <span class="settings-theme-preview settings-theme-preview--${theme.id}" aria-hidden="true"></span>
+        <span class="settings-theme-copy">
+          <span class="settings-theme-name">${theme.label}</span>
+          <span class="settings-theme-desc">${theme.description}</span>
+        </span>
+        <span class="settings-theme-check" aria-hidden="true">${renderNavIcon('check', { strokeWidth: 2.5, width: 18, height: 18 })}</span>
+      </button>
+    `;
+  }).join('');
+}
+
+async function handleThemeSelect(themeId) {
+  if (!themeId || themeId === getSpaceTheme()) return;
+
+  const card = document.querySelector(`.settings-theme-card[data-theme-id="${themeId}"]`);
+  card?.classList.add('is-saving');
+  card?.setAttribute('aria-busy', 'true');
+
+  const ok = await setSpaceTheme(themeId);
+  if (ok) {
+    applyAppTheme(themeId);
+    renderTheme();
+  } else {
+    card?.classList.remove('is-saving');
+    card?.removeAttribute('aria-busy');
+  }
+}
+
 function renderAll(user) {
   renderProfile(user);
   renderSpace(user);
@@ -301,6 +352,7 @@ function renderAll(user) {
   renderDataStatus();
   renderLocationStatus();
   renderAppInfo();
+  renderTheme();
 }
 
 function startSyncStatusTimer() {
@@ -593,6 +645,12 @@ export function initSettingsPage(user, { onLogout: logoutHandler, onDataSynced: 
   }, { signal });
 
   document.getElementById('settings-location-switch')?.addEventListener('change', handleLocationSwitchChange, { signal });
+
+  document.getElementById('settings-theme-grid')?.addEventListener('click', (event) => {
+    const card = event.target.closest('.settings-theme-card[data-theme-id]');
+    if (!card || card.classList.contains('is-selected') || card.classList.contains('is-saving')) return;
+    void handleThemeSelect(card.dataset.themeId);
+  }, { signal });
 
   document.getElementById('settings-logout-btn')?.addEventListener('click', () => {
     onLogout?.();

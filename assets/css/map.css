@@ -476,24 +476,8 @@
   outline: none;
 }
 
-.map-dock-btn--view.is-active {
-  color: var(--cat-color);
-  background: color-mix(in srgb, var(--cat-color) 12%, var(--bg));
-  border-color: color-mix(in srgb, var(--cat-color) 45%, transparent);
-  box-shadow:
-    var(--neu-up-sm),
-    0 0 16px color-mix(in srgb, var(--cat-glow) 70%, transparent);
-}
-
-.map-dock-btn--view.is-active svg {
-  color: var(--cat-color);
-}
-
-.map-dock-btn--view.is-active:active {
-  box-shadow: var(--neu-press);
-}
-
-.map-dock-btn--layer.is-active {
+/* État ON — même animation / relief pour tous les boutons du dock */
+.map-dock-btn.is-active {
   color: var(--map-filter-color);
   background: color-mix(in srgb, var(--map-filter-color) 12%, var(--bg));
   border-color: color-mix(in srgb, var(--map-filter-color) 45%, transparent);
@@ -502,27 +486,23 @@
     0 0 16px color-mix(in srgb, var(--map-filter-color) 32%, transparent);
 }
 
-.map-dock-btn--layer.is-active svg {
+.map-dock-btn.is-active svg {
   color: var(--map-filter-color);
 }
 
-.map-dock-btn--layer.is-active:active {
+.map-dock-btn.is-active:active {
   box-shadow: var(--neu-press);
+}
+
+.map-dock-btn--view {
+  --map-filter-color: var(--cat-color);
 }
 
 .map-dock-btn--layer[data-map-layer="activities"] { --map-filter-color: #f97316; }
 .map-dock-btn--layer[data-map-layer="restaurants"] { --map-filter-color: #f43f5e; }
-.map-dock-btn--layer[data-map-layer="travels"] { --map-filter-color: #0ea5e9; }
-
-.map-dock-btn--travel-mode.is-active {
-  color: #0ea5e9;
-  background: color-mix(in srgb, #0ea5e9 12%, var(--bg));
-  border-color: color-mix(in srgb, #0ea5e9 45%, transparent);
-  box-shadow: var(--neu-in);
-}
-
-.map-dock-btn--travel-mode.is-active svg {
-  color: #0ea5e9;
+.map-dock-btn--layer[data-map-layer="travels"],
+.map-dock-btn--travel-mode {
+  --map-filter-color: #0ea5e9;
 }
 
 .map-dock-btn.has-error {
@@ -632,6 +612,11 @@
   .map-page .act-cat-panel--map.map-panel {
     border-bottom-left-radius: var(--radius-md);
     border-bottom-right-radius: var(--radius-md);
+  }
+
+  /* Clics dock : #page-root (1) vs bottom nav (180) — le contexte entier doit monter */
+  body.app-page #page-root:has(.map-page) {
+    z-index: 190;
   }
 
   .map-controls {

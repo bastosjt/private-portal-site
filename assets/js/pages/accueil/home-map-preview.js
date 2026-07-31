@@ -1,7 +1,7 @@
 import { MAP_ACCENT } from '../../config.js';
 import { getLngLatDeltaForRadiusKm } from '../../lib/geo-utils.js';
 import { getMapLibre, MAP_TILE_FADE_MS, waitForContainerSize } from '../../lib/map-bootstrap.js';
-import { OUR_SPACE_MAP_STYLE } from '../carte/map-style.js';
+import { getOurSpaceMapStyle } from '../carte/map-style.js';
 import { bindMapMarkerImageFallback } from '../carte/map-marker-images.js';
 import {
   clearMapUserLocationLayer,
@@ -93,7 +93,7 @@ async function mountHomeMapPreview(token) {
 
   previewMap = new maplibregl.Map({
     container,
-    style: OUR_SPACE_MAP_STYLE,
+    style: getOurSpaceMapStyle(),
     center: getPreviewCenter(),
     zoom: PREVIEW_ZOOM,
     minZoom: 3,

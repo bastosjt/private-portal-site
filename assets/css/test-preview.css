@@ -1,0 +1,65 @@
+/**
+ * Preview DA — surcharges spécifiques test.html (le thème principal est dans app-glass-theme.css).
+ */
+@import url('app-glass-theme.css');
+
+/* test.html n'a pas de sidebar : layout pleine largeur */
+body.test-preview-page #page-root {
+  width: 100%;
+  margin-left: 0;
+  padding:
+    calc(var(--page-header-offset) + 18px)
+    18px
+    var(--page-mobile-bottom);
+  box-sizing: border-box;
+}
+
+@media (max-width: 639px) {
+  .test-preview-page .bottom-nav {
+    display: block;
+  }
+
+  .test-preview-page #page-root {
+    padding-bottom: calc(var(--bottom-nav-clearance) + 18px) !important;
+  }
+}
+
+body.test-preview-page #auth-view {
+  position: relative;
+  z-index: 190;
+}
+
+body.test-preview-page.auth-page .page-bg {
+  opacity: 0.35;
+}
+
+/* Variables preview-only (carte, profil — pas encore dans l'app officielle) */
+body.test-preview-page {
+  --grad-1: #2f6694;
+  --grad-2: #255580;
+  --grad-3: #0674b5;
+  --grad-4: #0c4088;
+  --grad-5: #0a3268;
+}
+
+/* ── Page carte — layout plein écran + panneau glass ── */
+.test-preview-page #page-root:has(.map-page) {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding:
+    calc(var(--page-header-offset) + var(--page-inset-x))
+    var(--page-inset-x)
+    var(--page-inset-x) !important;
+  height: calc(100dvh - var(--bottom-nav-clearance));
+  min-height: calc(100dvh - var(--bottom-nav-clearance));
+  box-sizing: border-box;
+}
+
+@media (min-width: 640px) {
+  .test-preview-page #page-root:has(.map-page) {
+    height: 100dvh;
+    min-height: 100dvh;
+    padding: var(--page-inset-x) !important;
+  }
+}

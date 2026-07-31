@@ -1,4 +1,40 @@
 /* ── Splash / entrée app ── */
+body.splash-page {
+  --bg: var(--theme-navy-bg);
+  background: var(--theme-navy-bg);
+  transition: none;
+}
+
+body.splash-page[data-app-theme="orange"] {
+  --bg: var(--theme-orange-bg);
+  background: var(--theme-orange-bg);
+}
+
+body.splash-page[data-app-theme="sunset"] {
+  --bg: var(--theme-sunset-bg);
+  background: var(--theme-sunset-bg);
+}
+
+body.splash-page[data-app-theme="forest"] {
+  --bg: var(--theme-forest-bg);
+  background: var(--theme-forest-bg);
+}
+
+body.splash-page[data-app-theme="violet"] {
+  --bg: var(--theme-violet-bg);
+  background: var(--theme-violet-bg);
+}
+
+body.splash-page[data-app-theme="pink"] {
+  --bg: var(--theme-pink-bg);
+  background: var(--theme-pink-bg);
+}
+
+body.splash-page[data-app-theme="midnight"] {
+  --bg: var(--theme-midnight-bg);
+  background: var(--theme-midnight-bg);
+}
+
 .splash-page {
   overflow: hidden;
 }
@@ -63,7 +99,7 @@
   place-items: center;
   border-radius: 50%;
   background: var(--bg);
-  box-shadow: var(--neu-up-sm);
+  box-shadow: var(--neu-in);
   color: var(--logo-heart);
   animation: splash-heart-beat 2s ease-in-out infinite;
 }

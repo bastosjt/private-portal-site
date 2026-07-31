@@ -63,6 +63,10 @@
   --radius-md: 18px;
   --radius-pill: 999px;
 
+  /* Carte interactive — base = thème page (--bg), accent = --cat-color catégorie */
+  --map-preview-base: var(--bg);
+  --map-preview-base-mid: var(--surface);
+
   /* Neumorphism — ombres dérivées de #23262a */
   --neu-up: -5px -5px 14px rgba(255, 255, 255, 0.04), 5px 5px 14px rgba(0, 0, 0, 0.45);
   --neu-up-sm: -3px -3px 8px rgba(255, 255, 255, 0.04), 3px 3px 8px rgba(0, 0, 0, 0.4);
@@ -80,4 +84,52 @@
   --duration-step: 0.28s;
 
   --cat-on-accent: #0c1a22;
+
+  /* Thème Navy — splash (avant chargement app) + ref partagée */
+  --theme-navy-bg: #062045;
+
+  /* Red cherry — fond thème rouge cerise (liquid glass) */
+  --red-cherry: #321208;
+  --theme-orange-bg: var(--red-cherry);
+  --theme-orange-accent: #ff5005;
+
+  /* Orange — fond thème orange brûlé lisible (liquid glass) */
+  --sunset-bg: #8a3a0c;
+  --sunset-bg-floor: #b85014;
+  --sunset-bg-mid: #d06822;
+  --sunset-accent: #ff5005;
+  --theme-sunset-bg: var(--sunset-bg);
+  --theme-sunset-accent: var(--sunset-accent);
+
+  /* Forêt — fond thème vert moyen naturel (liquid glass) */
+  --forest-bg: #1e382c;
+  --forest-bg-floor: #325040;
+  --forest-bg-mid: #466858;
+  --forest-accent: #72b88e;
+  --theme-forest-bg: var(--forest-bg);
+  --theme-forest-accent: var(--forest-accent);
+
+  /* Violet — fond thème violet profond (liquid glass) */
+  --violet-bg: #261838;
+  --violet-bg-floor: #382850;
+  --violet-bg-mid: #503868;
+  --violet-accent: #9b7ec4;
+  --theme-violet-bg: var(--violet-bg);
+  --theme-violet-accent: var(--violet-accent);
+
+  /* Pink — fond thème rose profond (liquid glass) */
+  --pink-bg: #381828;
+  --pink-bg-floor: #582840;
+  --pink-bg-mid: #703050;
+  --pink-accent: #f092b8;
+  --theme-pink-bg: var(--pink-bg);
+  --theme-pink-accent: var(--pink-accent);
+
+  /* Minuit — fond thème noir premium (liquid glass) */
+  --midnight-bg: #0e1018;
+  --midnight-bg-floor: #181c28;
+  --midnight-bg-mid: #242a38;
+  --midnight-accent: #6a7a9a;
+  --theme-midnight-bg: var(--midnight-bg);
+  --theme-midnight-accent: var(--midnight-accent);
 }

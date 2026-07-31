@@ -992,7 +992,13 @@
   background:
     radial-gradient(circle at 20% 30%, color-mix(in srgb, var(--cat-color) 16%, transparent), transparent 42%),
     radial-gradient(circle at 80% 70%, color-mix(in srgb, var(--cat-color) 10%, transparent), transparent 38%),
-    linear-gradient(160deg, var(--bg) 0%, var(--surface) 100%);
+    linear-gradient(
+      to top,
+      var(--map-preview-base) 0%,
+      color-mix(in srgb, var(--map-preview-base-mid) 78%, var(--map-preview-base)) 34%,
+      color-mix(in srgb, var(--map-preview-base-mid) 22%, transparent) 68%,
+      transparent 100%
+    );
   transition: opacity 0.25s ease;
 }
 
@@ -1066,8 +1072,8 @@
   pointer-events: none;
   background: linear-gradient(
     to top,
-    color-mix(in srgb, var(--bg) 92%, transparent) 0%,
-    color-mix(in srgb, var(--bg) 55%, transparent) 52%,
+    color-mix(in srgb, var(--map-preview-base) 94%, transparent) 0%,
+    color-mix(in srgb, var(--map-preview-base) 52%, transparent) 52%,
     transparent 100%
   );
 }

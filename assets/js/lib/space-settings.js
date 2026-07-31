@@ -1,13 +1,15 @@
-import { APP_TAGLINE } from '../config.js';
+import { APP_TAGLINE, DEFAULT_APP_THEME, normalizeAppTheme } from '../config.js';
 import { devWarn } from '../lib/dev-log.js';
 import {
   fetchSpaceSettings,
   upsertActiveTravelId,
   upsertSpaceTagline,
+  upsertSpaceTheme,
 } from '../firebase/spaceSettings.js';
 
 let cachedTagline = '';
 let cachedActiveTravelId = '';
+let cachedTheme = DEFAULT_APP_THEME;
 let initPromise = null;
 
 function normalizeTagline(value) {
@@ -24,6 +26,10 @@ export function getSpaceTagline() {
 
 export function getActiveTravelId() {
   return cachedActiveTravelId;
+}
+
+export function getSpaceTheme() {
+  return cachedTheme || DEFAULT_APP_THEME;
 }
 
 export async function setSpaceTagline(tagline) {
@@ -56,6 +62,21 @@ export async function setActiveTravelId(travelId) {
   }
 }
 
+export async function setSpaceTheme(themeId) {
+  const next = normalizeAppTheme(themeId);
+  if (next === cachedTheme) return true;
+
+  cachedTheme = next;
+
+  try {
+    await upsertSpaceTheme(next);
+    return true;
+  } catch (err) {
+    devWarn('setSpaceTheme:', err.message);
+    return false;
+  }
+}
+
 export async function initSpaceSettings() {
   if (initPromise) return initPromise;
 
@@ -64,10 +85,12 @@ export async function initSpaceSettings() {
     const tagline = normalizeTagline(remote?.tagline);
     cachedTagline = tagline || APP_TAGLINE;
     cachedActiveTravelId = normalizeTravelId(remote?.activeTravelId);
+    cachedTheme = normalizeAppTheme(remote?.theme);
   })().catch((err) => {
     initPromise = null;
     cachedTagline = APP_TAGLINE;
     cachedActiveTravelId = '';
+    cachedTheme = DEFAULT_APP_THEME;
     devWarn('initSpaceSettings:', err.message);
   });
 
@@ -77,5 +100,6 @@ export async function initSpaceSettings() {
 export function clearSpaceSettingsCache() {
   cachedTagline = '';
   cachedActiveTravelId = '';
+  cachedTheme = DEFAULT_APP_THEME;
   initPromise = null;
 }
