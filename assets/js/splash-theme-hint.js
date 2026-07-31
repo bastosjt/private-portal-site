@@ -3,7 +3,7 @@
  * Couleurs alignées sur APP_THEMES.chromeColor / variables.css.
  */
 (function applySplashThemeHint() {
-  var KEY = 'app-theme';
+  var LAST_USER_KEY = 'app-last-uid';
   var CHROME_COLORS = {
     navy: '#0a3268',
     orange: '#4a1808',
@@ -25,10 +25,13 @@
   var theme = 'navy';
 
   try {
-    var saved = localStorage.getItem(KEY);
-    if (saved) {
-      saved = saved.trim().toLowerCase();
-      if (ALLOWED[saved]) theme = saved;
+    var lastUid = localStorage.getItem(LAST_USER_KEY);
+    if (lastUid) {
+      var saved = localStorage.getItem('app-theme:' + lastUid);
+      if (saved) {
+        saved = saved.trim().toLowerCase();
+        if (ALLOWED[saved]) theme = saved;
+      }
     }
   } catch {
     // ignore quota / private mode
@@ -39,6 +42,11 @@
   document.body.dataset.appTheme = theme;
   document.documentElement.style.backgroundColor = CHROME_COLORS[theme];
 
-  var meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute('content', CHROME_COLORS[theme]);
+  document.querySelectorAll('meta[name="theme-color"]').forEach(function (node) {
+    node.remove();
+  });
+  var meta = document.createElement('meta');
+  meta.name = 'theme-color';
+  meta.content = CHROME_COLORS[theme];
+  document.head.appendChild(meta);
 })();

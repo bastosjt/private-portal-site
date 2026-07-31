@@ -18,7 +18,7 @@ import { preloadMapMarkerImages } from './pages/carte/map-marker-images.js';
 import { resetMapWarmup } from './pages/carte/map-warmup.js';
 import { initUserProfiles, clearUserProfilesCache } from './lib/user-profile.js';
 import { initSpaceSettings, clearSpaceSettingsCache } from './lib/space-settings.js';
-import { initAppTheme, restoreSplashThemeHint } from './lib/app-theme.js';
+import { initAppTheme, restoreSplashThemeHint, applyAuthTheme } from './lib/app-theme.js';
 import { initUserLocationAtLaunch, clearUserLocationState } from './lib/user-location.js';
 import { debounce } from './lib/debounce.js';
 import { releaseStalePageScrollLock } from './lib/scroll-lock.js';
@@ -332,7 +332,7 @@ function showAuthView({ reveal = true } = {}) {
 
   document.body.classList.add('auth-page');
   document.body.classList.remove('app-page', 'route-no-fab');
-  document.body.removeAttribute('data-app-theme');
+  applyAuthTheme();
   appView?.classList.add('hidden');
 
   if (reveal) {

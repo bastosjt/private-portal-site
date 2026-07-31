@@ -2,7 +2,8 @@
  * DA navy + liquid glass — fond animé, header, bottom nav, cartes accueil.
  * Actif sur body.app-page[data-app-theme="navy"] (app connectée).
  */
-body.app-page[data-app-theme="navy"] {
+body.app-page[data-app-theme="navy"],
+body.auth-page[data-app-theme="navy"] {
   --bg: #062045;
   --surface: rgba(6, 32, 69, 0.52);
   --surface-strong: rgba(8, 40, 82, 0.6);
@@ -40,7 +41,8 @@ body.app-page[data-app-theme="navy"] {
   min-height: 100dvh;
 }
 
-html:has(body.app-page[data-app-theme="navy"]) {
+html:has(body.app-page[data-app-theme="navy"]),
+html:has(body.auth-page[data-app-theme="navy"]) {
   background: #0a3268;
 }
 
@@ -49,7 +51,8 @@ html:has(body.app-page[data-app-theme="navy"]) {
   display: none;
 }
 
-body.app-page[data-app-theme="navy"] .page-bg {
+body.app-page[data-app-theme="navy"] .page-bg,
+body.auth-page[data-app-theme="navy"] .page-bg {
   display: block;
   position: fixed;
   inset: 0;
@@ -59,7 +62,8 @@ body.app-page[data-app-theme="navy"] .page-bg {
   background: #0a3268;
 }
 
-body.app-page[data-app-theme="navy"] .page-bg-grain {
+body.app-page[data-app-theme="navy"] .page-bg-grain,
+body.auth-page[data-app-theme="navy"] .page-bg-grain {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -73,7 +77,8 @@ body.app-page[data-app-theme="navy"] .page-bg-grain {
   background: #808080;
 }
 
-body.app-page[data-app-theme="navy"] .page-bg canvas {
+body.app-page[data-app-theme="navy"] .page-bg canvas,
+body.auth-page[data-app-theme="navy"] .page-bg canvas {
   display: block;
   width: 100%;
   height: 100%;

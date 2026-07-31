@@ -1,73 +1,114 @@
 import { APP_THEMES, DEFAULT_APP_THEME, getAppThemeChromeColor, normalizeAppTheme } from '../config.js';
-import { getSpaceTheme } from './space-settings.js';
+import {
+  getCurrentUserUid,
+  getUserAppTheme,
+  setUserAppTheme,
+} from './user-profile.js';
 
 export { normalizeAppTheme } from '../config.js';
 
-const THEME_STORAGE_KEY = 'app-theme';
+const LAST_USER_KEY = 'app-last-uid';
 
-export function getAppThemeMeta(themeId = getSpaceTheme()) {
+function themeStorageKey(uid) {
+  return uid ? `app-theme:${uid}` : 'app-theme';
+}
+
+export function getAppTheme(uid = getCurrentUserUid()) {
+  return getUserAppTheme(uid);
+}
+
+export function getAppThemeMeta(themeId = getAppTheme()) {
   const id = normalizeAppTheme(themeId);
   return APP_THEMES.find((theme) => theme.id === id) || APP_THEMES[0];
 }
 
-export function isNavyThemeActive(themeId = getSpaceTheme()) {
+export function isNavyThemeActive(themeId = getAppTheme()) {
   return normalizeAppTheme(themeId) === 'navy';
 }
 
-export function isOrangeThemeActive(themeId = getSpaceTheme()) {
+export function isOrangeThemeActive(themeId = getAppTheme()) {
   return normalizeAppTheme(themeId) === 'orange';
 }
 
-export function isSunsetThemeActive(themeId = getSpaceTheme()) {
+export function isSunsetThemeActive(themeId = getAppTheme()) {
   return normalizeAppTheme(themeId) === 'sunset';
 }
 
-export function isForestThemeActive(themeId = getSpaceTheme()) {
+export function isForestThemeActive(themeId = getAppTheme()) {
   return normalizeAppTheme(themeId) === 'forest';
 }
 
-export function isVioletThemeActive(themeId = getSpaceTheme()) {
+export function isVioletThemeActive(themeId = getAppTheme()) {
   return normalizeAppTheme(themeId) === 'violet';
 }
 
-export function isPinkThemeActive(themeId = getSpaceTheme()) {
+export function isPinkThemeActive(themeId = getAppTheme()) {
   return normalizeAppTheme(themeId) === 'pink';
 }
 
-export function isMidnightThemeActive(themeId = getSpaceTheme()) {
+export function isMidnightThemeActive(themeId = getAppTheme()) {
   return normalizeAppTheme(themeId) === 'midnight';
 }
 
-export function isWarmGlassThemeActive(themeId = getSpaceTheme()) {
+export function isWarmGlassThemeActive(themeId = getAppTheme()) {
   const id = normalizeAppTheme(themeId);
   return id === 'orange' || id === 'sunset';
 }
 
-function persistThemeChoice(themeId) {
+function persistThemeChoice(themeId, uid = getCurrentUserUid()) {
+  const theme = normalizeAppTheme(themeId);
   try {
-    localStorage.setItem(THEME_STORAGE_KEY, normalizeAppTheme(themeId));
+    if (uid) {
+      localStorage.setItem(themeStorageKey(uid), theme);
+      localStorage.setItem(LAST_USER_KEY, uid);
+    }
   } catch {
     // ignore quota / private mode
   }
 }
 
+function readPersistedTheme(uid) {
+  if (!uid) return null;
+  try {
+    const saved = localStorage.getItem(themeStorageKey(uid));
+    return saved ? normalizeAppTheme(saved) : null;
+  } catch {
+    return null;
+  }
+}
+
+function setThemeColorMeta(color) {
+  document.querySelectorAll('meta[name="theme-color"]').forEach((node) => {
+    node.remove();
+  });
+
+  const meta = document.createElement('meta');
+  meta.name = 'theme-color';
+  meta.content = color;
+  document.head.appendChild(meta);
+}
+
 function syncBrowserChrome(themeId) {
   const color = getAppThemeChromeColor(themeId);
-  const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.content = color;
+  setThemeColorMeta(color);
   document.documentElement.style.backgroundColor = color;
+
+  requestAnimationFrame(() => {
+    setThemeColorMeta(color);
+    document.documentElement.style.backgroundColor = color;
+  });
 }
 
 /** Met à jour theme-color + fond html (safe area / barre de statut mobile). */
-export function syncAppThemeBrowserChrome(themeId = getSpaceTheme()) {
+export function syncAppThemeBrowserChrome(themeId = getAppTheme()) {
   syncBrowserChrome(normalizeAppTheme(themeId));
 }
 
-/** Restaure le dernier thème connu pour le splash (avant init Firestore). */
+/** Restaure le thème splash avant init Firestore (dernier user connu sur cet appareil). */
 export function restoreSplashThemeHint() {
   try {
-    const saved = localStorage.getItem(THEME_STORAGE_KEY);
-    const theme = saved ? normalizeAppTheme(saved) : DEFAULT_APP_THEME;
+    const lastUid = localStorage.getItem(LAST_USER_KEY);
+    const theme = readPersistedTheme(lastUid) || DEFAULT_APP_THEME;
     document.body.dataset.appTheme = theme;
     syncBrowserChrome(theme);
   } catch {
@@ -76,7 +117,7 @@ export function restoreSplashThemeHint() {
 }
 
 /** Applique le thème visuel sur `body` (session connectée requise via `app-page`). */
-export function applyAppTheme(themeId = getSpaceTheme()) {
+export function applyAppTheme(themeId = getAppTheme()) {
   const theme = normalizeAppTheme(themeId);
   document.body.dataset.appTheme = theme;
   persistThemeChoice(theme);
@@ -84,6 +125,19 @@ export function applyAppTheme(themeId = getSpaceTheme()) {
   window.dispatchEvent(new CustomEvent('app-theme-change', { detail: { theme } }));
 }
 
+/** Login / auth — toujours navy, sans écraser le choix persisté. */
+export function applyAuthTheme() {
+  document.body.dataset.appTheme = DEFAULT_APP_THEME;
+  syncBrowserChrome(DEFAULT_APP_THEME);
+  window.dispatchEvent(new CustomEvent('app-theme-change', { detail: { theme: DEFAULT_APP_THEME } }));
+}
+
+export async function setAppTheme(themeId, uid = getCurrentUserUid()) {
+  const ok = await setUserAppTheme(uid, themeId);
+  if (ok) applyAppTheme(normalizeAppTheme(themeId));
+  return ok;
+}
+
 export function initAppTheme() {
-  applyAppTheme(getSpaceTheme());
+  applyAppTheme(getAppTheme());
 }
