@@ -1,0 +1,4030 @@
+/**
+ * DA navy + liquid glass — fond animé, header, bottom nav, cartes accueil.
+ * Actif sur body.app-page[data-app-theme="navy"] (app connectée).
+ */
+body.app-page[data-app-theme="navy"] {
+  --bg: #062045;
+  --surface: rgba(6, 32, 69, 0.52);
+  --surface-strong: rgba(8, 40, 82, 0.6);
+  --surface-border: rgba(255, 255, 255, 0.11);
+  --glass-blur: 14px;
+  --glass-panel-bg: linear-gradient(
+    155deg,
+    rgba(10, 50, 96, 0.58) 0%,
+    rgba(6, 32, 69, 0.52) 48%,
+    rgba(4, 24, 48, 0.56) 100%
+  );
+  --glass-chrome-bg: linear-gradient(
+    180deg,
+    rgba(10, 50, 96, 0.58) 0%,
+    rgba(6, 32, 69, 0.52) 42%,
+    rgba(4, 24, 48, 0.64) 100%
+  );
+  --glass-modal-bg: linear-gradient(
+    165deg,
+    rgba(10, 50, 96, 0.9) 0%,
+    rgba(6, 32, 69, 0.86) 48%,
+    rgba(4, 24, 48, 0.92) 100%
+  );
+  --glass-modal-overlay: rgba(2, 12, 28, 0.72);
+  --surface-modal: rgba(8, 40, 82, 0.84);
+  --map-preview-base: var(--bg);
+  --map-preview-base-mid: #0c4088;
+  --page-bg-grain-opacity: 1;
+  --nav-icon: rgba(255, 255, 255, 0.9);
+  --nav-icon-muted: rgba(255, 255, 255, 0.55);
+  --nav-icon-glow: rgba(255, 255, 255, 0.18);
+
+  background: transparent;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+html:has(body.app-page[data-app-theme="navy"]) {
+  background: #0a3268;
+}
+
+/* ── Fond WebGL + grain ── */
+.page-bg {
+  display: none;
+}
+
+body.app-page[data-app-theme="navy"] .page-bg {
+  display: block;
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: #0a3268;
+}
+
+body.app-page[data-app-theme="navy"] .page-bg-grain {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-width: 100vw;
+  min-height: 100vh;
+  pointer-events: none;
+  opacity: var(--page-bg-grain-opacity);
+  mix-blend-mode: soft-light;
+  filter: url(#page-bg-grain-filter);
+  background: #808080;
+}
+
+body.app-page[data-app-theme="navy"] .page-bg canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: #0a3268;
+}
+
+body.app-page[data-app-theme="navy"] #app-view {
+  position: relative;
+  z-index: 1;
+}
+
+body.app-page[data-app-theme="navy"] #page-header-root,
+body.app-page[data-app-theme="navy"] #bottom-nav-root {
+  position: relative;
+  z-index: 180;
+}
+
+body.app-page[data-app-theme="navy"] #page-root {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Header glass (mobile) ── */
+body.app-page[data-app-theme="navy"] .page-header {
+  background: var(--glass-chrome-bg);
+  backdrop-filter: blur(20px) saturate(1.25);
+  -webkit-backdrop-filter: blur(20px) saturate(1.25);
+  border-bottom: 1px solid var(--surface-border);
+  box-shadow:
+    0 8px 28px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+body.app-page[data-app-theme="navy"] .page-header-mobile-icon {
+  background: var(--bg);
+  box-shadow: var(--neu-up-sm), 0 0 16px var(--nav-icon-glow);
+}
+
+body.app-page[data-app-theme="navy"] .page-header-mobile-icon[data-theme] {
+  color: var(--cat-color);
+  box-shadow: var(--neu-up-sm), 0 0 16px color-mix(in srgb, var(--cat-color) 20%, transparent);
+}
+
+/* ── Bottom nav glass ── */
+body.app-page[data-app-theme="navy"] .bottom-nav-glass {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 620px;
+  height: 142.68px;
+  transform: translateX(-50%) translateY(35px);
+  pointer-events: none;
+  z-index: 0;
+  background: var(--glass-chrome-bg);
+  backdrop-filter: blur(20px) saturate(1.25);
+  -webkit-backdrop-filter: blur(20px) saturate(1.25);
+  box-shadow: 0 -8px 28px rgba(0, 0, 0, 0.32);
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 620 142.68'%3E%3Crect y='24' width='620' height='118.68' fill='black'/%3E%3Cpath d='M310,6c8.1,0,15.57,2.71,21.58,7.28,7.09,5.39,14.94,10.72,23.85,10.72h124.58v64H140V24h124.58c8.91,0,16.76-5.33,23.85-10.72,6.01-4.57,13.48-7.28,21.58-7.28Z' fill='black'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 620 142.68'%3E%3Crect y='24' width='620' height='118.68' fill='black'/%3E%3Cpath d='M310,6c8.1,0,15.57,2.71,21.58,7.28,7.09,5.39,14.94,10.72,23.85,10.72h124.58v64H140V24h124.58c8.91,0,16.76-5.33,23.85-10.72,6.01-4.57,13.48-7.28,21.58-7.28Z' fill='black'/%3E%3C/svg%3E");
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+body.app-page[data-app-theme="navy"] .bottom-nav-shape {
+  color: transparent;
+  filter: drop-shadow(0 -1px 0 rgba(255, 255, 255, 0.12));
+  box-shadow: none;
+}
+
+body.app-page[data-app-theme="navy"] .bottom-nav-bar {
+  background: transparent;
+}
+
+body.app-page[data-app-theme="navy"] .bottom-nav-item .sidebar-link-icon {
+  background: var(--bg);
+  box-shadow: var(--neu-in);
+  color: var(--nav-icon-muted);
+}
+
+body.app-page[data-app-theme="navy"] .bottom-nav-item:hover .sidebar-link-icon {
+  color: var(--nav-icon);
+  background: var(--bg);
+  box-shadow:
+    inset 2px 2px 6px rgba(0, 0, 0, 0.35),
+    inset -1px -1px 4px rgba(255, 255, 255, 0.03),
+    0 0 12px var(--nav-icon-glow);
+}
+
+body.app-page[data-app-theme="navy"] .bottom-nav-item.is-active .sidebar-link-icon {
+  color: var(--nav-icon);
+  background: var(--bg);
+  box-shadow:
+    -3px -3px 8px rgba(255, 255, 255, 0.04),
+    3px 3px 8px rgba(0, 0, 0, 0.4),
+    0 0 14px var(--nav-icon-glow);
+}
+
+body.app-page[data-app-theme="navy"] .bottom-nav-fab {
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: var(--bg);
+  color: var(--nav-icon);
+  box-shadow: var(--neu-up-sm), 0 0 14px var(--nav-icon-glow);
+}
+
+body.app-page[data-app-theme="navy"] .bottom-nav-fab:active,
+body.app-page[data-app-theme="navy"] .bottom-nav-fab.is-pressed {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.35);
+  background: var(--bg);
+  box-shadow: var(--neu-press), 0 0 22px var(--nav-icon-glow);
+  transform: translateX(-50%) scale(0.9);
+}
+
+body.app-page[data-app-theme="navy"] .bottom-nav-fab:active svg,
+body.app-page[data-app-theme="navy"] .bottom-nav-fab.is-pressed svg {
+  transform: rotate(45deg);
+}
+
+body.app-page[data-app-theme="navy"].modal-open .bottom-nav {
+  opacity: 1;
+  pointer-events: none;
+}
+
+body.app-page[data-app-theme="navy"].modal-open .bottom-nav-fab {
+  transform: translateX(-50%) rotate(45deg) scale(0.88);
+  box-shadow: var(--neu-press), 0 0 10px transparent;
+}
+
+body.app-page[data-app-theme="navy"].modal-open .bottom-nav-fab svg {
+  transform: rotate(0deg);
+}
+
+/* ── Carte — chrome liquid glass (search, dock, résultats, feedback) ── */
+body.app-page[data-app-theme="navy"] .map-page .act-cat-panel--map.map-panel {
+  background: var(--glass-panel-bg) !important;
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border-color: var(--surface-border) !important;
+  box-shadow: var(--neu-up-sm);
+}
+
+body.app-page[data-app-theme="navy"] .map-page .act-cat-panel--map .cat-panel-accent {
+  display: none;
+}
+
+body.app-page[data-app-theme="navy"] .map-search-row,
+body.app-page[data-app-theme="navy"] .map-dock,
+body.app-page[data-app-theme="navy"] .map-search-results {
+  background: var(--glass-chrome-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border-color: var(--surface-border);
+  box-shadow: var(--neu-in);
+}
+
+body.app-page[data-app-theme="navy"] .map-locate-feedback:not(.is-error):not(.is-warning) {
+  background: var(--glass-chrome-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border-color: var(--surface-border);
+  box-shadow: var(--neu-up-sm);
+}
+
+body.app-page[data-app-theme="navy"] .map-compass-float {
+  background: var(--glass-chrome-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border-color: var(--surface-border);
+  color: var(--nav-icon);
+  box-shadow: var(--neu-up-sm);
+}
+
+body.app-page[data-app-theme="navy"] .map-search-field,
+body.app-page[data-app-theme="navy"] .map-search-filter:not(.is-active),
+body.app-page[data-app-theme="navy"] .map-dock-btn:not(.is-active) {
+  background: color-mix(in srgb, var(--bg) 68%, transparent);
+  border-color: var(--surface-border);
+}
+
+/* ── Accueil — cartes liquid glass ── */
+body.app-page[data-app-theme="navy"] .home-page .hero-days .days-card-inner,
+body.app-page[data-app-theme="navy"] .home-page .home-nearby-card,
+body.app-page[data-app-theme="navy"] .home-page .home-shortcut,
+body.app-page[data-app-theme="navy"] .home-page .cat-card-inner {
+  background: var(--glass-panel-bg) !important;
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border-color: var(--surface-border) !important;
+}
+
+/* ── Listes catégories (activités, restaurants, voyages, wishlist…) ── */
+body.app-page[data-app-theme="navy"] .activities-page .act-cat-panel:not(.act-cat-panel--map):not(:has(.act-list-group--travel)),
+body.app-page[data-app-theme="navy"] .activities-page .act-pick-card,
+body.app-page[data-app-theme="navy"] .activities-page .act-list-group--travel {
+  background: var(--glass-panel-bg) !important;
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border-color: var(--surface-border) !important;
+  box-shadow: var(--neu-up-sm);
+}
+
+body.app-page[data-app-theme="navy"] .activities-page .act-cat-panel:not(.act-cat-panel--map):not(:has(.act-list-group--travel))::before,
+body.app-page[data-app-theme="navy"] .activities-page .act-list-group--travel::before {
+  display: none;
+}
+
+body.app-page[data-app-theme="navy"] .activities-page .act-cat-panel .cat-panel-accent,
+body.app-page[data-app-theme="navy"] .activities-page .act-pick-card .cat-panel-accent {
+  display: none;
+}
+
+body.app-page[data-app-theme="navy"] .activities-page .act-list-item-inner,
+body.app-page[data-app-theme="navy"] .activities-page .act-category-map-place {
+  background: var(--glass-chrome-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border-color: var(--surface-border);
+  box-shadow: var(--neu-in);
+}
+
+body.app-page[data-app-theme="navy"] .activities-page .act-list-item-inner::before {
+  display: none;
+}
+
+body.app-page[data-app-theme="navy"] .activities-page .act-filter-btn:not(.is-active) {
+  background: color-mix(in srgb, var(--bg) 68%, transparent);
+  border-color: var(--surface-border);
+}
+
+body.app-page[data-app-theme="navy"] .activities-page .act-category-map-control {
+  background: var(--glass-chrome-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border-color: var(--surface-border);
+}
+
+/* Fond legacy layout.css — le shader navy prend le relais */
+body.app-page[data-app-theme="navy"]::before {
+  display: none;
+}
+
+/* ── Modales (ajout, vue, édition, filtres, pickers…) ── */
+body.app-page[data-app-theme="navy"] .add-modal-overlay {
+  background: var(--glass-modal-overlay);
+}
+
+body.app-page[data-app-theme="navy"] .add-modal-overlay.is-active {
+  backdrop-filter: blur(16px) saturate(1.2);
+  -webkit-backdrop-filter: blur(16px) saturate(1.2);
+}
+
+body.app-page[data-app-theme="navy"] .add-modal {
+  --surface: var(--surface-modal);
+  --surface-strong: rgba(10, 50, 96, 0.9);
+  background: var(--glass-modal-bg) !important;
+  backdrop-filter: blur(calc(var(--glass-blur) + 6px)) saturate(1.18);
+  -webkit-backdrop-filter: blur(calc(var(--glass-blur) + 6px)) saturate(1.18);
+  border: 1px solid var(--surface-border);
+}
+
+body.app-page[data-app-theme="navy"] .add-form-footer,
+body.app-page[data-app-theme="navy"] .act-detail-actions,
+body.app-page[data-app-theme="navy"] .filter-modal-actions {
+  background: transparent;
+  border-top-color: var(--surface-border);
+}
+
+body.app-page[data-app-theme="navy"] .add-form-submit,
+body.app-page[data-app-theme="navy"] .map-travel-picker-cta.add-form-submit {
+  height: 50px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--bg) !important;
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  font-weight: 600;
+  box-shadow: 3px 3px 8px rgba(0, 0, 0, 0.4);
+  filter: none;
+  transition:
+    color 0.28s var(--ease-premium),
+    box-shadow 0.28s var(--ease-premium),
+    transform 0.32s var(--ease-out-expo);
+}
+
+body.app-page[data-app-theme="navy"] .add-form-submit:hover,
+body.app-page[data-app-theme="navy"] .map-travel-picker-cta.add-form-submit:hover {
+  color: var(--text-primary);
+  filter: none;
+  background: var(--bg) !important;
+}
+
+body.app-page[data-app-theme="navy"] .add-form-submit:active,
+body.app-page[data-app-theme="navy"] .map-travel-picker-cta.add-form-submit:active {
+  box-shadow: inset 3px 3px 8px rgba(0, 0, 0, 0.45);
+  transform: scale(0.94);
+  background: var(--bg) !important;
+}
+
+body.app-page[data-app-theme="navy"] .add-form-submit:focus-visible,
+body.app-page[data-app-theme="navy"] .map-travel-picker-cta.add-form-submit:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--text-primary) 35%, transparent);
+  outline-offset: 2px;
+}
+
+/* Vue détail — boutons éditer / supprimer alignés sur le style Enregistrer */
+body.app-page[data-app-theme="navy"] .act-detail-btn--edit {
+  color: var(--text-secondary);
+  background: var(--bg) !important;
+  box-shadow: 3px 3px 8px rgba(0, 0, 0, 0.4);
+}
+
+body.app-page[data-app-theme="navy"] .act-detail-btn--edit:not(:disabled):hover {
+  color: var(--text-primary);
+  filter: none;
+  background: var(--bg) !important;
+}
+
+body.app-page[data-app-theme="navy"] .act-detail-btn--edit:not(:disabled):active {
+  box-shadow: inset 3px 3px 8px rgba(0, 0, 0, 0.45);
+  transform: scale(0.94);
+}
+
+body.app-page[data-app-theme="navy"] .act-detail-btn--move-pin {
+  color: var(--cat-on-accent, #0c1a22);
+  background: linear-gradient(
+    135deg,
+    var(--cat-color) 0%,
+    var(--cat-color-deep, color-mix(in srgb, var(--cat-color) 75%, #000)) 100%
+  ) !important;
+  box-shadow:
+    var(--neu-up-sm),
+    0 0 18px color-mix(in srgb, var(--cat-glow, var(--cat-color)) 50%, transparent);
+  filter: none;
+}
+
+body.app-page[data-app-theme="navy"] .act-detail-btn--move-pin:not(:disabled):hover {
+  color: var(--cat-on-accent, #0c1a22);
+  filter: brightness(1.05);
+  background: linear-gradient(
+    135deg,
+    var(--cat-color) 0%,
+    var(--cat-color-deep, color-mix(in srgb, var(--cat-color) 75%, #000)) 100%
+  ) !important;
+  box-shadow:
+    var(--neu-up-sm),
+    0 0 22px color-mix(in srgb, var(--cat-glow, var(--cat-color)) 62%, transparent);
+}
+
+body.app-page[data-app-theme="navy"] .act-detail-btn--move-pin:not(:disabled):active {
+  box-shadow: var(--neu-press);
+  transform: scale(0.94);
+  filter: none;
+}
+
+body.app-page[data-app-theme="navy"] .act-detail-btn--delete {
+  color: #ff9a9a;
+  background: var(--bg) !important;
+  box-shadow: 3px 3px 8px rgba(0, 0, 0, 0.4);
+}
+
+body.app-page[data-app-theme="navy"] .act-detail-btn--delete:not(:disabled):hover {
+  color: #ffb4b4;
+  background: var(--bg) !important;
+}
+
+body.app-page[data-app-theme="navy"] .filter-reset-btn,
+body.app-page[data-app-theme="navy"] .filter-apply-btn {
+  color: var(--text-secondary);
+  background: var(--bg) !important;
+  box-shadow: 3px 3px 8px rgba(0, 0, 0, 0.4);
+  filter: none;
+}
+
+body.app-page[data-app-theme="navy"] .filter-reset-btn:hover,
+body.app-page[data-app-theme="navy"] .filter-apply-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg) !important;
+}
+
+body.app-page[data-app-theme="navy"] .filter-reset-btn:active,
+body.app-page[data-app-theme="navy"] .filter-apply-btn:active {
+  box-shadow: inset 3px 3px 8px rgba(0, 0, 0, 0.45);
+  transform: scale(0.94);
+}
+
+/* ── Profil — liquid glass navy (sans teinte / bordure catégorie) ── */
+body.app-page[data-app-theme="navy"] .settings-page .settings-panel-inner,
+body.app-page[data-app-theme="navy"] .settings-page .settings-menu,
+body.app-page[data-app-theme="navy"] .settings-page .settings-profile-side-card {
+  background: var(--glass-panel-bg) !important;
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border: 1px solid var(--surface-border) !important;
+  box-shadow: var(--neu-up-sm);
+}
+
+body.app-page[data-app-theme="navy"] .settings-page .settings-panel-inner::before {
+  display: none;
+}
+
+body.app-page[data-app-theme="navy"] .settings-page .settings-section--love .settings-panel-inner {
+  background: var(--glass-panel-bg) !important;
+  border-color: var(--surface-border) !important;
+}
+
+body.app-page[data-app-theme="navy"] .settings-page .cat-panel-accent {
+  display: none;
+}
+
+body.app-page[data-app-theme="navy"] .settings-page .settings-menu-link:hover:not(.is-disabled) {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+body.app-page[data-app-theme="navy"] .settings-page .settings-menu-link:active:not(.is-disabled) {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+body.app-page[data-app-theme="navy"] .settings-page .settings-profile-side-card:hover {
+  border-color: var(--surface-border) !important;
+  box-shadow: var(--neu-up-sm);
+}
+
+body.app-page[data-app-theme="navy"] .settings-page .settings-profile-side-card:active {
+  box-shadow: var(--neu-press);
+}
+
+body.app-page[data-app-theme="navy"] .settings-page #settings-avatar-change.has-animal {
+  border-color: var(--surface-border) !important;
+  box-shadow: var(--neu-up-sm);
+}
+
+body.app-page[data-app-theme="navy"] .settings-page .settings-menu-icon {
+  color: var(--nav-icon);
+  background: var(--bg);
+  border: 1px solid var(--surface-border);
+  box-shadow: var(--neu-in);
+}
+
+body.app-page[data-app-theme="navy"] .settings-page .settings-profile-side-card-icon,
+body.app-page[data-app-theme="navy"] .settings-page .settings-profile-side-card--love .settings-profile-side-card-icon {
+  color: var(--nav-icon);
+  background: var(--bg);
+  border: 1px solid var(--surface-border);
+  box-shadow: var(--neu-in);
+}
+
+body.app-page[data-app-theme="navy"] .settings-page .settings-row-leading {
+  color: var(--nav-icon);
+  background: var(--bg);
+  border: 1px solid var(--surface-border);
+  box-shadow: var(--neu-in);
+}
+
+body.app-page[data-app-theme="navy"] .settings-page .settings-member.is-you {
+  border-color: var(--surface-border);
+  box-shadow: var(--neu-in);
+}
+
+body.app-page[data-app-theme="navy"] .settings-page .settings-member.is-partner {
+  border-color: var(--surface-border);
+}
+
+body.app-page[data-app-theme="navy"] .settings-page .settings-member-badge {
+  color: var(--text-secondary);
+}
+
+body.app-page[data-app-theme="navy"] .settings-page .settings-theme-card {
+  background: var(--glass-chrome-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border-color: var(--surface-border);
+  box-shadow: var(--neu-in);
+}
+
+body.app-page[data-app-theme="navy"] .settings-page .settings-theme-card:hover {
+  box-shadow: var(--neu-in), 0 4px 16px rgba(0, 0, 0, 0.18);
+}
+
+body.app-page[data-app-theme="navy"] .settings-page .settings-theme-card.is-selected {
+  border-color: rgba(255, 255, 255, 0.22);
+  box-shadow:
+    var(--neu-in),
+    0 0 20px rgba(47, 102, 148, 0.28);
+}
+
+body.app-page[data-app-theme="navy"] .settings-page .settings-theme-check {
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.92);
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   DA orange foncé + liquid glass — base red cherry, accent #ff5005
+   ══════════════════════════════════════════════════════════════════ */
+body.app-page[data-app-theme="orange"] {
+  --bg: var(--red-cherry);
+  --surface: rgba(50, 18, 8, 0.52);
+  --surface-strong: rgba(58, 20, 8, 0.6);
+  --surface-border: rgba(255, 255, 255, 0.11);
+  --glass-blur: 14px;
+  --glass-panel-bg: linear-gradient(
+    155deg,
+    rgba(90, 32, 12, 0.58) 0%,
+    rgba(50, 18, 8, 0.52) 48%,
+    rgba(36, 12, 5, 0.56) 100%
+  );
+  --glass-chrome-bg: linear-gradient(
+    180deg,
+    rgba(90, 32, 12, 0.58) 0%,
+    rgba(50, 18, 8, 0.52) 42%,
+    rgba(36, 12, 5, 0.64) 100%
+  );
+  --glass-modal-bg: linear-gradient(
+    165deg,
+    rgba(90, 32, 12, 0.9) 0%,
+    rgba(50, 18, 8, 0.86) 48%,
+    rgba(36, 12, 5, 0.92) 100%
+  );
+  --glass-modal-overlay: rgba(40, 12, 2, 0.72);
+  --surface-modal: rgba(58, 20, 8, 0.84);
+  --map-preview-base: var(--bg);
+  --map-preview-base-mid: #6a2410;
+  --page-bg-grain-opacity: 1;
+  --nav-icon: rgba(255, 255, 255, 0.9);
+  --nav-icon-muted: rgba(255, 255, 255, 0.55);
+  --nav-icon-glow: rgba(255, 80, 5, 0.16);
+
+  background: transparent;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+html:has(body.app-page[data-app-theme="orange"]) {
+  background: #4a1808;
+}
+
+/* ── Fond WebGL + grain ── */
+.page-bg {
+  display: none;
+}
+
+body.app-page[data-app-theme="orange"] .page-bg {
+  display: block;
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: #4a1808;
+}
+
+body.app-page[data-app-theme="orange"] .page-bg-grain {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-width: 100vw;
+  min-height: 100vh;
+  pointer-events: none;
+  opacity: var(--page-bg-grain-opacity);
+  mix-blend-mode: soft-light;
+  filter: url(#page-bg-grain-filter);
+  background: #808080;
+}
+
+body.app-page[data-app-theme="orange"] .page-bg canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: #4a1808;
+}
+
+body.app-page[data-app-theme="orange"] #app-view {
+  position: relative;
+  z-index: 1;
+}
+
+body.app-page[data-app-theme="orange"] #page-header-root,
+body.app-page[data-app-theme="orange"] #bottom-nav-root {
+  position: relative;
+  z-index: 180;
+}
+
+body.app-page[data-app-theme="orange"] #page-root {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Header glass (mobile) ── */
+body.app-page[data-app-theme="orange"] .page-header {
+  background: var(--glass-chrome-bg);
+  backdrop-filter: blur(20px) saturate(1.25);
+  -webkit-backdrop-filter: blur(20px) saturate(1.25);
+  border-bottom: 1px solid var(--surface-border);
+  box-shadow:
+    0 8px 28px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+body.app-page[data-app-theme="orange"] .page-header-mobile-icon {
+  background: var(--bg);
+  box-shadow: var(--neu-up-sm), 0 0 16px var(--nav-icon-glow);
+}
+
+body.app-page[data-app-theme="orange"] .page-header-mobile-icon[data-theme] {
+  color: var(--cat-color);
+  box-shadow: var(--neu-up-sm), 0 0 16px color-mix(in srgb, var(--cat-color) 20%, transparent);
+}
+
+/* ── Bottom nav glass ── */
+body.app-page[data-app-theme="orange"] .bottom-nav-glass {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 620px;
+  height: 142.68px;
+  transform: translateX(-50%) translateY(35px);
+  pointer-events: none;
+  z-index: 0;
+  background: var(--glass-chrome-bg);
+  backdrop-filter: blur(20px) saturate(1.25);
+  -webkit-backdrop-filter: blur(20px) saturate(1.25);
+  box-shadow: 0 -8px 28px rgba(0, 0, 0, 0.32);
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 620 142.68'%3E%3Crect y='24' width='620' height='118.68' fill='black'/%3E%3Cpath d='M310,6c8.1,0,15.57,2.71,21.58,7.28,7.09,5.39,14.94,10.72,23.85,10.72h124.58v64H140V24h124.58c8.91,0,16.76-5.33,23.85-10.72,6.01-4.57,13.48-7.28,21.58-7.28Z' fill='black'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 620 142.68'%3E%3Crect y='24' width='620' height='118.68' fill='black'/%3E%3Cpath d='M310,6c8.1,0,15.57,2.71,21.58,7.28,7.09,5.39,14.94,10.72,23.85,10.72h124.58v64H140V24h124.58c8.91,0,16.76-5.33,23.85-10.72,6.01-4.57,13.48-7.28,21.58-7.28Z' fill='black'/%3E%3C/svg%3E");
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+body.app-page[data-app-theme="orange"] .bottom-nav-shape {
+  color: transparent;
+  filter: drop-shadow(0 -1px 0 rgba(255, 255, 255, 0.12));
+  box-shadow: none;
+}
+
+body.app-page[data-app-theme="orange"] .bottom-nav-bar {
+  background: transparent;
+}
+
+body.app-page[data-app-theme="orange"] .bottom-nav-item .sidebar-link-icon {
+  background: var(--bg);
+  box-shadow: var(--neu-in);
+  color: var(--nav-icon-muted);
+}
+
+body.app-page[data-app-theme="orange"] .bottom-nav-item:hover .sidebar-link-icon {
+  color: var(--nav-icon);
+  background: var(--bg);
+  box-shadow:
+    inset 2px 2px 6px rgba(0, 0, 0, 0.35),
+    inset -1px -1px 4px rgba(255, 255, 255, 0.03),
+    0 0 12px var(--nav-icon-glow);
+}
+
+body.app-page[data-app-theme="orange"] .bottom-nav-item.is-active .sidebar-link-icon {
+  color: var(--nav-icon);
+  background: var(--bg);
+  box-shadow:
+    -3px -3px 8px rgba(255, 255, 255, 0.04),
+    3px 3px 8px rgba(0, 0, 0, 0.4),
+    0 0 14px var(--nav-icon-glow);
+}
+
+body.app-page[data-app-theme="orange"] .bottom-nav-fab {
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: var(--bg);
+  color: var(--nav-icon);
+  box-shadow: var(--neu-up-sm), 0 0 14px var(--nav-icon-glow);
+}
+
+body.app-page[data-app-theme="orange"] .bottom-nav-fab:active,
+body.app-page[data-app-theme="orange"] .bottom-nav-fab.is-pressed {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.35);
+  background: var(--bg);
+  box-shadow: var(--neu-press), 0 0 22px var(--nav-icon-glow);
+  transform: translateX(-50%) scale(0.9);
+}
+
+body.app-page[data-app-theme="orange"] .bottom-nav-fab:active svg,
+body.app-page[data-app-theme="orange"] .bottom-nav-fab.is-pressed svg {
+  transform: rotate(45deg);
+}
+
+body.app-page[data-app-theme="orange"].modal-open .bottom-nav {
+  opacity: 1;
+  pointer-events: none;
+}
+
+body.app-page[data-app-theme="orange"].modal-open .bottom-nav-fab {
+  transform: translateX(-50%) rotate(45deg) scale(0.88);
+  box-shadow: var(--neu-press), 0 0 10px transparent;
+}
+
+body.app-page[data-app-theme="orange"].modal-open .bottom-nav-fab svg {
+  transform: rotate(0deg);
+}
+
+/* ── Carte — chrome liquid glass (search, dock, résultats, feedback) ── */
+body.app-page[data-app-theme="orange"] .map-page .act-cat-panel--map.map-panel {
+  background: var(--glass-panel-bg) !important;
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border-color: var(--surface-border) !important;
+  box-shadow: var(--neu-up-sm);
+}
+
+body.app-page[data-app-theme="orange"] .map-page .act-cat-panel--map .cat-panel-accent {
+  display: none;
+}
+
+body.app-page[data-app-theme="orange"] .map-search-row,
+body.app-page[data-app-theme="orange"] .map-dock,
+body.app-page[data-app-theme="orange"] .map-search-results {
+  background: var(--glass-chrome-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border-color: var(--surface-border);
+  box-shadow: var(--neu-in);
+}
+
+body.app-page[data-app-theme="orange"] .map-locate-feedback:not(.is-error):not(.is-warning) {
+  background: var(--glass-chrome-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border-color: var(--surface-border);
+  box-shadow: var(--neu-up-sm);
+}
+
+body.app-page[data-app-theme="orange"] .map-compass-float {
+  background: var(--glass-chrome-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border-color: var(--surface-border);
+  color: var(--nav-icon);
+  box-shadow: var(--neu-up-sm);
+}
+
+body.app-page[data-app-theme="orange"] .map-search-field,
+body.app-page[data-app-theme="orange"] .map-search-filter:not(.is-active),
+body.app-page[data-app-theme="orange"] .map-dock-btn:not(.is-active) {
+  background: color-mix(in srgb, var(--bg) 68%, transparent);
+  border-color: var(--surface-border);
+}
+
+/* ── Accueil — cartes liquid glass ── */
+body.app-page[data-app-theme="orange"] .home-page .hero-days .days-card-inner,
+body.app-page[data-app-theme="orange"] .home-page .home-nearby-card,
+body.app-page[data-app-theme="orange"] .home-page .home-shortcut,
+body.app-page[data-app-theme="orange"] .home-page .cat-card-inner {
+  background: var(--glass-panel-bg) !important;
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border-color: var(--surface-border) !important;
+}
+
+/* ── Listes catégories (activités, restaurants, voyages, wishlist…) ── */
+body.app-page[data-app-theme="orange"] .activities-page .act-cat-panel:not(.act-cat-panel--map):not(:has(.act-list-group--travel)),
+body.app-page[data-app-theme="orange"] .activities-page .act-pick-card,
+body.app-page[data-app-theme="orange"] .activities-page .act-list-group--travel {
+  background: var(--glass-panel-bg) !important;
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border-color: var(--surface-border) !important;
+  box-shadow: var(--neu-up-sm);
+}
+
+body.app-page[data-app-theme="orange"] .activities-page .act-cat-panel:not(.act-cat-panel--map):not(:has(.act-list-group--travel))::before,
+body.app-page[data-app-theme="orange"] .activities-page .act-list-group--travel::before {
+  display: none;
+}
+
+body.app-page[data-app-theme="orange"] .activities-page .act-cat-panel .cat-panel-accent,
+body.app-page[data-app-theme="orange"] .activities-page .act-pick-card .cat-panel-accent {
+  display: none;
+}
+
+body.app-page[data-app-theme="orange"] .activities-page .act-list-item-inner,
+body.app-page[data-app-theme="orange"] .activities-page .act-category-map-place {
+  background: var(--glass-chrome-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border-color: var(--surface-border);
+  box-shadow: var(--neu-in);
+}
+
+body.app-page[data-app-theme="orange"] .activities-page .act-list-item-inner::before {
+  display: none;
+}
+
+body.app-page[data-app-theme="orange"] .activities-page .act-filter-btn:not(.is-active) {
+  background: color-mix(in srgb, var(--bg) 68%, transparent);
+  border-color: var(--surface-border);
+}
+
+body.app-page[data-app-theme="orange"] .activities-page .act-category-map-control {
+  background: var(--glass-chrome-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border-color: var(--surface-border);
+}
+
+/* Fond legacy layout.css — le shader navy prend le relais */
+body.app-page[data-app-theme="orange"]::before {
+  display: none;
+}
+
+/* ── Modales (ajout, vue, édition, filtres, pickers…) ── */
+body.app-page[data-app-theme="orange"] .add-modal-overlay {
+  background: var(--glass-modal-overlay);
+}
+
+body.app-page[data-app-theme="orange"] .add-modal-overlay.is-active {
+  backdrop-filter: blur(16px) saturate(1.2);
+  -webkit-backdrop-filter: blur(16px) saturate(1.2);
+}
+
+body.app-page[data-app-theme="orange"] .add-modal {
+  --surface: var(--surface-modal);
+  --surface-strong: rgba(90, 32, 12, 0.9);
+  background: var(--glass-modal-bg) !important;
+  backdrop-filter: blur(calc(var(--glass-blur) + 6px)) saturate(1.18);
+  -webkit-backdrop-filter: blur(calc(var(--glass-blur) + 6px)) saturate(1.18);
+  border: 1px solid var(--surface-border);
+}
+
+body.app-page[data-app-theme="orange"] .add-form-footer,
+body.app-page[data-app-theme="orange"] .act-detail-actions,
+body.app-page[data-app-theme="orange"] .filter-modal-actions {
+  background: transparent;
+  border-top-color: var(--surface-border);
+}
+
+body.app-page[data-app-theme="orange"] .add-form-submit,
+body.app-page[data-app-theme="orange"] .map-travel-picker-cta.add-form-submit {
+  height: 50px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--bg) !important;
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  font-weight: 600;
+  box-shadow: 3px 3px 8px rgba(0, 0, 0, 0.4);
+  filter: none;
+  transition:
+    color 0.28s var(--ease-premium),
+    box-shadow 0.28s var(--ease-premium),
+    transform 0.32s var(--ease-out-expo);
+}
+
+body.app-page[data-app-theme="orange"] .add-form-submit:hover,
+body.app-page[data-app-theme="orange"] .map-travel-picker-cta.add-form-submit:hover {
+  color: var(--text-primary);
+  filter: none;
+  background: var(--bg) !important;
+}
+
+body.app-page[data-app-theme="orange"] .add-form-submit:active,
+body.app-page[data-app-theme="orange"] .map-travel-picker-cta.add-form-submit:active {
+  box-shadow: inset 3px 3px 8px rgba(0, 0, 0, 0.45);
+  transform: scale(0.94);
+  background: var(--bg) !important;
+}
+
+body.app-page[data-app-theme="orange"] .add-form-submit:focus-visible,
+body.app-page[data-app-theme="orange"] .map-travel-picker-cta.add-form-submit:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--text-primary) 35%, transparent);
+  outline-offset: 2px;
+}
+
+/* Vue détail — boutons éditer / supprimer alignés sur le style Enregistrer */
+body.app-page[data-app-theme="orange"] .act-detail-btn--edit {
+  color: var(--text-secondary);
+  background: var(--bg) !important;
+  box-shadow: 3px 3px 8px rgba(0, 0, 0, 0.4);
+}
+
+body.app-page[data-app-theme="orange"] .act-detail-btn--edit:not(:disabled):hover {
+  color: var(--text-primary);
+  filter: none;
+  background: var(--bg) !important;
+}
+
+body.app-page[data-app-theme="orange"] .act-detail-btn--edit:not(:disabled):active {
+  box-shadow: inset 3px 3px 8px rgba(0, 0, 0, 0.45);
+  transform: scale(0.94);
+}
+
+body.app-page[data-app-theme="orange"] .act-detail-btn--move-pin {
+  color: var(--cat-on-accent, #0c1a22);
+  background: linear-gradient(
+    135deg,
+    var(--cat-color) 0%,
+    var(--cat-color-deep, color-mix(in srgb, var(--cat-color) 75%, #000)) 100%
+  ) !important;
+  box-shadow:
+    var(--neu-up-sm),
+    0 0 18px color-mix(in srgb, var(--cat-glow, var(--cat-color)) 50%, transparent);
+  filter: none;
+}
+
+body.app-page[data-app-theme="orange"] .act-detail-btn--move-pin:not(:disabled):hover {
+  color: var(--cat-on-accent, #0c1a22);
+  filter: brightness(1.05);
+  background: linear-gradient(
+    135deg,
+    var(--cat-color) 0%,
+    var(--cat-color-deep, color-mix(in srgb, var(--cat-color) 75%, #000)) 100%
+  ) !important;
+  box-shadow:
+    var(--neu-up-sm),
+    0 0 22px color-mix(in srgb, var(--cat-glow, var(--cat-color)) 62%, transparent);
+}
+
+body.app-page[data-app-theme="orange"] .act-detail-btn--move-pin:not(:disabled):active {
+  box-shadow: var(--neu-press);
+  transform: scale(0.94);
+  filter: none;
+}
+
+body.app-page[data-app-theme="orange"] .act-detail-btn--delete {
+  color: #ff9a9a;
+  background: var(--bg) !important;
+  box-shadow: 3px 3px 8px rgba(0, 0, 0, 0.4);
+}
+
+body.app-page[data-app-theme="orange"] .act-detail-btn--delete:not(:disabled):hover {
+  color: #ffb4b4;
+  background: var(--bg) !important;
+}
+
+body.app-page[data-app-theme="orange"] .filter-reset-btn,
+body.app-page[data-app-theme="orange"] .filter-apply-btn {
+  color: var(--text-secondary);
+  background: var(--bg) !important;
+  box-shadow: 3px 3px 8px rgba(0, 0, 0, 0.4);
+  filter: none;
+}
+
+body.app-page[data-app-theme="orange"] .filter-reset-btn:hover,
+body.app-page[data-app-theme="orange"] .filter-apply-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg) !important;
+}
+
+body.app-page[data-app-theme="orange"] .filter-reset-btn:active,
+body.app-page[data-app-theme="orange"] .filter-apply-btn:active {
+  box-shadow: inset 3px 3px 8px rgba(0, 0, 0, 0.45);
+  transform: scale(0.94);
+}
+
+/* ── Profil — liquid glass navy (sans teinte / bordure catégorie) ── */
+body.app-page[data-app-theme="orange"] .settings-page .settings-panel-inner,
+body.app-page[data-app-theme="orange"] .settings-page .settings-menu,
+body.app-page[data-app-theme="orange"] .settings-page .settings-profile-side-card {
+  background: var(--glass-panel-bg) !important;
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border: 1px solid var(--surface-border) !important;
+  box-shadow: var(--neu-up-sm);
+}
+
+body.app-page[data-app-theme="orange"] .settings-page .settings-panel-inner::before {
+  display: none;
+}
+
+body.app-page[data-app-theme="orange"] .settings-page .settings-section--love .settings-panel-inner {
+  background: var(--glass-panel-bg) !important;
+  border-color: var(--surface-border) !important;
+}
+
+body.app-page[data-app-theme="orange"] .settings-page .cat-panel-accent {
+  display: none;
+}
+
+body.app-page[data-app-theme="orange"] .settings-page .settings-menu-link:hover:not(.is-disabled) {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+body.app-page[data-app-theme="orange"] .settings-page .settings-menu-link:active:not(.is-disabled) {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+body.app-page[data-app-theme="orange"] .settings-page .settings-profile-side-card:hover {
+  border-color: var(--surface-border) !important;
+  box-shadow: var(--neu-up-sm);
+}
+
+body.app-page[data-app-theme="orange"] .settings-page .settings-profile-side-card:active {
+  box-shadow: var(--neu-press);
+}
+
+body.app-page[data-app-theme="orange"] .settings-page #settings-avatar-change.has-animal {
+  border-color: var(--surface-border) !important;
+  box-shadow: var(--neu-up-sm);
+}
+
+body.app-page[data-app-theme="orange"] .settings-page .settings-menu-icon {
+  color: var(--nav-icon);
+  background: var(--bg);
+  border: 1px solid var(--surface-border);
+  box-shadow: var(--neu-in);
+}
+
+body.app-page[data-app-theme="orange"] .settings-page .settings-profile-side-card-icon,
+body.app-page[data-app-theme="orange"] .settings-page .settings-profile-side-card--love .settings-profile-side-card-icon {
+  color: var(--nav-icon);
+  background: var(--bg);
+  border: 1px solid var(--surface-border);
+  box-shadow: var(--neu-in);
+}
+
+body.app-page[data-app-theme="orange"] .settings-page .settings-row-leading {
+  color: var(--nav-icon);
+  background: var(--bg);
+  border: 1px solid var(--surface-border);
+  box-shadow: var(--neu-in);
+}
+
+body.app-page[data-app-theme="orange"] .settings-page .settings-member.is-you {
+  border-color: var(--surface-border);
+  box-shadow: var(--neu-in);
+}
+
+body.app-page[data-app-theme="orange"] .settings-page .settings-member.is-partner {
+  border-color: var(--surface-border);
+}
+
+body.app-page[data-app-theme="orange"] .settings-page .settings-member-badge {
+  color: var(--text-secondary);
+}
+
+body.app-page[data-app-theme="orange"] .settings-page .settings-theme-card {
+  background: var(--glass-chrome-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border-color: var(--surface-border);
+  box-shadow: var(--neu-in);
+}
+
+body.app-page[data-app-theme="orange"] .settings-page .settings-theme-card:hover {
+  box-shadow: var(--neu-in), 0 4px 16px rgba(0, 0, 0, 0.18);
+}
+
+body.app-page[data-app-theme="orange"] .settings-page .settings-theme-card.is-selected {
+  border-color: rgba(255, 255, 255, 0.22);
+  box-shadow:
+    var(--neu-in),
+    0 0 20px rgba(255, 80, 5, 0.22);
+}
+
+body.app-page[data-app-theme="orange"] .settings-page .settings-theme-check {
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.92);
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   DA orange brûlé + liquid glass — base sunset, accent #ff5005
+   ══════════════════════════════════════════════════════════════════ */
+body.app-page[data-app-theme="sunset"] {
+  --bg: var(--sunset-bg);
+  --surface: rgba(138, 58, 12, 0.52);
+  --surface-strong: rgba(148, 64, 14, 0.6);
+  --surface-border: rgba(255, 255, 255, 0.11);
+  --glass-blur: 14px;
+  --glass-panel-bg: linear-gradient(
+    155deg,
+    rgba(180, 85, 22, 0.58) 0%,
+    rgba(138, 58, 12, 0.52) 48%,
+    rgba(105, 42, 8, 0.56) 100%
+  );
+  --glass-chrome-bg: linear-gradient(
+    180deg,
+    rgba(180, 85, 22, 0.58) 0%,
+    rgba(138, 58, 12, 0.52) 42%,
+    rgba(105, 42, 8, 0.64) 100%
+  );
+  --glass-modal-bg: linear-gradient(
+    165deg,
+    rgba(180, 85, 22, 0.9) 0%,
+    rgba(138, 58, 12, 0.86) 48%,
+    rgba(105, 42, 8, 0.92) 100%
+  );
+  --glass-modal-overlay: rgba(85, 34, 4, 0.72);
+  --surface-modal: rgba(148, 64, 14, 0.84);
+  --map-preview-base: var(--bg);
+  --map-preview-base-mid: #d06822;
+  --page-bg-grain-opacity: 1;
+  --nav-icon: rgba(255, 255, 255, 0.9);
+  --nav-icon-muted: rgba(255, 255, 255, 0.55);
+  --nav-icon-glow: rgba(255, 80, 5, 0.16);
+
+  background: transparent;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+html:has(body.app-page[data-app-theme="sunset"]) {
+  background: #b85014;
+}
+
+/* ── Fond WebGL + grain ── */
+.page-bg {
+  display: none;
+}
+
+body.app-page[data-app-theme="sunset"] .page-bg {
+  display: block;
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: #b85014;
+}
+
+body.app-page[data-app-theme="sunset"] .page-bg-grain {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-width: 100vw;
+  min-height: 100vh;
+  pointer-events: none;
+  opacity: var(--page-bg-grain-opacity);
+  mix-blend-mode: soft-light;
+  filter: url(#page-bg-grain-filter);
+  background: #808080;
+}
+
+body.app-page[data-app-theme="sunset"] .page-bg canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: #b85014;
+}
+
+body.app-page[data-app-theme="sunset"] #app-view {
+  position: relative;
+  z-index: 1;
+}
+
+body.app-page[data-app-theme="sunset"] #page-header-root,
+body.app-page[data-app-theme="sunset"] #bottom-nav-root {
+  position: relative;
+  z-index: 180;
+}
+
+body.app-page[data-app-theme="sunset"] #page-root {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Header glass (mobile) ── */
+body.app-page[data-app-theme="sunset"] .page-header {
+  background: var(--glass-chrome-bg);
+  backdrop-filter: blur(20px) saturate(1.25);
+  -webkit-backdrop-filter: blur(20px) saturate(1.25);
+  border-bottom: 1px solid var(--surface-border);
+  box-shadow:
+    0 8px 28px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+body.app-page[data-app-theme="sunset"] .page-header-mobile-icon {
+  background: var(--bg);
+  box-shadow: var(--neu-up-sm), 0 0 16px var(--nav-icon-glow);
+}
+
+body.app-page[data-app-theme="sunset"] .page-header-mobile-icon[data-theme] {
+  color: var(--cat-color);
+  box-shadow: var(--neu-up-sm), 0 0 16px color-mix(in srgb, var(--cat-color) 20%, transparent);
+}
+
+/* ── Bottom nav glass ── */
+body.app-page[data-app-theme="sunset"] .bottom-nav-glass {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 620px;
+  height: 142.68px;
+  transform: translateX(-50%) translateY(35px);
+  pointer-events: none;
+  z-index: 0;
+  background: var(--glass-chrome-bg);
+  backdrop-filter: blur(20px) saturate(1.25);
+  -webkit-backdrop-filter: blur(20px) saturate(1.25);
+  box-shadow: 0 -8px 28px rgba(0, 0, 0, 0.32);
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 620 142.68'%3E%3Crect y='24' width='620' height='118.68' fill='black'/%3E%3Cpath d='M310,6c8.1,0,15.57,2.71,21.58,7.28,7.09,5.39,14.94,10.72,23.85,10.72h124.58v64H140V24h124.58c8.91,0,16.76-5.33,23.85-10.72,6.01-4.57,13.48-7.28,21.58-7.28Z' fill='black'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 620 142.68'%3E%3Crect y='24' width='620' height='118.68' fill='black'/%3E%3Cpath d='M310,6c8.1,0,15.57,2.71,21.58,7.28,7.09,5.39,14.94,10.72,23.85,10.72h124.58v64H140V24h124.58c8.91,0,16.76-5.33,23.85-10.72,6.01-4.57,13.48-7.28,21.58-7.28Z' fill='black'/%3E%3C/svg%3E");
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+body.app-page[data-app-theme="sunset"] .bottom-nav-shape {
+  color: transparent;
+  filter: drop-shadow(0 -1px 0 rgba(255, 255, 255, 0.12));
+  box-shadow: none;
+}
+
+body.app-page[data-app-theme="sunset"] .bottom-nav-bar {
+  background: transparent;
+}
+
+body.app-page[data-app-theme="sunset"] .bottom-nav-item .sidebar-link-icon {
+  background: var(--bg);
+  box-shadow: var(--neu-in);
+  color: var(--nav-icon-muted);
+}
+
+body.app-page[data-app-theme="sunset"] .bottom-nav-item:hover .sidebar-link-icon {
+  color: var(--nav-icon);
+  background: var(--bg);
+  box-shadow:
+    inset 2px 2px 6px rgba(0, 0, 0, 0.35),
+    inset -1px -1px 4px rgba(255, 255, 255, 0.03),
+    0 0 12px var(--nav-icon-glow);
+}
+
+body.app-page[data-app-theme="sunset"] .bottom-nav-item.is-active .sidebar-link-icon {
+  color: var(--nav-icon);
+  background: var(--bg);
+  box-shadow:
+    -3px -3px 8px rgba(255, 255, 255, 0.04),
+    3px 3px 8px rgba(0, 0, 0, 0.4),
+    0 0 14px var(--nav-icon-glow);
+}
+
+body.app-page[data-app-theme="sunset"] .bottom-nav-fab {
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: var(--bg);
+  color: var(--nav-icon);
+  box-shadow: var(--neu-up-sm), 0 0 14px var(--nav-icon-glow);
+}
+
+body.app-page[data-app-theme="sunset"] .bottom-nav-fab:active,
+body.app-page[data-app-theme="sunset"] .bottom-nav-fab.is-pressed {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.35);
+  background: var(--bg);
+  box-shadow: var(--neu-press), 0 0 22px var(--nav-icon-glow);
+  transform: translateX(-50%) scale(0.9);
+}
+
+body.app-page[data-app-theme="sunset"] .bottom-nav-fab:active svg,
+body.app-page[data-app-theme="sunset"] .bottom-nav-fab.is-pressed svg {
+  transform: rotate(45deg);
+}
+
+body.app-page[data-app-theme="sunset"].modal-open .bottom-nav {
+  opacity: 1;
+  pointer-events: none;
+}
+
+body.app-page[data-app-theme="sunset"].modal-open .bottom-nav-fab {
+  transform: translateX(-50%) rotate(45deg) scale(0.88);
+  box-shadow: var(--neu-press), 0 0 10px transparent;
+}
+
+body.app-page[data-app-theme="sunset"].modal-open .bottom-nav-fab svg {
+  transform: rotate(0deg);
+}
+
+/* ── Carte — chrome liquid glass (search, dock, résultats, feedback) ── */
+body.app-page[data-app-theme="sunset"] .map-page .act-cat-panel--map.map-panel {
+  background: var(--glass-panel-bg) !important;
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border-color: var(--surface-border) !important;
+  box-shadow: var(--neu-up-sm);
+}
+
+body.app-page[data-app-theme="sunset"] .map-page .act-cat-panel--map .cat-panel-accent {
+  display: none;
+}
+
+body.app-page[data-app-theme="sunset"] .map-search-row,
+body.app-page[data-app-theme="sunset"] .map-dock,
+body.app-page[data-app-theme="sunset"] .map-search-results {
+  background: var(--glass-chrome-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border-color: var(--surface-border);
+  box-shadow: var(--neu-in);
+}
+
+body.app-page[data-app-theme="sunset"] .map-locate-feedback:not(.is-error):not(.is-warning) {
+  background: var(--glass-chrome-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border-color: var(--surface-border);
+  box-shadow: var(--neu-up-sm);
+}
+
+body.app-page[data-app-theme="sunset"] .map-compass-float {
+  background: var(--glass-chrome-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border-color: var(--surface-border);
+  color: var(--nav-icon);
+  box-shadow: var(--neu-up-sm);
+}
+
+body.app-page[data-app-theme="sunset"] .map-search-field,
+body.app-page[data-app-theme="sunset"] .map-search-filter:not(.is-active),
+body.app-page[data-app-theme="sunset"] .map-dock-btn:not(.is-active) {
+  background: color-mix(in srgb, var(--bg) 68%, transparent);
+  border-color: var(--surface-border);
+}
+
+/* ── Accueil — cartes liquid glass ── */
+body.app-page[data-app-theme="sunset"] .home-page .hero-days .days-card-inner,
+body.app-page[data-app-theme="sunset"] .home-page .home-nearby-card,
+body.app-page[data-app-theme="sunset"] .home-page .home-shortcut,
+body.app-page[data-app-theme="sunset"] .home-page .cat-card-inner {
+  background: var(--glass-panel-bg) !important;
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border-color: var(--surface-border) !important;
+}
+
+/* ── Listes catégories (activités, restaurants, voyages, wishlist…) ── */
+body.app-page[data-app-theme="sunset"] .activities-page .act-cat-panel:not(.act-cat-panel--map):not(:has(.act-list-group--travel)),
+body.app-page[data-app-theme="sunset"] .activities-page .act-pick-card,
+body.app-page[data-app-theme="sunset"] .activities-page .act-list-group--travel {
+  background: var(--glass-panel-bg) !important;
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border-color: var(--surface-border) !important;
+  box-shadow: var(--neu-up-sm);
+}
+
+body.app-page[data-app-theme="sunset"] .activities-page .act-cat-panel:not(.act-cat-panel--map):not(:has(.act-list-group--travel))::before,
+body.app-page[data-app-theme="sunset"] .activities-page .act-list-group--travel::before {
+  display: none;
+}
+
+body.app-page[data-app-theme="sunset"] .activities-page .act-cat-panel .cat-panel-accent,
+body.app-page[data-app-theme="sunset"] .activities-page .act-pick-card .cat-panel-accent {
+  display: none;
+}
+
+body.app-page[data-app-theme="sunset"] .activities-page .act-list-item-inner,
+body.app-page[data-app-theme="sunset"] .activities-page .act-category-map-place {
+  background: var(--glass-chrome-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border-color: var(--surface-border);
+  box-shadow: var(--neu-in);
+}
+
+body.app-page[data-app-theme="sunset"] .activities-page .act-list-item-inner::before {
+  display: none;
+}
+
+body.app-page[data-app-theme="sunset"] .activities-page .act-filter-btn:not(.is-active) {
+  background: color-mix(in srgb, var(--bg) 68%, transparent);
+  border-color: var(--surface-border);
+}
+
+body.app-page[data-app-theme="sunset"] .activities-page .act-category-map-control {
+  background: var(--glass-chrome-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border-color: var(--surface-border);
+}
+
+/* Fond legacy layout.css — le shader navy prend le relais */
+body.app-page[data-app-theme="sunset"]::before {
+  display: none;
+}
+
+/* ── Modales (ajout, vue, édition, filtres, pickers…) ── */
+body.app-page[data-app-theme="sunset"] .add-modal-overlay {
+  background: var(--glass-modal-overlay);
+}
+
+body.app-page[data-app-theme="sunset"] .add-modal-overlay.is-active {
+  backdrop-filter: blur(16px) saturate(1.2);
+  -webkit-backdrop-filter: blur(16px) saturate(1.2);
+}
+
+body.app-page[data-app-theme="sunset"] .add-modal {
+  --surface: var(--surface-modal);
+  --surface-strong: rgba(180, 85, 22, 0.9);
+  background: var(--glass-modal-bg) !important;
+  backdrop-filter: blur(calc(var(--glass-blur) + 6px)) saturate(1.18);
+  -webkit-backdrop-filter: blur(calc(var(--glass-blur) + 6px)) saturate(1.18);
+  border: 1px solid var(--surface-border);
+}
+
+body.app-page[data-app-theme="sunset"] .add-form-footer,
+body.app-page[data-app-theme="sunset"] .act-detail-actions,
+body.app-page[data-app-theme="sunset"] .filter-modal-actions {
+  background: transparent;
+  border-top-color: var(--surface-border);
+}
+
+body.app-page[data-app-theme="sunset"] .add-modal-back,
+body.app-page[data-app-theme="sunset"] .add-modal-close {
+  color: #fff;
+}
+
+body.app-page[data-app-theme="sunset"] .add-modal-back:active,
+body.app-page[data-app-theme="sunset"] .add-modal-back.is-pressed,
+body.app-page[data-app-theme="sunset"] .add-modal-close:active {
+  color: #fff;
+}
+
+body.app-page[data-app-theme="sunset"] .add-form-submit,
+body.app-page[data-app-theme="sunset"] .map-travel-picker-cta.add-form-submit {
+  height: 50px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--bg) !important;
+  color: #fff;
+  font-size: 0.88rem;
+  font-weight: 600;
+  box-shadow: 3px 3px 8px rgba(0, 0, 0, 0.4);
+  filter: none;
+  transition:
+    color 0.28s var(--ease-premium),
+    box-shadow 0.28s var(--ease-premium),
+    transform 0.32s var(--ease-out-expo);
+}
+
+body.app-page[data-app-theme="sunset"] .add-form-submit:hover,
+body.app-page[data-app-theme="sunset"] .map-travel-picker-cta.add-form-submit:hover {
+  color: #fff;
+  filter: none;
+  background: var(--bg) !important;
+}
+
+body.app-page[data-app-theme="sunset"] .add-form-submit:active,
+body.app-page[data-app-theme="sunset"] .map-travel-picker-cta.add-form-submit:active {
+  box-shadow: inset 3px 3px 8px rgba(0, 0, 0, 0.45);
+  transform: scale(0.94);
+  background: var(--bg) !important;
+  color: #fff;
+}
+
+body.app-page[data-app-theme="sunset"] .add-form-submit:focus-visible,
+body.app-page[data-app-theme="sunset"] .map-travel-picker-cta.add-form-submit:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.35);
+  outline-offset: 2px;
+}
+
+/* Vue détail — boutons éditer / supprimer alignés sur le style Enregistrer */
+body.app-page[data-app-theme="sunset"] .act-detail-btn--edit {
+  color: #fff;
+  background: var(--bg) !important;
+  box-shadow: 3px 3px 8px rgba(0, 0, 0, 0.4);
+}
+
+body.app-page[data-app-theme="sunset"] .act-detail-btn--edit:not(:disabled):hover {
+  color: #fff;
+  filter: none;
+  background: var(--bg) !important;
+}
+
+body.app-page[data-app-theme="sunset"] .act-detail-btn--edit:not(:disabled):active {
+  box-shadow: inset 3px 3px 8px rgba(0, 0, 0, 0.45);
+  transform: scale(0.94);
+  color: #fff;
+}
+
+body.app-page[data-app-theme="sunset"] .act-detail-btn--move-pin {
+  color: var(--cat-on-accent, #0c1a22);
+  background: linear-gradient(
+    135deg,
+    var(--cat-color) 0%,
+    var(--cat-color-deep, color-mix(in srgb, var(--cat-color) 75%, #000)) 100%
+  ) !important;
+  box-shadow:
+    var(--neu-up-sm),
+    0 0 18px color-mix(in srgb, var(--cat-glow, var(--cat-color)) 50%, transparent);
+  filter: none;
+}
+
+body.app-page[data-app-theme="sunset"] .act-detail-btn--move-pin:not(:disabled):hover {
+  color: var(--cat-on-accent, #0c1a22);
+  filter: brightness(1.05);
+  background: linear-gradient(
+    135deg,
+    var(--cat-color) 0%,
+    var(--cat-color-deep, color-mix(in srgb, var(--cat-color) 75%, #000)) 100%
+  ) !important;
+  box-shadow:
+    var(--neu-up-sm),
+    0 0 22px color-mix(in srgb, var(--cat-glow, var(--cat-color)) 62%, transparent);
+}
+
+body.app-page[data-app-theme="sunset"] .act-detail-btn--move-pin:not(:disabled):active {
+  box-shadow: var(--neu-press);
+  transform: scale(0.94);
+  filter: none;
+}
+
+body.app-page[data-app-theme="sunset"] .act-detail-btn--delete {
+  color: #ff9a9a;
+  background: var(--bg) !important;
+  box-shadow: 3px 3px 8px rgba(0, 0, 0, 0.4);
+}
+
+body.app-page[data-app-theme="sunset"] .act-detail-btn--delete:not(:disabled):hover {
+  color: #ffb4b4;
+  background: var(--bg) !important;
+}
+
+body.app-page[data-app-theme="sunset"] .filter-reset-btn,
+body.app-page[data-app-theme="sunset"] .filter-apply-btn {
+  color: var(--text-secondary);
+  background: var(--bg) !important;
+  box-shadow: 3px 3px 8px rgba(0, 0, 0, 0.4);
+  filter: none;
+}
+
+body.app-page[data-app-theme="sunset"] .filter-reset-btn:hover,
+body.app-page[data-app-theme="sunset"] .filter-apply-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg) !important;
+}
+
+body.app-page[data-app-theme="sunset"] .filter-reset-btn:active,
+body.app-page[data-app-theme="sunset"] .filter-apply-btn:active {
+  box-shadow: inset 3px 3px 8px rgba(0, 0, 0, 0.45);
+  transform: scale(0.94);
+}
+
+/* ── Profil — liquid glass navy (sans teinte / bordure catégorie) ── */
+body.app-page[data-app-theme="sunset"] .settings-page .settings-panel-inner,
+body.app-page[data-app-theme="sunset"] .settings-page .settings-menu,
+body.app-page[data-app-theme="sunset"] .settings-page .settings-profile-side-card {
+  background: var(--glass-panel-bg) !important;
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border: 1px solid var(--surface-border) !important;
+  box-shadow: var(--neu-up-sm);
+}
+
+body.app-page[data-app-theme="sunset"] .settings-page .settings-panel-inner::before {
+  display: none;
+}
+
+body.app-page[data-app-theme="sunset"] .settings-page .settings-section--love .settings-panel-inner {
+  background: var(--glass-panel-bg) !important;
+  border-color: var(--surface-border) !important;
+}
+
+body.app-page[data-app-theme="sunset"] .settings-page .cat-panel-accent {
+  display: none;
+}
+
+body.app-page[data-app-theme="sunset"] .settings-page .settings-menu-link:hover:not(.is-disabled) {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+body.app-page[data-app-theme="sunset"] .settings-page .settings-menu-link:active:not(.is-disabled) {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+body.app-page[data-app-theme="sunset"] .settings-page .settings-profile-side-card:hover {
+  border-color: var(--surface-border) !important;
+  box-shadow: var(--neu-up-sm);
+}
+
+body.app-page[data-app-theme="sunset"] .settings-page .settings-profile-side-card:active {
+  box-shadow: var(--neu-press);
+}
+
+body.app-page[data-app-theme="sunset"] .settings-page #settings-avatar-change.has-animal {
+  border-color: var(--surface-border) !important;
+  box-shadow: var(--neu-up-sm);
+}
+
+body.app-page[data-app-theme="sunset"] .settings-page .settings-menu-icon {
+  color: var(--nav-icon);
+  background: var(--bg);
+  border: 1px solid var(--surface-border);
+  box-shadow: var(--neu-in);
+}
+
+body.app-page[data-app-theme="sunset"] .settings-page .settings-profile-side-card-icon,
+body.app-page[data-app-theme="sunset"] .settings-page .settings-profile-side-card--love .settings-profile-side-card-icon {
+  color: var(--nav-icon);
+  background: var(--bg);
+  border: 1px solid var(--surface-border);
+  box-shadow: var(--neu-in);
+}
+
+body.app-page[data-app-theme="sunset"] .settings-page .settings-row-leading {
+  color: var(--nav-icon);
+  background: var(--bg);
+  border: 1px solid var(--surface-border);
+  box-shadow: var(--neu-in);
+}
+
+body.app-page[data-app-theme="sunset"] .settings-page .settings-member.is-you {
+  border-color: var(--surface-border);
+  box-shadow: var(--neu-in);
+}
+
+body.app-page[data-app-theme="sunset"] .settings-page .settings-member.is-partner {
+  border-color: var(--surface-border);
+}
+
+body.app-page[data-app-theme="sunset"] .settings-page .settings-member-badge {
+  color: var(--text-secondary);
+}
+
+body.app-page[data-app-theme="sunset"] .settings-page .settings-theme-card {
+  background: var(--glass-chrome-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border-color: var(--surface-border);
+  box-shadow: var(--neu-in);
+}
+
+body.app-page[data-app-theme="sunset"] .settings-page .settings-theme-card:hover {
+  box-shadow: var(--neu-in), 0 4px 16px rgba(0, 0, 0, 0.18);
+}
+
+body.app-page[data-app-theme="sunset"] .settings-page .settings-theme-card.is-selected {
+  border-color: rgba(255, 255, 255, 0.22);
+  box-shadow:
+    var(--neu-in),
+    0 0 20px rgba(255, 80, 5, 0.22);
+}
+
+body.app-page[data-app-theme="sunset"] .settings-page .settings-theme-check {
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.92);
+}
+/* ══════════════════════════════════════════════════════════════════
+   DA vert nature + liquid glass — base forêt, accent #72b88e
+   ══════════════════════════════════════════════════════════════════ */
+body.app-page[data-app-theme="forest"] {
+  --bg: var(--forest-bg);
+  --surface: rgba(30, 56, 44, 0.52);
+  --surface-strong: rgba(46, 76, 60, 0.6);
+  --surface-border: rgba(255, 255, 255, 0.11);
+  --glass-blur: 14px;
+  --glass-panel-bg: linear-gradient(
+    155deg,
+    rgba(62, 102, 80, 0.58) 0%,
+    rgba(30, 56, 44, 0.52) 48%,
+    rgba(22, 44, 34, 0.56) 100%
+  );
+  --glass-chrome-bg: linear-gradient(
+    180deg,
+    rgba(62, 102, 80, 0.58) 0%,
+    rgba(30, 56, 44, 0.52) 42%,
+    rgba(22, 44, 34, 0.64) 100%
+  );
+  --glass-modal-bg: linear-gradient(
+    165deg,
+    rgba(62, 102, 80, 0.9) 0%,
+    rgba(30, 56, 44, 0.86) 48%,
+    rgba(22, 44, 34, 0.92) 100%
+  );
+  --glass-modal-overlay: rgba(16, 32, 26, 0.72);
+  --surface-modal: rgba(46, 76, 60, 0.84);
+  --map-preview-base: var(--bg);
+  --map-preview-base-mid: #466858;
+  --page-bg-grain-opacity: 1;
+  --nav-icon: rgba(255, 255, 255, 0.9);
+  --nav-icon-muted: rgba(255, 255, 255, 0.55);
+  --nav-icon-glow: rgba(114, 184, 142, 0.16);
+
+  background: transparent;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+html:has(body.app-page[data-app-theme="forest"]) {
+  background: #325040;
+}
+
+/* ── Fond WebGL + grain ── */
+.page-bg {
+  display: none;
+}
+
+body.app-page[data-app-theme="forest"] .page-bg {
+  display: block;
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: #325040;
+}
+
+body.app-page[data-app-theme="forest"] .page-bg-grain {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-width: 100vw;
+  min-height: 100vh;
+  pointer-events: none;
+  opacity: var(--page-bg-grain-opacity);
+  mix-blend-mode: soft-light;
+  filter: url(#page-bg-grain-filter);
+  background: #808080;
+}
+
+body.app-page[data-app-theme="forest"] .page-bg canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: #325040;
+}
+
+body.app-page[data-app-theme="forest"] #app-view {
+  position: relative;
+  z-index: 1;
+}
+
+body.app-page[data-app-theme="forest"] #page-header-root,
+body.app-page[data-app-theme="forest"] #bottom-nav-root {
+  position: relative;
+  z-index: 180;
+}
+
+body.app-page[data-app-theme="forest"] #page-root {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Header glass (mobile) ── */
+body.app-page[data-app-theme="forest"] .page-header {
+  background: var(--glass-chrome-bg);
+  backdrop-filter: blur(20px) saturate(1.25);
+  -webkit-backdrop-filter: blur(20px) saturate(1.25);
+  border-bottom: 1px solid var(--surface-border);
+  box-shadow:
+    0 8px 28px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+body.app-page[data-app-theme="forest"] .page-header-mobile-icon {
+  background: var(--bg);
+  box-shadow: var(--neu-up-sm), 0 0 16px var(--nav-icon-glow);
+}
+
+body.app-page[data-app-theme="forest"] .page-header-mobile-icon[data-theme] {
+  color: var(--cat-color);
+  box-shadow: var(--neu-up-sm), 0 0 16px color-mix(in srgb, var(--cat-color) 20%, transparent);
+}
+
+/* ── Bottom nav glass ── */
+body.app-page[data-app-theme="forest"] .bottom-nav-glass {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 620px;
+  height: 142.68px;
+  transform: translateX(-50%) translateY(35px);
+  pointer-events: none;
+  z-index: 0;
+  background: var(--glass-chrome-bg);
+  backdrop-filter: blur(20px) saturate(1.25);
+  -webkit-backdrop-filter: blur(20px) saturate(1.25);
+  box-shadow: 0 -8px 28px rgba(0, 0, 0, 0.32);
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 620 142.68'%3E%3Crect y='24' width='620' height='118.68' fill='black'/%3E%3Cpath d='M310,6c8.1,0,15.57,2.71,21.58,7.28,7.09,5.39,14.94,10.72,23.85,10.72h124.58v64H140V24h124.58c8.91,0,16.76-5.33,23.85-10.72,6.01-4.57,13.48-7.28,21.58-7.28Z' fill='black'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 620 142.68'%3E%3Crect y='24' width='620' height='118.68' fill='black'/%3E%3Cpath d='M310,6c8.1,0,15.57,2.71,21.58,7.28,7.09,5.39,14.94,10.72,23.85,10.72h124.58v64H140V24h124.58c8.91,0,16.76-5.33,23.85-10.72,6.01-4.57,13.48-7.28,21.58-7.28Z' fill='black'/%3E%3C/svg%3E");
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+body.app-page[data-app-theme="forest"] .bottom-nav-shape {
+  color: transparent;
+  filter: drop-shadow(0 -1px 0 rgba(255, 255, 255, 0.12));
+  box-shadow: none;
+}
+
+body.app-page[data-app-theme="forest"] .bottom-nav-bar {
+  background: transparent;
+}
+
+body.app-page[data-app-theme="forest"] .bottom-nav-item .sidebar-link-icon {
+  background: var(--bg);
+  box-shadow: var(--neu-in);
+  color: var(--nav-icon-muted);
+}
+
+body.app-page[data-app-theme="forest"] .bottom-nav-item:hover .sidebar-link-icon {
+  color: var(--nav-icon);
+  background: var(--bg);
+  box-shadow:
+    inset 2px 2px 6px rgba(0, 0, 0, 0.35),
+    inset -1px -1px 4px rgba(255, 255, 255, 0.03),
+    0 0 12px var(--nav-icon-glow);
+}
+
+body.app-page[data-app-theme="forest"] .bottom-nav-item.is-active .sidebar-link-icon {
+  color: var(--nav-icon);
+  background: var(--bg);
+  box-shadow:
+    -3px -3px 8px rgba(255, 255, 255, 0.04),
+    3px 3px 8px rgba(0, 0, 0, 0.4),
+    0 0 14px var(--nav-icon-glow);
+}
+
+body.app-page[data-app-theme="forest"] .bottom-nav-fab {
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: var(--bg);
+  color: var(--nav-icon);
+  box-shadow: var(--neu-up-sm), 0 0 14px var(--nav-icon-glow);
+}
+
+body.app-page[data-app-theme="forest"] .bottom-nav-fab:active,
+body.app-page[data-app-theme="forest"] .bottom-nav-fab.is-pressed {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.35);
+  background: var(--bg);
+  box-shadow: var(--neu-press), 0 0 22px var(--nav-icon-glow);
+  transform: translateX(-50%) scale(0.9);
+}
+
+body.app-page[data-app-theme="forest"] .bottom-nav-fab:active svg,
+body.app-page[data-app-theme="forest"] .bottom-nav-fab.is-pressed svg {
+  transform: rotate(45deg);
+}
+
+body.app-page[data-app-theme="forest"].modal-open .bottom-nav {
+  opacity: 1;
+  pointer-events: none;
+}
+
+body.app-page[data-app-theme="forest"].modal-open .bottom-nav-fab {
+  transform: translateX(-50%) rotate(45deg) scale(0.88);
+  box-shadow: var(--neu-press), 0 0 10px transparent;
+}
+
+body.app-page[data-app-theme="forest"].modal-open .bottom-nav-fab svg {
+  transform: rotate(0deg);
+}
+
+/* ── Carte — chrome liquid glass (search, dock, résultats, feedback) ── */
+body.app-page[data-app-theme="forest"] .map-page .act-cat-panel--map.map-panel {
+  background: var(--glass-panel-bg) !important;
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border-color: var(--surface-border) !important;
+  box-shadow: var(--neu-up-sm);
+}
+
+body.app-page[data-app-theme="forest"] .map-page .act-cat-panel--map .cat-panel-accent {
+  display: none;
+}
+
+body.app-page[data-app-theme="forest"] .map-search-row,
+body.app-page[data-app-theme="forest"] .map-dock,
+body.app-page[data-app-theme="forest"] .map-search-results {
+  background: var(--glass-chrome-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border-color: var(--surface-border);
+  box-shadow: var(--neu-in);
+}
+
+body.app-page[data-app-theme="forest"] .map-locate-feedback:not(.is-error):not(.is-warning) {
+  background: var(--glass-chrome-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border-color: var(--surface-border);
+  box-shadow: var(--neu-up-sm);
+}
+
+body.app-page[data-app-theme="forest"] .map-compass-float {
+  background: var(--glass-chrome-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border-color: var(--surface-border);
+  color: var(--nav-icon);
+  box-shadow: var(--neu-up-sm);
+}
+
+body.app-page[data-app-theme="forest"] .map-search-field,
+body.app-page[data-app-theme="forest"] .map-search-filter:not(.is-active),
+body.app-page[data-app-theme="forest"] .map-dock-btn:not(.is-active) {
+  background: color-mix(in srgb, var(--bg) 68%, transparent);
+  border-color: var(--surface-border);
+}
+
+/* ── Accueil — cartes liquid glass ── */
+body.app-page[data-app-theme="forest"] .home-page .hero-days .days-card-inner,
+body.app-page[data-app-theme="forest"] .home-page .home-nearby-card,
+body.app-page[data-app-theme="forest"] .home-page .home-shortcut,
+body.app-page[data-app-theme="forest"] .home-page .cat-card-inner {
+  background: var(--glass-panel-bg) !important;
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border-color: var(--surface-border) !important;
+}
+
+/* ── Listes catégories (activités, restaurants, voyages, wishlist…) ── */
+body.app-page[data-app-theme="forest"] .activities-page .act-cat-panel:not(.act-cat-panel--map):not(:has(.act-list-group--travel)),
+body.app-page[data-app-theme="forest"] .activities-page .act-pick-card,
+body.app-page[data-app-theme="forest"] .activities-page .act-list-group--travel {
+  background: var(--glass-panel-bg) !important;
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border-color: var(--surface-border) !important;
+  box-shadow: var(--neu-up-sm);
+}
+
+body.app-page[data-app-theme="forest"] .activities-page .act-cat-panel:not(.act-cat-panel--map):not(:has(.act-list-group--travel))::before,
+body.app-page[data-app-theme="forest"] .activities-page .act-list-group--travel::before {
+  display: none;
+}
+
+body.app-page[data-app-theme="forest"] .activities-page .act-cat-panel .cat-panel-accent,
+body.app-page[data-app-theme="forest"] .activities-page .act-pick-card .cat-panel-accent {
+  display: none;
+}
+
+body.app-page[data-app-theme="forest"] .activities-page .act-list-item-inner,
+body.app-page[data-app-theme="forest"] .activities-page .act-category-map-place {
+  background: var(--glass-chrome-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border-color: var(--surface-border);
+  box-shadow: var(--neu-in);
+}
+
+body.app-page[data-app-theme="forest"] .activities-page .act-list-item-inner::before {
+  display: none;
+}
+
+body.app-page[data-app-theme="forest"] .activities-page .act-filter-btn:not(.is-active) {
+  background: color-mix(in srgb, var(--bg) 68%, transparent);
+  border-color: var(--surface-border);
+}
+
+body.app-page[data-app-theme="forest"] .activities-page .act-category-map-control {
+  background: var(--glass-chrome-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border-color: var(--surface-border);
+}
+
+/* Fond legacy layout.css — le shader navy prend le relais */
+body.app-page[data-app-theme="forest"]::before {
+  display: none;
+}
+
+/* ── Modales (ajout, vue, édition, filtres, pickers…) ── */
+body.app-page[data-app-theme="forest"] .add-modal-overlay {
+  background: var(--glass-modal-overlay);
+}
+
+body.app-page[data-app-theme="forest"] .add-modal-overlay.is-active {
+  backdrop-filter: blur(16px) saturate(1.2);
+  -webkit-backdrop-filter: blur(16px) saturate(1.2);
+}
+
+body.app-page[data-app-theme="forest"] .add-modal {
+  --surface: var(--surface-modal);
+  --surface-strong: rgba(62, 102, 80, 0.9);
+  background: var(--glass-modal-bg) !important;
+  backdrop-filter: blur(calc(var(--glass-blur) + 6px)) saturate(1.18);
+  -webkit-backdrop-filter: blur(calc(var(--glass-blur) + 6px)) saturate(1.18);
+  border: 1px solid var(--surface-border);
+}
+
+body.app-page[data-app-theme="forest"] .add-form-footer,
+body.app-page[data-app-theme="forest"] .act-detail-actions,
+body.app-page[data-app-theme="forest"] .filter-modal-actions {
+  background: transparent;
+  border-top-color: var(--surface-border);
+}
+
+body.app-page[data-app-theme="forest"] .add-modal-back,
+body.app-page[data-app-theme="forest"] .add-modal-close {
+  color: #fff;
+}
+
+body.app-page[data-app-theme="forest"] .add-modal-back:active,
+body.app-page[data-app-theme="forest"] .add-modal-back.is-pressed,
+body.app-page[data-app-theme="forest"] .add-modal-close:active {
+  color: #fff;
+}
+
+body.app-page[data-app-theme="forest"] .add-form-submit,
+body.app-page[data-app-theme="forest"] .map-travel-picker-cta.add-form-submit {
+  height: 50px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--bg) !important;
+  color: #fff;
+  font-size: 0.88rem;
+  font-weight: 600;
+  box-shadow: 3px 3px 8px rgba(0, 0, 0, 0.4);
+  filter: none;
+  transition:
+    color 0.28s var(--ease-premium),
+    box-shadow 0.28s var(--ease-premium),
+    transform 0.32s var(--ease-out-expo);
+}
+
+body.app-page[data-app-theme="forest"] .add-form-submit:hover,
+body.app-page[data-app-theme="forest"] .map-travel-picker-cta.add-form-submit:hover {
+  color: #fff;
+  filter: none;
+  background: var(--bg) !important;
+}
+
+body.app-page[data-app-theme="forest"] .add-form-submit:active,
+body.app-page[data-app-theme="forest"] .map-travel-picker-cta.add-form-submit:active {
+  box-shadow: inset 3px 3px 8px rgba(0, 0, 0, 0.45);
+  transform: scale(0.94);
+  background: var(--bg) !important;
+  color: #fff;
+}
+
+body.app-page[data-app-theme="forest"] .add-form-submit:focus-visible,
+body.app-page[data-app-theme="forest"] .map-travel-picker-cta.add-form-submit:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.35);
+  outline-offset: 2px;
+}
+
+/* Vue détail — boutons éditer / supprimer alignés sur le style Enregistrer */
+body.app-page[data-app-theme="forest"] .act-detail-btn--edit {
+  color: #fff;
+  background: var(--bg) !important;
+  box-shadow: 3px 3px 8px rgba(0, 0, 0, 0.4);
+}
+
+body.app-page[data-app-theme="forest"] .act-detail-btn--edit:not(:disabled):hover {
+  color: #fff;
+  filter: none;
+  background: var(--bg) !important;
+}
+
+body.app-page[data-app-theme="forest"] .act-detail-btn--edit:not(:disabled):active {
+  box-shadow: inset 3px 3px 8px rgba(0, 0, 0, 0.45);
+  transform: scale(0.94);
+  color: #fff;
+}
+
+body.app-page[data-app-theme="forest"] .act-detail-btn--move-pin {
+  color: var(--cat-on-accent, #0c1a22);
+  background: linear-gradient(
+    135deg,
+    var(--cat-color) 0%,
+    var(--cat-color-deep, color-mix(in srgb, var(--cat-color) 75%, #000)) 100%
+  ) !important;
+  box-shadow:
+    var(--neu-up-sm),
+    0 0 18px color-mix(in srgb, var(--cat-glow, var(--cat-color)) 50%, transparent);
+  filter: none;
+}
+
+body.app-page[data-app-theme="forest"] .act-detail-btn--move-pin:not(:disabled):hover {
+  color: var(--cat-on-accent, #0c1a22);
+  filter: brightness(1.05);
+  background: linear-gradient(
+    135deg,
+    var(--cat-color) 0%,
+    var(--cat-color-deep, color-mix(in srgb, var(--cat-color) 75%, #000)) 100%
+  ) !important;
+  box-shadow:
+    var(--neu-up-sm),
+    0 0 22px color-mix(in srgb, var(--cat-glow, var(--cat-color)) 62%, transparent);
+}
+
+body.app-page[data-app-theme="forest"] .act-detail-btn--move-pin:not(:disabled):active {
+  box-shadow: var(--neu-press);
+  transform: scale(0.94);
+  filter: none;
+}
+
+body.app-page[data-app-theme="forest"] .act-detail-btn--delete {
+  color: #ff9a9a;
+  background: var(--bg) !important;
+  box-shadow: 3px 3px 8px rgba(0, 0, 0, 0.4);
+}
+
+body.app-page[data-app-theme="forest"] .act-detail-btn--delete:not(:disabled):hover {
+  color: #ffb4b4;
+  background: var(--bg) !important;
+}
+
+body.app-page[data-app-theme="forest"] .filter-reset-btn,
+body.app-page[data-app-theme="forest"] .filter-apply-btn {
+  color: var(--text-secondary);
+  background: var(--bg) !important;
+  box-shadow: 3px 3px 8px rgba(0, 0, 0, 0.4);
+  filter: none;
+}
+
+body.app-page[data-app-theme="forest"] .filter-reset-btn:hover,
+body.app-page[data-app-theme="forest"] .filter-apply-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg) !important;
+}
+
+body.app-page[data-app-theme="forest"] .filter-reset-btn:active,
+body.app-page[data-app-theme="forest"] .filter-apply-btn:active {
+  box-shadow: inset 3px 3px 8px rgba(0, 0, 0, 0.45);
+  transform: scale(0.94);
+}
+
+/* ── Profil — liquid glass navy (sans teinte / bordure catégorie) ── */
+body.app-page[data-app-theme="forest"] .settings-page .settings-panel-inner,
+body.app-page[data-app-theme="forest"] .settings-page .settings-menu,
+body.app-page[data-app-theme="forest"] .settings-page .settings-profile-side-card {
+  background: var(--glass-panel-bg) !important;
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border: 1px solid var(--surface-border) !important;
+  box-shadow: var(--neu-up-sm);
+}
+
+body.app-page[data-app-theme="forest"] .settings-page .settings-panel-inner::before {
+  display: none;
+}
+
+body.app-page[data-app-theme="forest"] .settings-page .settings-section--love .settings-panel-inner {
+  background: var(--glass-panel-bg) !important;
+  border-color: var(--surface-border) !important;
+}
+
+body.app-page[data-app-theme="forest"] .settings-page .cat-panel-accent {
+  display: none;
+}
+
+body.app-page[data-app-theme="forest"] .settings-page .settings-menu-link:hover:not(.is-disabled) {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+body.app-page[data-app-theme="forest"] .settings-page .settings-menu-link:active:not(.is-disabled) {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+body.app-page[data-app-theme="forest"] .settings-page .settings-profile-side-card:hover {
+  border-color: var(--surface-border) !important;
+  box-shadow: var(--neu-up-sm);
+}
+
+body.app-page[data-app-theme="forest"] .settings-page .settings-profile-side-card:active {
+  box-shadow: var(--neu-press);
+}
+
+body.app-page[data-app-theme="forest"] .settings-page #settings-avatar-change.has-animal {
+  border-color: var(--surface-border) !important;
+  box-shadow: var(--neu-up-sm);
+}
+
+body.app-page[data-app-theme="forest"] .settings-page .settings-menu-icon {
+  color: var(--nav-icon);
+  background: var(--bg);
+  border: 1px solid var(--surface-border);
+  box-shadow: var(--neu-in);
+}
+
+body.app-page[data-app-theme="forest"] .settings-page .settings-profile-side-card-icon,
+body.app-page[data-app-theme="forest"] .settings-page .settings-profile-side-card--love .settings-profile-side-card-icon {
+  color: var(--nav-icon);
+  background: var(--bg);
+  border: 1px solid var(--surface-border);
+  box-shadow: var(--neu-in);
+}
+
+body.app-page[data-app-theme="forest"] .settings-page .settings-row-leading {
+  color: var(--nav-icon);
+  background: var(--bg);
+  border: 1px solid var(--surface-border);
+  box-shadow: var(--neu-in);
+}
+
+body.app-page[data-app-theme="forest"] .settings-page .settings-member.is-you {
+  border-color: var(--surface-border);
+  box-shadow: var(--neu-in);
+}
+
+body.app-page[data-app-theme="forest"] .settings-page .settings-member.is-partner {
+  border-color: var(--surface-border);
+}
+
+body.app-page[data-app-theme="forest"] .settings-page .settings-member-badge {
+  color: var(--text-secondary);
+}
+
+body.app-page[data-app-theme="forest"] .settings-page .settings-theme-card {
+  background: var(--glass-chrome-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border-color: var(--surface-border);
+  box-shadow: var(--neu-in);
+}
+
+body.app-page[data-app-theme="forest"] .settings-page .settings-theme-card:hover {
+  box-shadow: var(--neu-in), 0 4px 16px rgba(0, 0, 0, 0.18);
+}
+
+body.app-page[data-app-theme="forest"] .settings-page .settings-theme-card.is-selected {
+  border-color: rgba(255, 255, 255, 0.22);
+  box-shadow:
+    var(--neu-in),
+    0 0 20px rgba(114, 184, 142, 0.22);
+}
+
+body.app-page[data-app-theme="forest"] .settings-page .settings-theme-check {
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.92);
+}
+/* ══════════════════════════════════════════════════════════════════
+   DA violet + liquid glass — base violet, accent #9b7ec4
+   ══════════════════════════════════════════════════════════════════ */
+body.app-page[data-app-theme="violet"] {
+  --bg: var(--violet-bg);
+  --surface: rgba(38, 24, 56, 0.52);
+  --surface-strong: rgba(56, 40, 80, 0.6);
+  --surface-border: rgba(255, 255, 255, 0.11);
+  --glass-blur: 14px;
+  --glass-panel-bg: linear-gradient(
+    155deg,
+    rgba(88, 64, 120, 0.58) 0%,
+    rgba(38, 24, 56, 0.52) 48%,
+    rgba(28, 18, 42, 0.56) 100%
+  );
+  --glass-chrome-bg: linear-gradient(
+    180deg,
+    rgba(88, 64, 120, 0.58) 0%,
+    rgba(38, 24, 56, 0.52) 42%,
+    rgba(28, 18, 42, 0.64) 100%
+  );
+  --glass-modal-bg: linear-gradient(
+    165deg,
+    rgba(88, 64, 120, 0.9) 0%,
+    rgba(38, 24, 56, 0.86) 48%,
+    rgba(28, 18, 42, 0.92) 100%
+  );
+  --glass-modal-overlay: rgba(18, 12, 28, 0.72);
+  --surface-modal: rgba(56, 40, 80, 0.84);
+  --map-preview-base: var(--bg);
+  --map-preview-base-mid: #503868;
+  --page-bg-grain-opacity: 1;
+  --nav-icon: rgba(255, 255, 255, 0.9);
+  --nav-icon-muted: rgba(255, 255, 255, 0.55);
+  --nav-icon-glow: rgba(155, 126, 196, 0.16);
+
+  background: transparent;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+html:has(body.app-page[data-app-theme="violet"]) {
+  background: #382850;
+}
+
+/* ── Fond WebGL + grain ── */
+.page-bg {
+  display: none;
+}
+
+body.app-page[data-app-theme="violet"] .page-bg {
+  display: block;
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: #382850;
+}
+
+body.app-page[data-app-theme="violet"] .page-bg-grain {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-width: 100vw;
+  min-height: 100vh;
+  pointer-events: none;
+  opacity: var(--page-bg-grain-opacity);
+  mix-blend-mode: soft-light;
+  filter: url(#page-bg-grain-filter);
+  background: #808080;
+}
+
+body.app-page[data-app-theme="violet"] .page-bg canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: #382850;
+}
+
+body.app-page[data-app-theme="violet"] #app-view {
+  position: relative;
+  z-index: 1;
+}
+
+body.app-page[data-app-theme="violet"] #page-header-root,
+body.app-page[data-app-theme="violet"] #bottom-nav-root {
+  position: relative;
+  z-index: 180;
+}
+
+body.app-page[data-app-theme="violet"] #page-root {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Header glass (mobile) ── */
+body.app-page[data-app-theme="violet"] .page-header {
+  background: var(--glass-chrome-bg);
+  backdrop-filter: blur(20px) saturate(1.25);
+  -webkit-backdrop-filter: blur(20px) saturate(1.25);
+  border-bottom: 1px solid var(--surface-border);
+  box-shadow:
+    0 8px 28px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+body.app-page[data-app-theme="violet"] .page-header-mobile-icon {
+  background: var(--bg);
+  box-shadow: var(--neu-up-sm), 0 0 16px var(--nav-icon-glow);
+}
+
+body.app-page[data-app-theme="violet"] .page-header-mobile-icon[data-theme] {
+  color: var(--cat-color);
+  box-shadow: var(--neu-up-sm), 0 0 16px color-mix(in srgb, var(--cat-color) 20%, transparent);
+}
+
+/* ── Bottom nav glass ── */
+body.app-page[data-app-theme="violet"] .bottom-nav-glass {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 620px;
+  height: 142.68px;
+  transform: translateX(-50%) translateY(35px);
+  pointer-events: none;
+  z-index: 0;
+  background: var(--glass-chrome-bg);
+  backdrop-filter: blur(20px) saturate(1.25);
+  -webkit-backdrop-filter: blur(20px) saturate(1.25);
+  box-shadow: 0 -8px 28px rgba(0, 0, 0, 0.32);
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 620 142.68'%3E%3Crect y='24' width='620' height='118.68' fill='black'/%3E%3Cpath d='M310,6c8.1,0,15.57,2.71,21.58,7.28,7.09,5.39,14.94,10.72,23.85,10.72h124.58v64H140V24h124.58c8.91,0,16.76-5.33,23.85-10.72,6.01-4.57,13.48-7.28,21.58-7.28Z' fill='black'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 620 142.68'%3E%3Crect y='24' width='620' height='118.68' fill='black'/%3E%3Cpath d='M310,6c8.1,0,15.57,2.71,21.58,7.28,7.09,5.39,14.94,10.72,23.85,10.72h124.58v64H140V24h124.58c8.91,0,16.76-5.33,23.85-10.72,6.01-4.57,13.48-7.28,21.58-7.28Z' fill='black'/%3E%3C/svg%3E");
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+body.app-page[data-app-theme="violet"] .bottom-nav-shape {
+  color: transparent;
+  filter: drop-shadow(0 -1px 0 rgba(255, 255, 255, 0.12));
+  box-shadow: none;
+}
+
+body.app-page[data-app-theme="violet"] .bottom-nav-bar {
+  background: transparent;
+}
+
+body.app-page[data-app-theme="violet"] .bottom-nav-item .sidebar-link-icon {
+  background: var(--bg);
+  box-shadow: var(--neu-in);
+  color: var(--nav-icon-muted);
+}
+
+body.app-page[data-app-theme="violet"] .bottom-nav-item:hover .sidebar-link-icon {
+  color: var(--nav-icon);
+  background: var(--bg);
+  box-shadow:
+    inset 2px 2px 6px rgba(0, 0, 0, 0.35),
+    inset -1px -1px 4px rgba(255, 255, 255, 0.03),
+    0 0 12px var(--nav-icon-glow);
+}
+
+body.app-page[data-app-theme="violet"] .bottom-nav-item.is-active .sidebar-link-icon {
+  color: var(--nav-icon);
+  background: var(--bg);
+  box-shadow:
+    -3px -3px 8px rgba(255, 255, 255, 0.04),
+    3px 3px 8px rgba(0, 0, 0, 0.4),
+    0 0 14px var(--nav-icon-glow);
+}
+
+body.app-page[data-app-theme="violet"] .bottom-nav-fab {
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: var(--bg);
+  color: var(--nav-icon);
+  box-shadow: var(--neu-up-sm), 0 0 14px var(--nav-icon-glow);
+}
+
+body.app-page[data-app-theme="violet"] .bottom-nav-fab:active,
+body.app-page[data-app-theme="violet"] .bottom-nav-fab.is-pressed {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.35);
+  background: var(--bg);
+  box-shadow: var(--neu-press), 0 0 22px var(--nav-icon-glow);
+  transform: translateX(-50%) scale(0.9);
+}
+
+body.app-page[data-app-theme="violet"] .bottom-nav-fab:active svg,
+body.app-page[data-app-theme="violet"] .bottom-nav-fab.is-pressed svg {
+  transform: rotate(45deg);
+}
+
+body.app-page[data-app-theme="violet"].modal-open .bottom-nav {
+  opacity: 1;
+  pointer-events: none;
+}
+
+body.app-page[data-app-theme="violet"].modal-open .bottom-nav-fab {
+  transform: translateX(-50%) rotate(45deg) scale(0.88);
+  box-shadow: var(--neu-press), 0 0 10px transparent;
+}
+
+body.app-page[data-app-theme="violet"].modal-open .bottom-nav-fab svg {
+  transform: rotate(0deg);
+}
+
+/* ── Carte — chrome liquid glass (search, dock, résultats, feedback) ── */
+body.app-page[data-app-theme="violet"] .map-page .act-cat-panel--map.map-panel {
+  background: var(--glass-panel-bg) !important;
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border-color: var(--surface-border) !important;
+  box-shadow: var(--neu-up-sm);
+}
+
+body.app-page[data-app-theme="violet"] .map-page .act-cat-panel--map .cat-panel-accent {
+  display: none;
+}
+
+body.app-page[data-app-theme="violet"] .map-search-row,
+body.app-page[data-app-theme="violet"] .map-dock,
+body.app-page[data-app-theme="violet"] .map-search-results {
+  background: var(--glass-chrome-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border-color: var(--surface-border);
+  box-shadow: var(--neu-in);
+}
+
+body.app-page[data-app-theme="violet"] .map-locate-feedback:not(.is-error):not(.is-warning) {
+  background: var(--glass-chrome-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border-color: var(--surface-border);
+  box-shadow: var(--neu-up-sm);
+}
+
+body.app-page[data-app-theme="violet"] .map-compass-float {
+  background: var(--glass-chrome-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border-color: var(--surface-border);
+  color: var(--nav-icon);
+  box-shadow: var(--neu-up-sm);
+}
+
+body.app-page[data-app-theme="violet"] .map-search-field,
+body.app-page[data-app-theme="violet"] .map-search-filter:not(.is-active),
+body.app-page[data-app-theme="violet"] .map-dock-btn:not(.is-active) {
+  background: color-mix(in srgb, var(--bg) 68%, transparent);
+  border-color: var(--surface-border);
+}
+
+/* ── Accueil — cartes liquid glass ── */
+body.app-page[data-app-theme="violet"] .home-page .hero-days .days-card-inner,
+body.app-page[data-app-theme="violet"] .home-page .home-nearby-card,
+body.app-page[data-app-theme="violet"] .home-page .home-shortcut,
+body.app-page[data-app-theme="violet"] .home-page .cat-card-inner {
+  background: var(--glass-panel-bg) !important;
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border-color: var(--surface-border) !important;
+}
+
+/* ── Listes catégories (activités, restaurants, voyages, wishlist…) ── */
+body.app-page[data-app-theme="violet"] .activities-page .act-cat-panel:not(.act-cat-panel--map):not(:has(.act-list-group--travel)),
+body.app-page[data-app-theme="violet"] .activities-page .act-pick-card,
+body.app-page[data-app-theme="violet"] .activities-page .act-list-group--travel {
+  background: var(--glass-panel-bg) !important;
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border-color: var(--surface-border) !important;
+  box-shadow: var(--neu-up-sm);
+}
+
+body.app-page[data-app-theme="violet"] .activities-page .act-cat-panel:not(.act-cat-panel--map):not(:has(.act-list-group--travel))::before,
+body.app-page[data-app-theme="violet"] .activities-page .act-list-group--travel::before {
+  display: none;
+}
+
+body.app-page[data-app-theme="violet"] .activities-page .act-cat-panel .cat-panel-accent,
+body.app-page[data-app-theme="violet"] .activities-page .act-pick-card .cat-panel-accent {
+  display: none;
+}
+
+body.app-page[data-app-theme="violet"] .activities-page .act-list-item-inner,
+body.app-page[data-app-theme="violet"] .activities-page .act-category-map-place {
+  background: var(--glass-chrome-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border-color: var(--surface-border);
+  box-shadow: var(--neu-in);
+}
+
+body.app-page[data-app-theme="violet"] .activities-page .act-list-item-inner::before {
+  display: none;
+}
+
+body.app-page[data-app-theme="violet"] .activities-page .act-filter-btn:not(.is-active) {
+  background: color-mix(in srgb, var(--bg) 68%, transparent);
+  border-color: var(--surface-border);
+}
+
+body.app-page[data-app-theme="violet"] .activities-page .act-category-map-control {
+  background: var(--glass-chrome-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border-color: var(--surface-border);
+}
+
+/* Fond legacy layout.css — le shader navy prend le relais */
+body.app-page[data-app-theme="violet"]::before {
+  display: none;
+}
+
+/* ── Modales (ajout, vue, édition, filtres, pickers…) ── */
+body.app-page[data-app-theme="violet"] .add-modal-overlay {
+  background: var(--glass-modal-overlay);
+}
+
+body.app-page[data-app-theme="violet"] .add-modal-overlay.is-active {
+  backdrop-filter: blur(16px) saturate(1.2);
+  -webkit-backdrop-filter: blur(16px) saturate(1.2);
+}
+
+body.app-page[data-app-theme="violet"] .add-modal {
+  --surface: var(--surface-modal);
+  --surface-strong: rgba(88, 64, 120, 0.9);
+  background: var(--glass-modal-bg) !important;
+  backdrop-filter: blur(calc(var(--glass-blur) + 6px)) saturate(1.18);
+  -webkit-backdrop-filter: blur(calc(var(--glass-blur) + 6px)) saturate(1.18);
+  border: 1px solid var(--surface-border);
+}
+
+body.app-page[data-app-theme="violet"] .add-form-footer,
+body.app-page[data-app-theme="violet"] .act-detail-actions,
+body.app-page[data-app-theme="violet"] .filter-modal-actions {
+  background: transparent;
+  border-top-color: var(--surface-border);
+}
+
+body.app-page[data-app-theme="violet"] .add-modal-back,
+body.app-page[data-app-theme="violet"] .add-modal-close {
+  color: #fff;
+}
+
+body.app-page[data-app-theme="violet"] .add-modal-back:active,
+body.app-page[data-app-theme="violet"] .add-modal-back.is-pressed,
+body.app-page[data-app-theme="violet"] .add-modal-close:active {
+  color: #fff;
+}
+
+body.app-page[data-app-theme="violet"] .add-form-submit,
+body.app-page[data-app-theme="violet"] .map-travel-picker-cta.add-form-submit {
+  height: 50px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--bg) !important;
+  color: #fff;
+  font-size: 0.88rem;
+  font-weight: 600;
+  box-shadow: 3px 3px 8px rgba(0, 0, 0, 0.4);
+  filter: none;
+  transition:
+    color 0.28s var(--ease-premium),
+    box-shadow 0.28s var(--ease-premium),
+    transform 0.32s var(--ease-out-expo);
+}
+
+body.app-page[data-app-theme="violet"] .add-form-submit:hover,
+body.app-page[data-app-theme="violet"] .map-travel-picker-cta.add-form-submit:hover {
+  color: #fff;
+  filter: none;
+  background: var(--bg) !important;
+}
+
+body.app-page[data-app-theme="violet"] .add-form-submit:active,
+body.app-page[data-app-theme="violet"] .map-travel-picker-cta.add-form-submit:active {
+  box-shadow: inset 3px 3px 8px rgba(0, 0, 0, 0.45);
+  transform: scale(0.94);
+  background: var(--bg) !important;
+  color: #fff;
+}
+
+body.app-page[data-app-theme="violet"] .add-form-submit:focus-visible,
+body.app-page[data-app-theme="violet"] .map-travel-picker-cta.add-form-submit:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.35);
+  outline-offset: 2px;
+}
+
+/* Vue détail — boutons éditer / supprimer alignés sur le style Enregistrer */
+body.app-page[data-app-theme="violet"] .act-detail-btn--edit {
+  color: #fff;
+  background: var(--bg) !important;
+  box-shadow: 3px 3px 8px rgba(0, 0, 0, 0.4);
+}
+
+body.app-page[data-app-theme="violet"] .act-detail-btn--edit:not(:disabled):hover {
+  color: #fff;
+  filter: none;
+  background: var(--bg) !important;
+}
+
+body.app-page[data-app-theme="violet"] .act-detail-btn--edit:not(:disabled):active {
+  box-shadow: inset 3px 3px 8px rgba(0, 0, 0, 0.45);
+  transform: scale(0.94);
+  color: #fff;
+}
+
+body.app-page[data-app-theme="violet"] .act-detail-btn--move-pin {
+  color: var(--cat-on-accent, #0c1a22);
+  background: linear-gradient(
+    135deg,
+    var(--cat-color) 0%,
+    var(--cat-color-deep, color-mix(in srgb, var(--cat-color) 75%, #000)) 100%
+  ) !important;
+  box-shadow:
+    var(--neu-up-sm),
+    0 0 18px color-mix(in srgb, var(--cat-glow, var(--cat-color)) 50%, transparent);
+  filter: none;
+}
+
+body.app-page[data-app-theme="violet"] .act-detail-btn--move-pin:not(:disabled):hover {
+  color: var(--cat-on-accent, #0c1a22);
+  filter: brightness(1.05);
+  background: linear-gradient(
+    135deg,
+    var(--cat-color) 0%,
+    var(--cat-color-deep, color-mix(in srgb, var(--cat-color) 75%, #000)) 100%
+  ) !important;
+  box-shadow:
+    var(--neu-up-sm),
+    0 0 22px color-mix(in srgb, var(--cat-glow, var(--cat-color)) 62%, transparent);
+}
+
+body.app-page[data-app-theme="violet"] .act-detail-btn--move-pin:not(:disabled):active {
+  box-shadow: var(--neu-press);
+  transform: scale(0.94);
+  filter: none;
+}
+
+body.app-page[data-app-theme="violet"] .act-detail-btn--delete {
+  color: #ff9a9a;
+  background: var(--bg) !important;
+  box-shadow: 3px 3px 8px rgba(0, 0, 0, 0.4);
+}
+
+body.app-page[data-app-theme="violet"] .act-detail-btn--delete:not(:disabled):hover {
+  color: #ffb4b4;
+  background: var(--bg) !important;
+}
+
+body.app-page[data-app-theme="violet"] .filter-reset-btn,
+body.app-page[data-app-theme="violet"] .filter-apply-btn {
+  color: var(--text-secondary);
+  background: var(--bg) !important;
+  box-shadow: 3px 3px 8px rgba(0, 0, 0, 0.4);
+  filter: none;
+}
+
+body.app-page[data-app-theme="violet"] .filter-reset-btn:hover,
+body.app-page[data-app-theme="violet"] .filter-apply-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg) !important;
+}
+
+body.app-page[data-app-theme="violet"] .filter-reset-btn:active,
+body.app-page[data-app-theme="violet"] .filter-apply-btn:active {
+  box-shadow: inset 3px 3px 8px rgba(0, 0, 0, 0.45);
+  transform: scale(0.94);
+}
+
+/* ── Profil — liquid glass navy (sans teinte / bordure catégorie) ── */
+body.app-page[data-app-theme="violet"] .settings-page .settings-panel-inner,
+body.app-page[data-app-theme="violet"] .settings-page .settings-menu,
+body.app-page[data-app-theme="violet"] .settings-page .settings-profile-side-card {
+  background: var(--glass-panel-bg) !important;
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border: 1px solid var(--surface-border) !important;
+  box-shadow: var(--neu-up-sm);
+}
+
+body.app-page[data-app-theme="violet"] .settings-page .settings-panel-inner::before {
+  display: none;
+}
+
+body.app-page[data-app-theme="violet"] .settings-page .settings-section--love .settings-panel-inner {
+  background: var(--glass-panel-bg) !important;
+  border-color: var(--surface-border) !important;
+}
+
+body.app-page[data-app-theme="violet"] .settings-page .cat-panel-accent {
+  display: none;
+}
+
+body.app-page[data-app-theme="violet"] .settings-page .settings-menu-link:hover:not(.is-disabled) {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+body.app-page[data-app-theme="violet"] .settings-page .settings-menu-link:active:not(.is-disabled) {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+body.app-page[data-app-theme="violet"] .settings-page .settings-profile-side-card:hover {
+  border-color: var(--surface-border) !important;
+  box-shadow: var(--neu-up-sm);
+}
+
+body.app-page[data-app-theme="violet"] .settings-page .settings-profile-side-card:active {
+  box-shadow: var(--neu-press);
+}
+
+body.app-page[data-app-theme="violet"] .settings-page #settings-avatar-change.has-animal {
+  border-color: var(--surface-border) !important;
+  box-shadow: var(--neu-up-sm);
+}
+
+body.app-page[data-app-theme="violet"] .settings-page .settings-menu-icon {
+  color: var(--nav-icon);
+  background: var(--bg);
+  border: 1px solid var(--surface-border);
+  box-shadow: var(--neu-in);
+}
+
+body.app-page[data-app-theme="violet"] .settings-page .settings-profile-side-card-icon,
+body.app-page[data-app-theme="violet"] .settings-page .settings-profile-side-card--love .settings-profile-side-card-icon {
+  color: var(--nav-icon);
+  background: var(--bg);
+  border: 1px solid var(--surface-border);
+  box-shadow: var(--neu-in);
+}
+
+body.app-page[data-app-theme="violet"] .settings-page .settings-row-leading {
+  color: var(--nav-icon);
+  background: var(--bg);
+  border: 1px solid var(--surface-border);
+  box-shadow: var(--neu-in);
+}
+
+body.app-page[data-app-theme="violet"] .settings-page .settings-member.is-you {
+  border-color: var(--surface-border);
+  box-shadow: var(--neu-in);
+}
+
+body.app-page[data-app-theme="violet"] .settings-page .settings-member.is-partner {
+  border-color: var(--surface-border);
+}
+
+body.app-page[data-app-theme="violet"] .settings-page .settings-member-badge {
+  color: var(--text-secondary);
+}
+
+body.app-page[data-app-theme="violet"] .settings-page .settings-theme-card {
+  background: var(--glass-chrome-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border-color: var(--surface-border);
+  box-shadow: var(--neu-in);
+}
+
+body.app-page[data-app-theme="violet"] .settings-page .settings-theme-card:hover {
+  box-shadow: var(--neu-in), 0 4px 16px rgba(0, 0, 0, 0.18);
+}
+
+body.app-page[data-app-theme="violet"] .settings-page .settings-theme-card.is-selected {
+  border-color: rgba(255, 255, 255, 0.22);
+  box-shadow:
+    var(--neu-in),
+    0 0 20px rgba(155, 126, 196, 0.22);
+}
+
+body.app-page[data-app-theme="violet"] .settings-page .settings-theme-check {
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.92);
+}
+/* ══════════════════════════════════════════════════════════════════
+   DA pink + liquid glass — base rose, accent #f092b8
+   ══════════════════════════════════════════════════════════════════ */
+body.app-page[data-app-theme="pink"] {
+  --bg: var(--pink-bg);
+  --surface: rgba(56, 24, 40, 0.52);
+  --surface-strong: rgba(80, 40, 64, 0.6);
+  --surface-border: rgba(255, 255, 255, 0.11);
+  --glass-blur: 14px;
+  --glass-panel-bg: linear-gradient(
+    155deg,
+    rgba(120, 64, 96, 0.58) 0%,
+    rgba(56, 24, 40, 0.52) 48%,
+    rgba(42, 18, 32, 0.56) 100%
+  );
+  --glass-chrome-bg: linear-gradient(
+    180deg,
+    rgba(120, 64, 96, 0.58) 0%,
+    rgba(56, 24, 40, 0.52) 42%,
+    rgba(42, 18, 32, 0.64) 100%
+  );
+  --glass-modal-bg: linear-gradient(
+    165deg,
+    rgba(120, 64, 96, 0.9) 0%,
+    rgba(56, 24, 40, 0.86) 48%,
+    rgba(42, 18, 32, 0.92) 100%
+  );
+  --glass-modal-overlay: rgba(28, 12, 22, 0.72);
+  --surface-modal: rgba(80, 40, 64, 0.84);
+  --map-preview-base: var(--bg);
+  --map-preview-base-mid: #703050;
+  --page-bg-grain-opacity: 1;
+  --nav-icon: rgba(255, 255, 255, 0.9);
+  --nav-icon-muted: rgba(255, 255, 255, 0.55);
+  --nav-icon-glow: rgba(240, 146, 184, 0.16);
+
+  background: transparent;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+html:has(body.app-page[data-app-theme="pink"]) {
+  background: #582840;
+}
+
+/* ── Fond WebGL + grain ── */
+.page-bg {
+  display: none;
+}
+
+body.app-page[data-app-theme="pink"] .page-bg {
+  display: block;
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: #582840;
+}
+
+body.app-page[data-app-theme="pink"] .page-bg-grain {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-width: 100vw;
+  min-height: 100vh;
+  pointer-events: none;
+  opacity: var(--page-bg-grain-opacity);
+  mix-blend-mode: soft-light;
+  filter: url(#page-bg-grain-filter);
+  background: #808080;
+}
+
+body.app-page[data-app-theme="pink"] .page-bg canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: #582840;
+}
+
+body.app-page[data-app-theme="pink"] #app-view {
+  position: relative;
+  z-index: 1;
+}
+
+body.app-page[data-app-theme="pink"] #page-header-root,
+body.app-page[data-app-theme="pink"] #bottom-nav-root {
+  position: relative;
+  z-index: 180;
+}
+
+body.app-page[data-app-theme="pink"] #page-root {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Header glass (mobile) ── */
+body.app-page[data-app-theme="pink"] .page-header {
+  background: var(--glass-chrome-bg);
+  backdrop-filter: blur(20px) saturate(1.25);
+  -webkit-backdrop-filter: blur(20px) saturate(1.25);
+  border-bottom: 1px solid var(--surface-border);
+  box-shadow:
+    0 8px 28px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+body.app-page[data-app-theme="pink"] .page-header-mobile-icon {
+  background: var(--bg);
+  box-shadow: var(--neu-up-sm), 0 0 16px var(--nav-icon-glow);
+}
+
+body.app-page[data-app-theme="pink"] .page-header-mobile-icon[data-theme] {
+  color: var(--cat-color);
+  box-shadow: var(--neu-up-sm), 0 0 16px color-mix(in srgb, var(--cat-color) 20%, transparent);
+}
+
+/* ── Bottom nav glass ── */
+body.app-page[data-app-theme="pink"] .bottom-nav-glass {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 620px;
+  height: 142.68px;
+  transform: translateX(-50%) translateY(35px);
+  pointer-events: none;
+  z-index: 0;
+  background: var(--glass-chrome-bg);
+  backdrop-filter: blur(20px) saturate(1.25);
+  -webkit-backdrop-filter: blur(20px) saturate(1.25);
+  box-shadow: 0 -8px 28px rgba(0, 0, 0, 0.32);
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 620 142.68'%3E%3Crect y='24' width='620' height='118.68' fill='black'/%3E%3Cpath d='M310,6c8.1,0,15.57,2.71,21.58,7.28,7.09,5.39,14.94,10.72,23.85,10.72h124.58v64H140V24h124.58c8.91,0,16.76-5.33,23.85-10.72,6.01-4.57,13.48-7.28,21.58-7.28Z' fill='black'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 620 142.68'%3E%3Crect y='24' width='620' height='118.68' fill='black'/%3E%3Cpath d='M310,6c8.1,0,15.57,2.71,21.58,7.28,7.09,5.39,14.94,10.72,23.85,10.72h124.58v64H140V24h124.58c8.91,0,16.76-5.33,23.85-10.72,6.01-4.57,13.48-7.28,21.58-7.28Z' fill='black'/%3E%3C/svg%3E");
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+body.app-page[data-app-theme="pink"] .bottom-nav-shape {
+  color: transparent;
+  filter: drop-shadow(0 -1px 0 rgba(255, 255, 255, 0.12));
+  box-shadow: none;
+}
+
+body.app-page[data-app-theme="pink"] .bottom-nav-bar {
+  background: transparent;
+}
+
+body.app-page[data-app-theme="pink"] .bottom-nav-item .sidebar-link-icon {
+  background: var(--bg);
+  box-shadow: var(--neu-in);
+  color: var(--nav-icon-muted);
+}
+
+body.app-page[data-app-theme="pink"] .bottom-nav-item:hover .sidebar-link-icon {
+  color: var(--nav-icon);
+  background: var(--bg);
+  box-shadow:
+    inset 2px 2px 6px rgba(0, 0, 0, 0.35),
+    inset -1px -1px 4px rgba(255, 255, 255, 0.03),
+    0 0 12px var(--nav-icon-glow);
+}
+
+body.app-page[data-app-theme="pink"] .bottom-nav-item.is-active .sidebar-link-icon {
+  color: var(--nav-icon);
+  background: var(--bg);
+  box-shadow:
+    -3px -3px 8px rgba(255, 255, 255, 0.04),
+    3px 3px 8px rgba(0, 0, 0, 0.4),
+    0 0 14px var(--nav-icon-glow);
+}
+
+body.app-page[data-app-theme="pink"] .bottom-nav-fab {
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: var(--bg);
+  color: var(--nav-icon);
+  box-shadow: var(--neu-up-sm), 0 0 14px var(--nav-icon-glow);
+}
+
+body.app-page[data-app-theme="pink"] .bottom-nav-fab:active,
+body.app-page[data-app-theme="pink"] .bottom-nav-fab.is-pressed {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.35);
+  background: var(--bg);
+  box-shadow: var(--neu-press), 0 0 22px var(--nav-icon-glow);
+  transform: translateX(-50%) scale(0.9);
+}
+
+body.app-page[data-app-theme="pink"] .bottom-nav-fab:active svg,
+body.app-page[data-app-theme="pink"] .bottom-nav-fab.is-pressed svg {
+  transform: rotate(45deg);
+}
+
+body.app-page[data-app-theme="pink"].modal-open .bottom-nav {
+  opacity: 1;
+  pointer-events: none;
+}
+
+body.app-page[data-app-theme="pink"].modal-open .bottom-nav-fab {
+  transform: translateX(-50%) rotate(45deg) scale(0.88);
+  box-shadow: var(--neu-press), 0 0 10px transparent;
+}
+
+body.app-page[data-app-theme="pink"].modal-open .bottom-nav-fab svg {
+  transform: rotate(0deg);
+}
+
+/* ── Carte — chrome liquid glass (search, dock, résultats, feedback) ── */
+body.app-page[data-app-theme="pink"] .map-page .act-cat-panel--map.map-panel {
+  background: var(--glass-panel-bg) !important;
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border-color: var(--surface-border) !important;
+  box-shadow: var(--neu-up-sm);
+}
+
+body.app-page[data-app-theme="pink"] .map-page .act-cat-panel--map .cat-panel-accent {
+  display: none;
+}
+
+body.app-page[data-app-theme="pink"] .map-search-row,
+body.app-page[data-app-theme="pink"] .map-dock,
+body.app-page[data-app-theme="pink"] .map-search-results {
+  background: var(--glass-chrome-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border-color: var(--surface-border);
+  box-shadow: var(--neu-in);
+}
+
+body.app-page[data-app-theme="pink"] .map-locate-feedback:not(.is-error):not(.is-warning) {
+  background: var(--glass-chrome-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border-color: var(--surface-border);
+  box-shadow: var(--neu-up-sm);
+}
+
+body.app-page[data-app-theme="pink"] .map-compass-float {
+  background: var(--glass-chrome-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border-color: var(--surface-border);
+  color: var(--nav-icon);
+  box-shadow: var(--neu-up-sm);
+}
+
+body.app-page[data-app-theme="pink"] .map-search-field,
+body.app-page[data-app-theme="pink"] .map-search-filter:not(.is-active),
+body.app-page[data-app-theme="pink"] .map-dock-btn:not(.is-active) {
+  background: color-mix(in srgb, var(--bg) 68%, transparent);
+  border-color: var(--surface-border);
+}
+
+/* ── Accueil — cartes liquid glass ── */
+body.app-page[data-app-theme="pink"] .home-page .hero-days .days-card-inner,
+body.app-page[data-app-theme="pink"] .home-page .home-nearby-card,
+body.app-page[data-app-theme="pink"] .home-page .home-shortcut,
+body.app-page[data-app-theme="pink"] .home-page .cat-card-inner {
+  background: var(--glass-panel-bg) !important;
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border-color: var(--surface-border) !important;
+}
+
+/* ── Listes catégories (activités, restaurants, voyages, wishlist…) ── */
+body.app-page[data-app-theme="pink"] .activities-page .act-cat-panel:not(.act-cat-panel--map):not(:has(.act-list-group--travel)),
+body.app-page[data-app-theme="pink"] .activities-page .act-pick-card,
+body.app-page[data-app-theme="pink"] .activities-page .act-list-group--travel {
+  background: var(--glass-panel-bg) !important;
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border-color: var(--surface-border) !important;
+  box-shadow: var(--neu-up-sm);
+}
+
+body.app-page[data-app-theme="pink"] .activities-page .act-cat-panel:not(.act-cat-panel--map):not(:has(.act-list-group--travel))::before,
+body.app-page[data-app-theme="pink"] .activities-page .act-list-group--travel::before {
+  display: none;
+}
+
+body.app-page[data-app-theme="pink"] .activities-page .act-cat-panel .cat-panel-accent,
+body.app-page[data-app-theme="pink"] .activities-page .act-pick-card .cat-panel-accent {
+  display: none;
+}
+
+body.app-page[data-app-theme="pink"] .activities-page .act-list-item-inner,
+body.app-page[data-app-theme="pink"] .activities-page .act-category-map-place {
+  background: var(--glass-chrome-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border-color: var(--surface-border);
+  box-shadow: var(--neu-in);
+}
+
+body.app-page[data-app-theme="pink"] .activities-page .act-list-item-inner::before {
+  display: none;
+}
+
+body.app-page[data-app-theme="pink"] .activities-page .act-filter-btn:not(.is-active) {
+  background: color-mix(in srgb, var(--bg) 68%, transparent);
+  border-color: var(--surface-border);
+}
+
+body.app-page[data-app-theme="pink"] .activities-page .act-category-map-control {
+  background: var(--glass-chrome-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border-color: var(--surface-border);
+}
+
+/* Fond legacy layout.css — le shader navy prend le relais */
+body.app-page[data-app-theme="pink"]::before {
+  display: none;
+}
+
+/* ── Modales (ajout, vue, édition, filtres, pickers…) ── */
+body.app-page[data-app-theme="pink"] .add-modal-overlay {
+  background: var(--glass-modal-overlay);
+}
+
+body.app-page[data-app-theme="pink"] .add-modal-overlay.is-active {
+  backdrop-filter: blur(16px) saturate(1.2);
+  -webkit-backdrop-filter: blur(16px) saturate(1.2);
+}
+
+body.app-page[data-app-theme="pink"] .add-modal {
+  --surface: var(--surface-modal);
+  --surface-strong: rgba(120, 64, 96, 0.9);
+  background: var(--glass-modal-bg) !important;
+  backdrop-filter: blur(calc(var(--glass-blur) + 6px)) saturate(1.18);
+  -webkit-backdrop-filter: blur(calc(var(--glass-blur) + 6px)) saturate(1.18);
+  border: 1px solid var(--surface-border);
+}
+
+body.app-page[data-app-theme="pink"] .add-form-footer,
+body.app-page[data-app-theme="pink"] .act-detail-actions,
+body.app-page[data-app-theme="pink"] .filter-modal-actions {
+  background: transparent;
+  border-top-color: var(--surface-border);
+}
+
+body.app-page[data-app-theme="pink"] .add-modal-back,
+body.app-page[data-app-theme="pink"] .add-modal-close {
+  color: #fff;
+}
+
+body.app-page[data-app-theme="pink"] .add-modal-back:active,
+body.app-page[data-app-theme="pink"] .add-modal-back.is-pressed,
+body.app-page[data-app-theme="pink"] .add-modal-close:active {
+  color: #fff;
+}
+
+body.app-page[data-app-theme="pink"] .add-form-submit,
+body.app-page[data-app-theme="pink"] .map-travel-picker-cta.add-form-submit {
+  height: 50px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--bg) !important;
+  color: #fff;
+  font-size: 0.88rem;
+  font-weight: 600;
+  box-shadow: 3px 3px 8px rgba(0, 0, 0, 0.4);
+  filter: none;
+  transition:
+    color 0.28s var(--ease-premium),
+    box-shadow 0.28s var(--ease-premium),
+    transform 0.32s var(--ease-out-expo);
+}
+
+body.app-page[data-app-theme="pink"] .add-form-submit:hover,
+body.app-page[data-app-theme="pink"] .map-travel-picker-cta.add-form-submit:hover {
+  color: #fff;
+  filter: none;
+  background: var(--bg) !important;
+}
+
+body.app-page[data-app-theme="pink"] .add-form-submit:active,
+body.app-page[data-app-theme="pink"] .map-travel-picker-cta.add-form-submit:active {
+  box-shadow: inset 3px 3px 8px rgba(0, 0, 0, 0.45);
+  transform: scale(0.94);
+  background: var(--bg) !important;
+  color: #fff;
+}
+
+body.app-page[data-app-theme="pink"] .add-form-submit:focus-visible,
+body.app-page[data-app-theme="pink"] .map-travel-picker-cta.add-form-submit:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.35);
+  outline-offset: 2px;
+}
+
+/* Vue détail — boutons éditer / supprimer alignés sur le style Enregistrer */
+body.app-page[data-app-theme="pink"] .act-detail-btn--edit {
+  color: #fff;
+  background: var(--bg) !important;
+  box-shadow: 3px 3px 8px rgba(0, 0, 0, 0.4);
+}
+
+body.app-page[data-app-theme="pink"] .act-detail-btn--edit:not(:disabled):hover {
+  color: #fff;
+  filter: none;
+  background: var(--bg) !important;
+}
+
+body.app-page[data-app-theme="pink"] .act-detail-btn--edit:not(:disabled):active {
+  box-shadow: inset 3px 3px 8px rgba(0, 0, 0, 0.45);
+  transform: scale(0.94);
+  color: #fff;
+}
+
+body.app-page[data-app-theme="pink"] .act-detail-btn--move-pin {
+  color: var(--cat-on-accent, #0c1a22);
+  background: linear-gradient(
+    135deg,
+    var(--cat-color) 0%,
+    var(--cat-color-deep, color-mix(in srgb, var(--cat-color) 75%, #000)) 100%
+  ) !important;
+  box-shadow:
+    var(--neu-up-sm),
+    0 0 18px color-mix(in srgb, var(--cat-glow, var(--cat-color)) 50%, transparent);
+  filter: none;
+}
+
+body.app-page[data-app-theme="pink"] .act-detail-btn--move-pin:not(:disabled):hover {
+  color: var(--cat-on-accent, #0c1a22);
+  filter: brightness(1.05);
+  background: linear-gradient(
+    135deg,
+    var(--cat-color) 0%,
+    var(--cat-color-deep, color-mix(in srgb, var(--cat-color) 75%, #000)) 100%
+  ) !important;
+  box-shadow:
+    var(--neu-up-sm),
+    0 0 22px color-mix(in srgb, var(--cat-glow, var(--cat-color)) 62%, transparent);
+}
+
+body.app-page[data-app-theme="pink"] .act-detail-btn--move-pin:not(:disabled):active {
+  box-shadow: var(--neu-press);
+  transform: scale(0.94);
+  filter: none;
+}
+
+body.app-page[data-app-theme="pink"] .act-detail-btn--delete {
+  color: #ff9a9a;
+  background: var(--bg) !important;
+  box-shadow: 3px 3px 8px rgba(0, 0, 0, 0.4);
+}
+
+body.app-page[data-app-theme="pink"] .act-detail-btn--delete:not(:disabled):hover {
+  color: #ffb4b4;
+  background: var(--bg) !important;
+}
+
+body.app-page[data-app-theme="pink"] .filter-reset-btn,
+body.app-page[data-app-theme="pink"] .filter-apply-btn {
+  color: var(--text-secondary);
+  background: var(--bg) !important;
+  box-shadow: 3px 3px 8px rgba(0, 0, 0, 0.4);
+  filter: none;
+}
+
+body.app-page[data-app-theme="pink"] .filter-reset-btn:hover,
+body.app-page[data-app-theme="pink"] .filter-apply-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg) !important;
+}
+
+body.app-page[data-app-theme="pink"] .filter-reset-btn:active,
+body.app-page[data-app-theme="pink"] .filter-apply-btn:active {
+  box-shadow: inset 3px 3px 8px rgba(0, 0, 0, 0.45);
+  transform: scale(0.94);
+}
+
+/* ── Profil — liquid glass navy (sans teinte / bordure catégorie) ── */
+body.app-page[data-app-theme="pink"] .settings-page .settings-panel-inner,
+body.app-page[data-app-theme="pink"] .settings-page .settings-menu,
+body.app-page[data-app-theme="pink"] .settings-page .settings-profile-side-card {
+  background: var(--glass-panel-bg) !important;
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border: 1px solid var(--surface-border) !important;
+  box-shadow: var(--neu-up-sm);
+}
+
+body.app-page[data-app-theme="pink"] .settings-page .settings-panel-inner::before {
+  display: none;
+}
+
+body.app-page[data-app-theme="pink"] .settings-page .settings-section--love .settings-panel-inner {
+  background: var(--glass-panel-bg) !important;
+  border-color: var(--surface-border) !important;
+}
+
+body.app-page[data-app-theme="pink"] .settings-page .cat-panel-accent {
+  display: none;
+}
+
+body.app-page[data-app-theme="pink"] .settings-page .settings-menu-link:hover:not(.is-disabled) {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+body.app-page[data-app-theme="pink"] .settings-page .settings-menu-link:active:not(.is-disabled) {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+body.app-page[data-app-theme="pink"] .settings-page .settings-profile-side-card:hover {
+  border-color: var(--surface-border) !important;
+  box-shadow: var(--neu-up-sm);
+}
+
+body.app-page[data-app-theme="pink"] .settings-page .settings-profile-side-card:active {
+  box-shadow: var(--neu-press);
+}
+
+body.app-page[data-app-theme="pink"] .settings-page #settings-avatar-change.has-animal {
+  border-color: var(--surface-border) !important;
+  box-shadow: var(--neu-up-sm);
+}
+
+body.app-page[data-app-theme="pink"] .settings-page .settings-menu-icon {
+  color: var(--nav-icon);
+  background: var(--bg);
+  border: 1px solid var(--surface-border);
+  box-shadow: var(--neu-in);
+}
+
+body.app-page[data-app-theme="pink"] .settings-page .settings-profile-side-card-icon,
+body.app-page[data-app-theme="pink"] .settings-page .settings-profile-side-card--love .settings-profile-side-card-icon {
+  color: var(--nav-icon);
+  background: var(--bg);
+  border: 1px solid var(--surface-border);
+  box-shadow: var(--neu-in);
+}
+
+body.app-page[data-app-theme="pink"] .settings-page .settings-row-leading {
+  color: var(--nav-icon);
+  background: var(--bg);
+  border: 1px solid var(--surface-border);
+  box-shadow: var(--neu-in);
+}
+
+body.app-page[data-app-theme="pink"] .settings-page .settings-member.is-you {
+  border-color: var(--surface-border);
+  box-shadow: var(--neu-in);
+}
+
+body.app-page[data-app-theme="pink"] .settings-page .settings-member.is-partner {
+  border-color: var(--surface-border);
+}
+
+body.app-page[data-app-theme="pink"] .settings-page .settings-member-badge {
+  color: var(--text-secondary);
+}
+
+body.app-page[data-app-theme="pink"] .settings-page .settings-theme-card {
+  background: var(--glass-chrome-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border-color: var(--surface-border);
+  box-shadow: var(--neu-in);
+}
+
+body.app-page[data-app-theme="pink"] .settings-page .settings-theme-card:hover {
+  box-shadow: var(--neu-in), 0 4px 16px rgba(0, 0, 0, 0.18);
+}
+
+body.app-page[data-app-theme="pink"] .settings-page .settings-theme-card.is-selected {
+  border-color: rgba(255, 255, 255, 0.22);
+  box-shadow:
+    var(--neu-in),
+    0 0 20px rgba(240, 146, 184, 0.22);
+}
+
+body.app-page[data-app-theme="pink"] .settings-page .settings-theme-check {
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.92);
+}
+/* ══════════════════════════════════════════════════════════════════
+   DA minuit + liquid glass — base minuit, accent #6a7a9a
+   ══════════════════════════════════════════════════════════════════ */
+body.app-page[data-app-theme="midnight"] {
+  --bg: var(--midnight-bg);
+  --surface: rgba(14, 16, 24, 0.52);
+  --surface-strong: rgba(24, 28, 40, 0.6);
+  --surface-border: rgba(255, 255, 255, 0.11);
+  --glass-blur: 14px;
+  --glass-panel-bg: linear-gradient(
+    155deg,
+    rgba(40, 46, 62, 0.58) 0%,
+    rgba(14, 16, 24, 0.52) 48%,
+    rgba(10, 12, 18, 0.56) 100%
+  );
+  --glass-chrome-bg: linear-gradient(
+    180deg,
+    rgba(40, 46, 62, 0.58) 0%,
+    rgba(14, 16, 24, 0.52) 42%,
+    rgba(10, 12, 18, 0.64) 100%
+  );
+  --glass-modal-bg: linear-gradient(
+    165deg,
+    rgba(40, 46, 62, 0.9) 0%,
+    rgba(14, 16, 24, 0.86) 48%,
+    rgba(10, 12, 18, 0.92) 100%
+  );
+  --glass-modal-overlay: rgba(6, 8, 12, 0.72);
+  --surface-modal: rgba(24, 28, 40, 0.84);
+  --map-preview-base: var(--bg);
+  --map-preview-base-mid: #242a38;
+  --page-bg-grain-opacity: 1;
+  --nav-icon: rgba(255, 255, 255, 0.9);
+  --nav-icon-muted: rgba(255, 255, 255, 0.55);
+  --nav-icon-glow: rgba(106, 122, 154, 0.16);
+
+  background: transparent;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+html:has(body.app-page[data-app-theme="midnight"]) {
+  background: #181c28;
+}
+
+/* ── Fond WebGL + grain ── */
+.page-bg {
+  display: none;
+}
+
+body.app-page[data-app-theme="midnight"] .page-bg {
+  display: block;
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: #181c28;
+}
+
+body.app-page[data-app-theme="midnight"] .page-bg-grain {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-width: 100vw;
+  min-height: 100vh;
+  pointer-events: none;
+  opacity: var(--page-bg-grain-opacity);
+  mix-blend-mode: soft-light;
+  filter: url(#page-bg-grain-filter);
+  background: #808080;
+}
+
+body.app-page[data-app-theme="midnight"] .page-bg canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: #181c28;
+}
+
+body.app-page[data-app-theme="midnight"] #app-view {
+  position: relative;
+  z-index: 1;
+}
+
+body.app-page[data-app-theme="midnight"] #page-header-root,
+body.app-page[data-app-theme="midnight"] #bottom-nav-root {
+  position: relative;
+  z-index: 180;
+}
+
+body.app-page[data-app-theme="midnight"] #page-root {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Header glass (mobile) ── */
+body.app-page[data-app-theme="midnight"] .page-header {
+  background: var(--glass-chrome-bg);
+  backdrop-filter: blur(20px) saturate(1.25);
+  -webkit-backdrop-filter: blur(20px) saturate(1.25);
+  border-bottom: 1px solid var(--surface-border);
+  box-shadow:
+    0 8px 28px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+body.app-page[data-app-theme="midnight"] .page-header-mobile-icon {
+  background: var(--bg);
+  box-shadow: var(--neu-up-sm), 0 0 16px var(--nav-icon-glow);
+}
+
+body.app-page[data-app-theme="midnight"] .page-header-mobile-icon[data-theme] {
+  color: var(--cat-color);
+  box-shadow: var(--neu-up-sm), 0 0 16px color-mix(in srgb, var(--cat-color) 20%, transparent);
+}
+
+/* ── Bottom nav glass ── */
+body.app-page[data-app-theme="midnight"] .bottom-nav-glass {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 620px;
+  height: 142.68px;
+  transform: translateX(-50%) translateY(35px);
+  pointer-events: none;
+  z-index: 0;
+  background: var(--glass-chrome-bg);
+  backdrop-filter: blur(20px) saturate(1.25);
+  -webkit-backdrop-filter: blur(20px) saturate(1.25);
+  box-shadow: 0 -8px 28px rgba(0, 0, 0, 0.32);
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 620 142.68'%3E%3Crect y='24' width='620' height='118.68' fill='black'/%3E%3Cpath d='M310,6c8.1,0,15.57,2.71,21.58,7.28,7.09,5.39,14.94,10.72,23.85,10.72h124.58v64H140V24h124.58c8.91,0,16.76-5.33,23.85-10.72,6.01-4.57,13.48-7.28,21.58-7.28Z' fill='black'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 620 142.68'%3E%3Crect y='24' width='620' height='118.68' fill='black'/%3E%3Cpath d='M310,6c8.1,0,15.57,2.71,21.58,7.28,7.09,5.39,14.94,10.72,23.85,10.72h124.58v64H140V24h124.58c8.91,0,16.76-5.33,23.85-10.72,6.01-4.57,13.48-7.28,21.58-7.28Z' fill='black'/%3E%3C/svg%3E");
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+body.app-page[data-app-theme="midnight"] .bottom-nav-shape {
+  color: transparent;
+  filter: drop-shadow(0 -1px 0 rgba(255, 255, 255, 0.12));
+  box-shadow: none;
+}
+
+body.app-page[data-app-theme="midnight"] .bottom-nav-bar {
+  background: transparent;
+}
+
+body.app-page[data-app-theme="midnight"] .bottom-nav-item .sidebar-link-icon {
+  background: var(--bg);
+  box-shadow: var(--neu-in);
+  color: var(--nav-icon-muted);
+}
+
+body.app-page[data-app-theme="midnight"] .bottom-nav-item:hover .sidebar-link-icon {
+  color: var(--nav-icon);
+  background: var(--bg);
+  box-shadow:
+    inset 2px 2px 6px rgba(0, 0, 0, 0.35),
+    inset -1px -1px 4px rgba(255, 255, 255, 0.03),
+    0 0 12px var(--nav-icon-glow);
+}
+
+body.app-page[data-app-theme="midnight"] .bottom-nav-item.is-active .sidebar-link-icon {
+  color: var(--nav-icon);
+  background: var(--bg);
+  box-shadow:
+    -3px -3px 8px rgba(255, 255, 255, 0.04),
+    3px 3px 8px rgba(0, 0, 0, 0.4),
+    0 0 14px var(--nav-icon-glow);
+}
+
+body.app-page[data-app-theme="midnight"] .bottom-nav-fab {
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: var(--bg);
+  color: var(--nav-icon);
+  box-shadow: var(--neu-up-sm), 0 0 14px var(--nav-icon-glow);
+}
+
+body.app-page[data-app-theme="midnight"] .bottom-nav-fab:active,
+body.app-page[data-app-theme="midnight"] .bottom-nav-fab.is-pressed {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.35);
+  background: var(--bg);
+  box-shadow: var(--neu-press), 0 0 22px var(--nav-icon-glow);
+  transform: translateX(-50%) scale(0.9);
+}
+
+body.app-page[data-app-theme="midnight"] .bottom-nav-fab:active svg,
+body.app-page[data-app-theme="midnight"] .bottom-nav-fab.is-pressed svg {
+  transform: rotate(45deg);
+}
+
+body.app-page[data-app-theme="midnight"].modal-open .bottom-nav {
+  opacity: 1;
+  pointer-events: none;
+}
+
+body.app-page[data-app-theme="midnight"].modal-open .bottom-nav-fab {
+  transform: translateX(-50%) rotate(45deg) scale(0.88);
+  box-shadow: var(--neu-press), 0 0 10px transparent;
+}
+
+body.app-page[data-app-theme="midnight"].modal-open .bottom-nav-fab svg {
+  transform: rotate(0deg);
+}
+
+/* ── Carte — chrome liquid glass (search, dock, résultats, feedback) ── */
+body.app-page[data-app-theme="midnight"] .map-page .act-cat-panel--map.map-panel {
+  background: var(--glass-panel-bg) !important;
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border-color: var(--surface-border) !important;
+  box-shadow: var(--neu-up-sm);
+}
+
+body.app-page[data-app-theme="midnight"] .map-page .act-cat-panel--map .cat-panel-accent {
+  display: none;
+}
+
+body.app-page[data-app-theme="midnight"] .map-search-row,
+body.app-page[data-app-theme="midnight"] .map-dock,
+body.app-page[data-app-theme="midnight"] .map-search-results {
+  background: var(--glass-chrome-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border-color: var(--surface-border);
+  box-shadow: var(--neu-in);
+}
+
+body.app-page[data-app-theme="midnight"] .map-locate-feedback:not(.is-error):not(.is-warning) {
+  background: var(--glass-chrome-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border-color: var(--surface-border);
+  box-shadow: var(--neu-up-sm);
+}
+
+body.app-page[data-app-theme="midnight"] .map-compass-float {
+  background: var(--glass-chrome-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border-color: var(--surface-border);
+  color: var(--nav-icon);
+  box-shadow: var(--neu-up-sm);
+}
+
+body.app-page[data-app-theme="midnight"] .map-search-field,
+body.app-page[data-app-theme="midnight"] .map-search-filter:not(.is-active),
+body.app-page[data-app-theme="midnight"] .map-dock-btn:not(.is-active) {
+  background: color-mix(in srgb, var(--bg) 68%, transparent);
+  border-color: var(--surface-border);
+}
+
+/* ── Accueil — cartes liquid glass ── */
+body.app-page[data-app-theme="midnight"] .home-page .hero-days .days-card-inner,
+body.app-page[data-app-theme="midnight"] .home-page .home-nearby-card,
+body.app-page[data-app-theme="midnight"] .home-page .home-shortcut,
+body.app-page[data-app-theme="midnight"] .home-page .cat-card-inner {
+  background: var(--glass-panel-bg) !important;
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border-color: var(--surface-border) !important;
+}
+
+/* ── Listes catégories (activités, restaurants, voyages, wishlist…) ── */
+body.app-page[data-app-theme="midnight"] .activities-page .act-cat-panel:not(.act-cat-panel--map):not(:has(.act-list-group--travel)),
+body.app-page[data-app-theme="midnight"] .activities-page .act-pick-card,
+body.app-page[data-app-theme="midnight"] .activities-page .act-list-group--travel {
+  background: var(--glass-panel-bg) !important;
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border-color: var(--surface-border) !important;
+  box-shadow: var(--neu-up-sm);
+}
+
+body.app-page[data-app-theme="midnight"] .activities-page .act-cat-panel:not(.act-cat-panel--map):not(:has(.act-list-group--travel))::before,
+body.app-page[data-app-theme="midnight"] .activities-page .act-list-group--travel::before {
+  display: none;
+}
+
+body.app-page[data-app-theme="midnight"] .activities-page .act-cat-panel .cat-panel-accent,
+body.app-page[data-app-theme="midnight"] .activities-page .act-pick-card .cat-panel-accent {
+  display: none;
+}
+
+body.app-page[data-app-theme="midnight"] .activities-page .act-list-item-inner,
+body.app-page[data-app-theme="midnight"] .activities-page .act-category-map-place {
+  background: var(--glass-chrome-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border-color: var(--surface-border);
+  box-shadow: var(--neu-in);
+}
+
+body.app-page[data-app-theme="midnight"] .activities-page .act-list-item-inner::before {
+  display: none;
+}
+
+body.app-page[data-app-theme="midnight"] .activities-page .act-filter-btn:not(.is-active) {
+  background: color-mix(in srgb, var(--bg) 68%, transparent);
+  border-color: var(--surface-border);
+}
+
+body.app-page[data-app-theme="midnight"] .activities-page .act-category-map-control {
+  background: var(--glass-chrome-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border-color: var(--surface-border);
+}
+
+/* Fond legacy layout.css — le shader navy prend le relais */
+body.app-page[data-app-theme="midnight"]::before {
+  display: none;
+}
+
+/* ── Modales (ajout, vue, édition, filtres, pickers…) ── */
+body.app-page[data-app-theme="midnight"] .add-modal-overlay {
+  background: var(--glass-modal-overlay);
+}
+
+body.app-page[data-app-theme="midnight"] .add-modal-overlay.is-active {
+  backdrop-filter: blur(16px) saturate(1.2);
+  -webkit-backdrop-filter: blur(16px) saturate(1.2);
+}
+
+body.app-page[data-app-theme="midnight"] .add-modal {
+  --surface: var(--surface-modal);
+  --surface-strong: rgba(40, 46, 62, 0.9);
+  background: var(--glass-modal-bg) !important;
+  backdrop-filter: blur(calc(var(--glass-blur) + 6px)) saturate(1.18);
+  -webkit-backdrop-filter: blur(calc(var(--glass-blur) + 6px)) saturate(1.18);
+  border: 1px solid var(--surface-border);
+}
+
+body.app-page[data-app-theme="midnight"] .add-form-footer,
+body.app-page[data-app-theme="midnight"] .act-detail-actions,
+body.app-page[data-app-theme="midnight"] .filter-modal-actions {
+  background: transparent;
+  border-top-color: var(--surface-border);
+}
+
+body.app-page[data-app-theme="midnight"] .add-modal-back,
+body.app-page[data-app-theme="midnight"] .add-modal-close {
+  color: #fff;
+}
+
+body.app-page[data-app-theme="midnight"] .add-modal-back:active,
+body.app-page[data-app-theme="midnight"] .add-modal-back.is-pressed,
+body.app-page[data-app-theme="midnight"] .add-modal-close:active {
+  color: #fff;
+}
+
+body.app-page[data-app-theme="midnight"] .add-form-submit,
+body.app-page[data-app-theme="midnight"] .map-travel-picker-cta.add-form-submit {
+  height: 50px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--bg) !important;
+  color: #fff;
+  font-size: 0.88rem;
+  font-weight: 600;
+  box-shadow: 3px 3px 8px rgba(0, 0, 0, 0.4);
+  filter: none;
+  transition:
+    color 0.28s var(--ease-premium),
+    box-shadow 0.28s var(--ease-premium),
+    transform 0.32s var(--ease-out-expo);
+}
+
+body.app-page[data-app-theme="midnight"] .add-form-submit:hover,
+body.app-page[data-app-theme="midnight"] .map-travel-picker-cta.add-form-submit:hover {
+  color: #fff;
+  filter: none;
+  background: var(--bg) !important;
+}
+
+body.app-page[data-app-theme="midnight"] .add-form-submit:active,
+body.app-page[data-app-theme="midnight"] .map-travel-picker-cta.add-form-submit:active {
+  box-shadow: inset 3px 3px 8px rgba(0, 0, 0, 0.45);
+  transform: scale(0.94);
+  background: var(--bg) !important;
+  color: #fff;
+}
+
+body.app-page[data-app-theme="midnight"] .add-form-submit:focus-visible,
+body.app-page[data-app-theme="midnight"] .map-travel-picker-cta.add-form-submit:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.35);
+  outline-offset: 2px;
+}
+
+/* Vue détail — boutons éditer / supprimer alignés sur le style Enregistrer */
+body.app-page[data-app-theme="midnight"] .act-detail-btn--edit {
+  color: #fff;
+  background: var(--bg) !important;
+  box-shadow: 3px 3px 8px rgba(0, 0, 0, 0.4);
+}
+
+body.app-page[data-app-theme="midnight"] .act-detail-btn--edit:not(:disabled):hover {
+  color: #fff;
+  filter: none;
+  background: var(--bg) !important;
+}
+
+body.app-page[data-app-theme="midnight"] .act-detail-btn--edit:not(:disabled):active {
+  box-shadow: inset 3px 3px 8px rgba(0, 0, 0, 0.45);
+  transform: scale(0.94);
+  color: #fff;
+}
+
+body.app-page[data-app-theme="midnight"] .act-detail-btn--move-pin {
+  color: var(--cat-on-accent, #0c1a22);
+  background: linear-gradient(
+    135deg,
+    var(--cat-color) 0%,
+    var(--cat-color-deep, color-mix(in srgb, var(--cat-color) 75%, #000)) 100%
+  ) !important;
+  box-shadow:
+    var(--neu-up-sm),
+    0 0 18px color-mix(in srgb, var(--cat-glow, var(--cat-color)) 50%, transparent);
+  filter: none;
+}
+
+body.app-page[data-app-theme="midnight"] .act-detail-btn--move-pin:not(:disabled):hover {
+  color: var(--cat-on-accent, #0c1a22);
+  filter: brightness(1.05);
+  background: linear-gradient(
+    135deg,
+    var(--cat-color) 0%,
+    var(--cat-color-deep, color-mix(in srgb, var(--cat-color) 75%, #000)) 100%
+  ) !important;
+  box-shadow:
+    var(--neu-up-sm),
+    0 0 22px color-mix(in srgb, var(--cat-glow, var(--cat-color)) 62%, transparent);
+}
+
+body.app-page[data-app-theme="midnight"] .act-detail-btn--move-pin:not(:disabled):active {
+  box-shadow: var(--neu-press);
+  transform: scale(0.94);
+  filter: none;
+}
+
+body.app-page[data-app-theme="midnight"] .act-detail-btn--delete {
+  color: #ff9a9a;
+  background: var(--bg) !important;
+  box-shadow: 3px 3px 8px rgba(0, 0, 0, 0.4);
+}
+
+body.app-page[data-app-theme="midnight"] .act-detail-btn--delete:not(:disabled):hover {
+  color: #ffb4b4;
+  background: var(--bg) !important;
+}
+
+body.app-page[data-app-theme="midnight"] .filter-reset-btn,
+body.app-page[data-app-theme="midnight"] .filter-apply-btn {
+  color: var(--text-secondary);
+  background: var(--bg) !important;
+  box-shadow: 3px 3px 8px rgba(0, 0, 0, 0.4);
+  filter: none;
+}
+
+body.app-page[data-app-theme="midnight"] .filter-reset-btn:hover,
+body.app-page[data-app-theme="midnight"] .filter-apply-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg) !important;
+}
+
+body.app-page[data-app-theme="midnight"] .filter-reset-btn:active,
+body.app-page[data-app-theme="midnight"] .filter-apply-btn:active {
+  box-shadow: inset 3px 3px 8px rgba(0, 0, 0, 0.45);
+  transform: scale(0.94);
+}
+
+/* ── Profil — liquid glass navy (sans teinte / bordure catégorie) ── */
+body.app-page[data-app-theme="midnight"] .settings-page .settings-panel-inner,
+body.app-page[data-app-theme="midnight"] .settings-page .settings-menu,
+body.app-page[data-app-theme="midnight"] .settings-page .settings-profile-side-card {
+  background: var(--glass-panel-bg) !important;
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border: 1px solid var(--surface-border) !important;
+  box-shadow: var(--neu-up-sm);
+}
+
+body.app-page[data-app-theme="midnight"] .settings-page .settings-panel-inner::before {
+  display: none;
+}
+
+body.app-page[data-app-theme="midnight"] .settings-page .settings-section--love .settings-panel-inner {
+  background: var(--glass-panel-bg) !important;
+  border-color: var(--surface-border) !important;
+}
+
+body.app-page[data-app-theme="midnight"] .settings-page .cat-panel-accent {
+  display: none;
+}
+
+body.app-page[data-app-theme="midnight"] .settings-page .settings-menu-link:hover:not(.is-disabled) {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+body.app-page[data-app-theme="midnight"] .settings-page .settings-menu-link:active:not(.is-disabled) {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+body.app-page[data-app-theme="midnight"] .settings-page .settings-profile-side-card:hover {
+  border-color: var(--surface-border) !important;
+  box-shadow: var(--neu-up-sm);
+}
+
+body.app-page[data-app-theme="midnight"] .settings-page .settings-profile-side-card:active {
+  box-shadow: var(--neu-press);
+}
+
+body.app-page[data-app-theme="midnight"] .settings-page #settings-avatar-change.has-animal {
+  border-color: var(--surface-border) !important;
+  box-shadow: var(--neu-up-sm);
+}
+
+body.app-page[data-app-theme="midnight"] .settings-page .settings-menu-icon {
+  color: var(--nav-icon);
+  background: var(--bg);
+  border: 1px solid var(--surface-border);
+  box-shadow: var(--neu-in);
+}
+
+body.app-page[data-app-theme="midnight"] .settings-page .settings-profile-side-card-icon,
+body.app-page[data-app-theme="midnight"] .settings-page .settings-profile-side-card--love .settings-profile-side-card-icon {
+  color: var(--nav-icon);
+  background: var(--bg);
+  border: 1px solid var(--surface-border);
+  box-shadow: var(--neu-in);
+}
+
+body.app-page[data-app-theme="midnight"] .settings-page .settings-row-leading {
+  color: var(--nav-icon);
+  background: var(--bg);
+  border: 1px solid var(--surface-border);
+  box-shadow: var(--neu-in);
+}
+
+body.app-page[data-app-theme="midnight"] .settings-page .settings-member.is-you {
+  border-color: var(--surface-border);
+  box-shadow: var(--neu-in);
+}
+
+body.app-page[data-app-theme="midnight"] .settings-page .settings-member.is-partner {
+  border-color: var(--surface-border);
+}
+
+body.app-page[data-app-theme="midnight"] .settings-page .settings-member-badge {
+  color: var(--text-secondary);
+}
+
+body.app-page[data-app-theme="midnight"] .settings-page .settings-theme-card {
+  background: var(--glass-chrome-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
+  border-color: var(--surface-border);
+  box-shadow: var(--neu-in);
+}
+
+body.app-page[data-app-theme="midnight"] .settings-page .settings-theme-card:hover {
+  box-shadow: var(--neu-in), 0 4px 16px rgba(0, 0, 0, 0.18);
+}
+
+body.app-page[data-app-theme="midnight"] .settings-page .settings-theme-card.is-selected {
+  border-color: rgba(255, 255, 255, 0.22);
+  box-shadow:
+    var(--neu-in),
+    0 0 20px rgba(106, 122, 154, 0.22);
+}
+
+body.app-page[data-app-theme="midnight"] .settings-page .settings-theme-check {
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.92);
+}

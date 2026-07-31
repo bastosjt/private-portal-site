@@ -1,5 +1,5 @@
 import { MAP_ACCENT } from '../../config.js';
-import { OUR_SPACE_MAP_STYLE } from './map-style.js';
+import { getOurSpaceMapStyle } from './map-style.js';
 import { renderNavIcon } from '../../lib/lucide-icon.js';
 import {
   getGeolocationUserMessage,
@@ -444,7 +444,7 @@ export function initInteractiveMap({
 
   mapInstance = new maplibregl.Map({
     container,
-    style: OUR_SPACE_MAP_STYLE,
+    style: getOurSpaceMapStyle(),
     center: DEFAULT_CENTER,
     zoom: DEFAULT_ZOOM,
     minZoom: 3,
@@ -507,7 +507,7 @@ export function initInteractiveMap({
         </button>
         <button
           type="button"
-          class="map-dock-btn map-dock-btn--view map-dock-btn--travel-mode"
+          class="map-dock-btn map-dock-btn--travel-mode"
           data-map-action="travel-mode"
           aria-label="${getTravelModeAriaLabel(false)}"
           aria-pressed="false"

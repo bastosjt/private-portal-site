@@ -4,7 +4,7 @@ export const COUPLE_START_DATE = '2026-06-27';
 /** Nom de l'espace et version */
 export const APP_NAME = 'Our Space';
 export const APP_TAGLINE = 'À nous deux';
-export const APP_VERSION = '2.4.3';
+export const APP_VERSION = '2.5.0';
 
 /** Durée minimale du splash (ms). 0 = comportement normal. */
 export const SPLASH_MIN_DURATION_MS = 0;
@@ -20,6 +20,82 @@ export {
 
 /** Thème de l'espace et paramètres */
 export const BASE_THEME = 'base';
+
+/** Red cherry — fond thème rouge cerise (liquid glass) */
+export const RED_CHERRY = '#321208';
+
+/** Orange — fond thème orange brûlé lisible (liquid glass) */
+export const SUNSET_BG = '#8a3a0c';
+
+/** Forêt — fond thème vert moyen naturel (liquid glass) */
+export const FOREST_BG = '#1e382c';
+
+/** Violet — fond thème violet profond (liquid glass) */
+export const VIOLET_BG = '#261838';
+
+/** Pink — fond thème rose profond (liquid glass) */
+export const PINK_BG = '#381828';
+
+/** Minuit — fond thème noir premium (liquid glass) */
+export const MIDNIGHT_BG = '#0e1018';
+
+/** Thèmes visuels de l'application (DA globale) */
+export const DEFAULT_APP_THEME = 'navy';
+
+export const APP_THEMES = [
+  {
+    id: 'navy',
+    label: 'Navy',
+    description: 'Liquid glass bleu nuit',
+    themeColor: '#062045',
+  },
+  {
+    id: 'orange',
+    label: 'Red Cherry',
+    description: 'Liquid glass rouge cerise',
+    themeColor: RED_CHERRY,
+  },
+  {
+    id: 'sunset',
+    label: 'Orange',
+    description: 'Liquid glass orange brûlé',
+    themeColor: SUNSET_BG,
+  },
+  {
+    id: 'forest',
+    label: 'Vert nature',
+    description: 'Liquid glass vert moyen naturel',
+    themeColor: FOREST_BG,
+  },
+  {
+    id: 'violet',
+    label: 'Violet',
+    description: 'Liquid glass violet profond',
+    themeColor: VIOLET_BG,
+  },
+  {
+    id: 'pink',
+    label: 'Pink',
+    description: 'Liquid glass rose profond',
+    themeColor: PINK_BG,
+    hidden: true,
+  },
+  {
+    id: 'midnight',
+    label: 'Minuit',
+    description: 'Liquid glass noir premium',
+    themeColor: MIDNIGHT_BG,
+  },
+];
+
+export function getSelectableAppThemes() {
+  return APP_THEMES.filter((theme) => !theme.hidden);
+}
+
+export function normalizeAppTheme(value) {
+  const id = typeof value === 'string' ? value.trim().toLowerCase() : '';
+  return APP_THEMES.some((theme) => theme.id === id) ? id : DEFAULT_APP_THEME;
+}
 
 /** Thème de la carte interactive */
 export const MAP_THEME = 'emerald';

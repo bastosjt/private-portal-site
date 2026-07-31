@@ -12,18 +12,6 @@
   transition: opacity 0.36s var(--ease-out-expo);
 }
 
-/* Remplit l’espace sous la barre pour ne pas laisser voir le contenu */
-.bottom-nav::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: calc(-1 * var(--bottom-nav-bottom-gap));
-  height: var(--bottom-nav-bottom-gap);
-  background: var(--surface);
-  pointer-events: none;
-}
-
 .bottom-nav-shell {
   position: relative;
   overflow: visible;
@@ -34,8 +22,8 @@
   left: 50%;
   bottom: 0;
   width: 620px;
-  height: 88px;
-  transform: translateX(-50%) translateY(calc(-1 * var(--bottom-nav-shape-lift)));
+  height: 142.68px;
+  transform: translateX(-50%) translateY(35px);
   pointer-events: none;
   z-index: 0;
   display: block;

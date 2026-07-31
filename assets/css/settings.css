@@ -931,3 +931,164 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* ── Sélecteur de thème app ── */
+.settings-theme-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.settings-theme-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--neu-up-sm);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    transform 0.22s var(--ease-out-expo),
+    box-shadow 0.22s var(--ease-premium),
+    border-color 0.22s var(--ease-premium),
+    background 0.22s var(--ease-premium);
+}
+
+.settings-theme-card:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--neu-up);
+}
+
+.settings-theme-card:active {
+  transform: scale(0.985);
+  box-shadow: var(--neu-press);
+}
+
+.settings-theme-card.is-selected {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--surface-border));
+  box-shadow:
+    var(--neu-up-sm),
+    0 0 18px color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+.settings-theme-card.is-saving {
+  opacity: 0.72;
+  pointer-events: none;
+}
+
+.settings-theme-preview {
+  flex-shrink: 0;
+  width: 35px;
+  height: 35px;
+  border-radius: 14px;
+  box-shadow: var(--neu-in);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.settings-theme-preview--navy {
+  background:
+    radial-gradient(circle at 30% 25%, rgba(47, 102, 148, 0.95) 0%, transparent 52%),
+    radial-gradient(circle at 78% 72%, rgba(6, 116, 181, 0.75) 0%, transparent 48%),
+    linear-gradient(145deg, #0c4088 0%, #062045 52%, #0a3268 100%);
+}
+
+.settings-theme-preview--orange {
+  background:
+    radial-gradient(circle at 30% 25%, rgba(255, 80, 5, 0.55) 0%, transparent 48%),
+    radial-gradient(circle at 78% 72%, rgba(106, 36, 16, 0.85) 0%, transparent 48%),
+    linear-gradient(145deg, #4a1808 0%, #321208 52%, #240e05 100%);
+}
+
+.settings-theme-preview--sunset {
+  background:
+    radial-gradient(circle at 30% 25%, rgba(255, 120, 40, 0.75) 0%, transparent 48%),
+    radial-gradient(circle at 78% 72%, rgba(208, 104, 34, 0.85) 0%, transparent 48%),
+    linear-gradient(145deg, #b85014 0%, #8a3a0c 52%, #6e2e08 100%);
+}
+
+.settings-theme-preview--forest {
+  background:
+    radial-gradient(circle at 30% 25%, rgba(90, 144, 112, 0.75) 0%, transparent 48%),
+    radial-gradient(circle at 78% 72%, rgba(70, 104, 88, 0.85) 0%, transparent 48%),
+    linear-gradient(145deg, #325040 0%, #1e382c 52%, #142820 100%);
+}
+
+.settings-theme-preview--violet {
+  background:
+    radial-gradient(circle at 30% 25%, rgba(120, 96, 168, 0.75) 0%, transparent 48%),
+    radial-gradient(circle at 78% 72%, rgba(80, 56, 104, 0.85) 0%, transparent 48%),
+    linear-gradient(145deg, #382850 0%, #261838 52%, #181024 100%);
+}
+
+.settings-theme-preview--pink {
+  background:
+    radial-gradient(circle at 30% 25%, rgba(168, 88, 120, 0.75) 0%, transparent 48%),
+    radial-gradient(circle at 78% 72%, rgba(112, 48, 80, 0.85) 0%, transparent 48%),
+    linear-gradient(145deg, #582840 0%, #381828 52%, #281018 100%);
+}
+
+.settings-theme-preview--midnight {
+  background:
+    radial-gradient(circle at 30% 25%, rgba(80, 92, 120, 0.6) 0%, transparent 48%),
+    radial-gradient(circle at 78% 72%, rgba(36, 42, 56, 0.85) 0%, transparent 48%),
+    linear-gradient(145deg, #181c28 0%, #0e1018 52%, #080a10 100%);
+}
+
+.settings-theme-copy {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.settings-theme-name {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.settings-theme-desc {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.settings-theme-check {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  color: var(--accent);
+  opacity: 0;
+  transform: scale(0.82);
+  transition:
+    opacity 0.22s var(--ease-premium),
+    transform 0.22s var(--ease-out-expo);
+}
+
+.settings-theme-card.is-selected .settings-theme-check {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.settings-page.is-view-entering .settings-theme-card {
+  animation: add-picker-in 0.38s var(--ease-premium) both;
+  animation-delay: var(--theme-card-delay, 0ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .settings-theme-card,
+  .settings-theme-check,
+  .settings-page.is-view-entering .settings-theme-card {
+    animation: none !important;
+    transition: none !important;
+  }
+}

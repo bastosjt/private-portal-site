@@ -21,3 +21,18 @@ export function unlockScroll() {
   document.body.style.top = '';
   window.scrollTo(0, scrollY);
 }
+
+/** Réinitialise un verrou bloqué (ex. lock/unlock déséquilibrés après une modale). */
+export function forceUnlockScroll() {
+  lockCount = 0;
+  document.documentElement.classList.remove('scroll-locked');
+  document.body.classList.remove('scroll-locked');
+  document.body.style.top = '';
+}
+
+/** Débloque le scroll si aucune modale n'est ouverte (filet de sécurité navigation). */
+export function releaseStalePageScrollLock() {
+  if (document.querySelector('.add-modal-overlay.is-active')) return;
+  document.body.classList.remove('modal-open');
+  forceUnlockScroll();
+}

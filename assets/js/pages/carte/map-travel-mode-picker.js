@@ -145,11 +145,11 @@ export function initMapTravelModePicker({ signal } = {}) {
     dragClose.reset();
     overlay.classList.remove('is-active');
     isOpen = false;
+    unlockScroll();
     window.setTimeout(() => {
       if (!isOpen) {
         overlay.classList.add('hidden');
         bodyEl.innerHTML = '';
-        unlockScroll();
       }
     }, 360);
     if (resolveOpen) {
@@ -209,10 +209,7 @@ export function initMapTravelModePicker({ signal } = {}) {
   overlay.addEventListener('click', onOverlayClick, { signal });
   bodyEl.addEventListener('click', onBodyClick, { signal });
 
-  const dragClose = wireModalDragClose(overlay, {
-    onClose: () => finish({ action: 'dismiss' }),
-    signal,
-  });
+  const dragClose = wireModalDragClose(overlay, () => finish({ action: 'dismiss' }));
 
   signal?.addEventListener('abort', () => {
     if (isOpen) {

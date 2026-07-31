@@ -17,17 +17,17 @@ const BOTTOM_NAV_SHAPE_SVG = `
   <svg
     class="bottom-nav-shape"
     width="620"
-    height="88"
-    viewBox="0 0 620 88"
+    height="142.68"
+    viewBox="0 0 620 142.68"
     fill="none"
     overflow="visible"
     xmlns="http://www.w3.org/2000/svg"
     aria-hidden="true"
     focusable="false"
   >
-    <rect y="24" width="620" height="64" fill="currentColor"/>
-    <path d="M310 6C318.095 6 325.565 8.70945 331.578 13.2824C338.667 18.6742 346.518 24 355.424 24H480V88H140V24H264.576C273.482 24 281.333 18.6742 288.422 13.2824C294.435 8.70945 301.905 6 310 6Z" fill="currentColor"/>
-    <path d="M0 24H140H264.576C273.482 24 281.333 18.6742 288.422 13.2824C294.435 8.70945 301.905 6 310 6C318.095 6 325.565 8.70945 331.578 13.2824C338.667 18.6742 346.518 24 355.424 24H480H620" stroke="rgba(255,255,255,0.06)" stroke-width="1" vector-effect="non-scaling-stroke"/>
+    <rect y="24" width="620" height="118.68" fill="currentColor"/>
+    <path d="M310,6c8.1,0,15.57,2.71,21.58,7.28,7.09,5.39,14.94,10.72,23.85,10.72h124.58v64H140V24h124.58c8.91,0,16.76-5.33,23.85-10.72,6.01-4.57,13.48-7.28,21.58-7.28Z" fill="currentColor"/>
+    <path d="M0,24h264.58c8.91,0,16.76-5.33,23.85-10.72,6.01-4.57,13.48-7.28,21.58-7.28s15.57,2.71,21.58,7.28c7.09,5.39,14.94,10.72,23.85,10.72h264.58" stroke="rgba(255,255,255,0.06)" stroke-width="1" vector-effect="non-scaling-stroke"/>
   </svg>
 `;
 
@@ -110,6 +110,14 @@ function syncExplorerBadge(routeId = getActiveId()) {
   host.hidden = false;
 }
 
+function ensureBottomNavGlass(shell) {
+  if (!shell || shell.querySelector('.bottom-nav-glass')) return;
+  const glass = document.createElement('div');
+  glass.className = 'bottom-nav-glass';
+  glass.setAttribute('aria-hidden', 'true');
+  shell.insertBefore(glass, shell.firstChild);
+}
+
 export function renderBottomNav(container, { activeId = getActiveId() } = {}) {
   const navActiveId = resolveBottomNavActiveId(activeId);
 
@@ -131,6 +139,8 @@ export function renderBottomNav(container, { activeId = getActiveId() } = {}) {
       </div>
     </nav>
   `;
+
+  ensureBottomNavGlass(container.querySelector('.bottom-nav-shell'));
 }
 
 export function updateBottomNavActive(activeId = getActiveId()) {

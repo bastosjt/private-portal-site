@@ -38,7 +38,7 @@ import {
   getSubmitErrorMessage,
   isRetryableFirestoreError,
 } from '../auth/ensure-auth.js';
-import { lockScroll, unlockScroll } from '../lib/scroll-lock.js';
+import { lockScroll, unlockScroll, releaseStalePageScrollLock } from '../lib/scroll-lock.js';
 import { sanitizeHttpsUrl } from '../lib/safe-url.js';
 import { MODAL_DRAG_HANDLE_HTML, wireModalDragClose } from '../lib/modal-drag-close.js';
 import {
@@ -708,6 +708,7 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
     overlay.classList.remove('is-active');
     document.body.classList.remove('modal-open');
     unlockScroll();
+    releaseStalePageScrollLock();
 
     await waitForTransition(overlay, MODAL_MS);
     if (token !== modalTransitionToken) return;

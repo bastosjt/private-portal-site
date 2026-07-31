@@ -3,7 +3,7 @@ import { isTravelLinkedItem } from '../../lib/travel-link.js';
 import { escapeHtml } from '../../lib/escape-html.js';
 import { getStraightLineDistanceKm } from '../../lib/geo-utils.js';
 import { getMapLibre, waitForContainerSize } from '../../lib/map-bootstrap.js';
-import { OUR_SPACE_MAP_STYLE } from '../carte/map-style.js';
+import { getOurSpaceMapStyle } from '../carte/map-style.js';
 import { bindMapMarkerImageFallback } from '../carte/map-marker-images.js';
 import {
   fitMapToLocalArea,
@@ -346,7 +346,7 @@ export function createCategoryMapTab({
 
     map = new maplibregl.Map({
       container,
-      style: OUR_SPACE_MAP_STYLE,
+      style: getOurSpaceMapStyle(),
       center: getUserLocationLngLat() || MAP_FALLBACK_CENTER,
       zoom: 11,
       minZoom: 3,

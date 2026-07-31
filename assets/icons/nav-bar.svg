@@ -1,5 +1,14 @@
-<svg width="620" height="88" viewBox="0 0 620 88" fill="none" overflow="visible" xmlns="http://www.w3.org/2000/svg">
-  <rect y="24" width="620" height="64" fill="currentColor"/>
-  <path d="M310 6C318.095 6 325.565 8.70945 331.578 13.2824C338.667 18.6742 346.518 24 355.424 24H480V88H140V24H264.576C273.482 24 281.333 18.6742 288.422 13.2824C294.435 8.70945 301.905 6 310 6Z" fill="currentColor"/>
-  <path d="M0 24H140H264.576C273.482 24 281.333 18.6742 288.422 13.2824C294.435 8.70945 301.905 6 310 6C318.095 6 325.565 8.70945 331.578 13.2824C338.667 18.6742 346.518 24 355.424 24H480H620" stroke="rgba(255,255,255,0.06)" stroke-width="1" vector-effect="non-scaling-stroke"/>
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Calque_1" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 620 142.68">
+  <!-- Generator: Adobe Illustrator 30.4.0, SVG Export Plug-In . SVG Version: 2.1.4 Build 226)  -->
+  <defs>
+    <style>
+      .st0 {
+        fill: none;
+      }
+    </style>
+  </defs>
+  <rect y="24" width="620" height="118.68"/>
+  <path d="M310,6c8.1,0,15.57,2.71,21.58,7.28,7.09,5.39,14.94,10.72,23.85,10.72h124.58v64H140V24h124.58c8.91,0,16.76-5.33,23.85-10.72,6.01-4.57,13.48-7.28,21.58-7.28Z"/>
+  <path class="st0" d="M0,24h264.58c8.91,0,16.76-5.33,23.85-10.72,6.01-4.57,13.48-7.28,21.58-7.28s15.57,2.71,21.58,7.28c7.09,5.39,14.94,10.72,23.85,10.72h264.58" vector-effect="non-scaling-stroke"/>
 </svg>

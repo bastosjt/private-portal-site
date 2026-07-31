@@ -18,8 +18,10 @@ import { preloadMapMarkerImages } from './pages/carte/map-marker-images.js';
 import { resetMapWarmup } from './pages/carte/map-warmup.js';
 import { initUserProfiles, clearUserProfilesCache } from './lib/user-profile.js';
 import { initSpaceSettings, clearSpaceSettingsCache } from './lib/space-settings.js';
+import { initAppTheme, restoreSplashThemeHint } from './lib/app-theme.js';
 import { initUserLocationAtLaunch, clearUserLocationState } from './lib/user-location.js';
 import { debounce } from './lib/debounce.js';
+import { releaseStalePageScrollLock } from './lib/scroll-lock.js';
 import { init as initAccueil, destroy as destroyAccueil, refresh as refreshAccueil, HOME_VIEW_HTML } from './pages/accueil/index.js';
 import { initCustomOptions } from './lib/custom-types.js';
 import { startDailyPickMidnightReset } from './firebase/dailyPicks.js';
@@ -177,6 +179,8 @@ async function mountRoute(routeId) {
     return;
   }
 
+  releaseStalePageScrollLock();
+
   syncStaleDataIfNeeded();
 
   const token = ++pageTransitionToken;
@@ -328,6 +332,7 @@ function showAuthView({ reveal = true } = {}) {
 
   document.body.classList.add('auth-page');
   document.body.classList.remove('app-page', 'route-no-fab');
+  document.body.removeAttribute('data-app-theme');
   appView?.classList.add('hidden');
 
   if (reveal) {
@@ -344,6 +349,7 @@ async function showAppView(user, { reveal = true, awaitData = false } = {}) {
   // Prefetch parallèle : collections + pioches + space settings (activeTravelId).
   const prefetch = prefetchAppData();
   await initSpaceSettings();
+  if (!splashActive) initAppTheme();
   if (awaitData) await prefetch;
   if (!splashActive) void initUserLocationAtLaunch();
   currentUser = user;
@@ -399,6 +405,7 @@ async function finishSplashForApp() {
   ]);
   document.body.classList.add('app-page');
   document.body.classList.remove('auth-page');
+  initAppTheme();
   await dismissSplash();
   splashActive = false;
   await initUserLocationAtLaunch();
@@ -491,6 +498,7 @@ function setupLoginForm() {
 }
 
 setupLoginForm();
+restoreSplashThemeHint();
 initSplash();
 
 onPrefetchProgress((completed, total) => {
