@@ -4,7 +4,7 @@ export const COUPLE_START_DATE = '2026-06-27';
 /** Nom de l'espace et version */
 export const APP_NAME = 'Our Space';
 export const APP_TAGLINE = 'À nous deux';
-export const APP_VERSION = '2.5.0';
+export const APP_VERSION = '2.5.1';
 
 /** Durée minimale du splash (ms). 0 = comportement normal. */
 export const SPLASH_MIN_DURATION_MS = 0;
@@ -48,36 +48,42 @@ export const APP_THEMES = [
     label: 'Navy',
     description: 'Liquid glass bleu nuit',
     themeColor: '#062045',
+    chromeColor: '#0a3268',
   },
   {
     id: 'orange',
     label: 'Red Cherry',
     description: 'Liquid glass rouge cerise',
     themeColor: RED_CHERRY,
+    chromeColor: '#4a1808',
   },
   {
     id: 'sunset',
     label: 'Orange',
     description: 'Liquid glass orange brûlé',
     themeColor: SUNSET_BG,
+    chromeColor: '#b85014',
   },
   {
     id: 'forest',
     label: 'Vert nature',
     description: 'Liquid glass vert moyen naturel',
     themeColor: FOREST_BG,
+    chromeColor: '#325040',
   },
   {
     id: 'violet',
     label: 'Violet',
     description: 'Liquid glass violet profond',
     themeColor: VIOLET_BG,
+    chromeColor: '#382850',
   },
   {
     id: 'pink',
     label: 'Pink',
     description: 'Liquid glass rose profond',
     themeColor: PINK_BG,
+    chromeColor: '#582840',
     hidden: true,
   },
   {
@@ -85,11 +91,18 @@ export const APP_THEMES = [
     label: 'Minuit',
     description: 'Liquid glass noir premium',
     themeColor: MIDNIGHT_BG,
+    chromeColor: '#181c28',
   },
 ];
 
 export function getSelectableAppThemes() {
   return APP_THEMES.filter((theme) => !theme.hidden);
+}
+
+export function getAppThemeChromeColor(themeId = DEFAULT_APP_THEME) {
+  const id = normalizeAppTheme(themeId);
+  const theme = APP_THEMES.find((entry) => entry.id === id) || APP_THEMES[0];
+  return theme.chromeColor || theme.themeColor;
 }
 
 export function normalizeAppTheme(value) {

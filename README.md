@@ -6,7 +6,7 @@ Application web privée partagée à deux. Centralise idées, lieux et envies co
 |                 |                                                                        |
 | --------------- | ---------------------------------------------------------------------- |
 | **Produit**     | Our Space - *À nous deux*                                              |
-| **Version**     | `2.5.0` (`APP_VERSION` · `[assets/js/config.js](assets/js/config.js)`) |
+| **Version**     | `2.5.1` (`APP_VERSION` · `[assets/js/config.js](assets/js/config.js)`) |
 | **Runtime**     | Single Page App (ESM), sans framework ni bundler                       |
 | **Backend**     | Firebase Auth + Cloud Firestore                                        |
 | **Hébergement** | GitHub Pages (CI)                                                      |
@@ -238,3 +238,10 @@ Historique aligné sur les bumps de `APP_VERSION`. Le numérotage n’a pas touj
 - **Thèmes liquid glass** — sélection dans Paramètres → Thème de l’espace : Navy, Red Cherry, Orange, Vert nature, Violet, Minuit
 - Fond mesh WebGL par thème (gradient animé + grain), chrome glass (header, bottom nav, cartes, modales) harmonisé à chaque palette
 - Splash sans flash navy : hint synchrone (`localStorage` / Firestore) avant le premier paint ; `theme-color` aligné
+- Thème **Pink** conservé en interne (non proposé dans la grille) ; carte MapLibre indépendante du thème app
+- Aperçus thème dans les réglages (pastilles 35×35)
+
+### 2.5.1
+
+- **Barre de statut mobile** : `theme-color` et fond `<html>` synchronisés avec la couleur chrome du thème actif (plus de bandeau navy figé)
+- `chromeColor` par thème dans la config ; `viewport-fit=cover` pour iOS
