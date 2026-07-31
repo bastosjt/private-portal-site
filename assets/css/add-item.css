@@ -825,17 +825,6 @@ body.route-no-fab .fab {
     transition: transform 0.48s var(--ease-out-expo);
   }
 
-  /* Bottom nav masquée en modal-open : le gap réservé devient une bande vide (glass / chrome) */
-  body.modal-open .add-modal {
-    padding-bottom: 0;
-  }
-
-  body.modal-open .add-form-footer,
-  body.modal-open .act-detail-actions,
-  body.modal-open .filter-modal-actions {
-    padding-bottom: max(18px, env(safe-area-inset-bottom, 0px));
-  }
-
   .add-modal-overlay.is-active .add-modal {
     transform: translate3d(0, 0, 0);
     opacity: 1;
