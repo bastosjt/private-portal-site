@@ -1,4 +1,4 @@
-import { APP_THEMES, DEFAULT_APP_THEME, normalizeAppTheme } from '../config.js';
+import { APP_THEMES, DEFAULT_APP_THEME, getAppThemeChromeColor, normalizeAppTheme } from '../config.js';
 import { getSpaceTheme } from './space-settings.js';
 
 export { normalizeAppTheme } from '../config.js';
@@ -51,10 +51,16 @@ function persistThemeChoice(themeId) {
   }
 }
 
-function updateThemeColorMeta(themeId) {
+function syncBrowserChrome(themeId) {
+  const color = getAppThemeChromeColor(themeId);
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (!meta) return;
-  meta.content = getAppThemeMeta(themeId).themeColor || '#0a0a0b';
+  if (meta) meta.content = color;
+  document.documentElement.style.backgroundColor = color;
+}
+
+/** Met à jour theme-color + fond html (safe area / barre de statut mobile). */
+export function syncAppThemeBrowserChrome(themeId = getSpaceTheme()) {
+  syncBrowserChrome(normalizeAppTheme(themeId));
 }
 
 /** Restaure le dernier thème connu pour le splash (avant init Firestore). */
@@ -63,8 +69,7 @@ export function restoreSplashThemeHint() {
     const saved = localStorage.getItem(THEME_STORAGE_KEY);
     const theme = saved ? normalizeAppTheme(saved) : DEFAULT_APP_THEME;
     document.body.dataset.appTheme = theme;
-    updateThemeColorMeta(theme);
-    document.documentElement.style.backgroundColor = getAppThemeMeta(theme).themeColor || '#062045';
+    syncBrowserChrome(theme);
   } catch {
     // ignore quota / private mode
   }
@@ -75,7 +80,7 @@ export function applyAppTheme(themeId = getSpaceTheme()) {
   const theme = normalizeAppTheme(themeId);
   document.body.dataset.appTheme = theme;
   persistThemeChoice(theme);
-  updateThemeColorMeta(theme);
+  syncBrowserChrome(theme);
   window.dispatchEvent(new CustomEvent('app-theme-change', { detail: { theme } }));
 }
 

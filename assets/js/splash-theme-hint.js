@@ -1,17 +1,17 @@
 /**
  * Applique le thème splash avant le 1er paint (script classique, pas module).
- * Couleurs alignées sur APP_THEMES / variables.css.
+ * Couleurs alignées sur APP_THEMES.chromeColor / variables.css.
  */
 (function applySplashThemeHint() {
   var KEY = 'app-theme';
-  var COLORS = {
-    navy: '#062045',
-    orange: '#321208',
-    sunset: '#8a3a0c',
-    forest: '#1e382c',
-    violet: '#261838',
-    pink: '#381828',
-    midnight: '#0e1018',
+  var CHROME_COLORS = {
+    navy: '#0a3268',
+    orange: '#4a1808',
+    sunset: '#b85014',
+    forest: '#325040',
+    violet: '#382850',
+    pink: '#582840',
+    midnight: '#181c28',
   };
   var ALLOWED = {
     navy: 1,
@@ -37,8 +37,8 @@
   if (!document.body) return;
 
   document.body.dataset.appTheme = theme;
-  document.documentElement.style.backgroundColor = COLORS[theme];
+  document.documentElement.style.backgroundColor = CHROME_COLORS[theme];
 
   var meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute('content', COLORS[theme]);
+  if (meta) meta.setAttribute('content', CHROME_COLORS[theme]);
 })();
