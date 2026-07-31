@@ -38,7 +38,7 @@
   align-items: center;
   justify-content: space-evenly;
   min-height: var(--bottom-nav-bar-height);
-  padding: 6px max(8px, env(safe-area-inset-left, 0px)) calc(6px + env(safe-area-inset-bottom, 0px)) max(8px, env(safe-area-inset-right, 0px));
+  padding: 6px max(8px, env(safe-area-inset-left, 0px)) 6px max(8px, env(safe-area-inset-right, 0px));
   background: var(--surface);
   pointer-events: auto;
   transform: translateY(1px);
@@ -182,8 +182,7 @@
   position: absolute;
   left: 50%;
   bottom: calc(
-    env(safe-area-inset-bottom, 0px)
-    + var(--bottom-nav-bar-height)
+    var(--bottom-nav-bar-height)
     - (var(--bottom-nav-fab-size) * 0.46)
     - var(--bottom-nav-fab-drop)
   );

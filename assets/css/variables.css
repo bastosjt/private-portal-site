@@ -47,12 +47,11 @@
     + var(--bottom-nav-shape-lift)
     + var(--bottom-nav-bottom-gap)
   );
-  --page-mobile-bottom: calc(var(--bottom-nav-offset) + env(safe-area-inset-bottom, 0px));
+  --page-mobile-bottom: var(--bottom-nav-offset);
   --bottom-nav-active: var(--accent);
   /* Sommet de la bottom-nav (même référentiel que la page carte) */
   --bottom-nav-clearance: calc(
-    env(safe-area-inset-bottom, 0px)
-    + var(--bottom-nav-bottom-gap)
+    var(--bottom-nav-bottom-gap)
     + var(--page-header-bar-height)
     + var(--bottom-nav-shape-lift)
   );
