@@ -2,6 +2,7 @@ import { escapeHtml } from './escape-html.js';
 import { deleteField } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js';
 import {
   formatMoneyAmount,
+  formatPrettyMoneyAmount,
   normalizeItemPrice,
   parseMoneyInput,
 } from './price-format.js';
@@ -13,7 +14,10 @@ export function renderPriceRangeField(field) {
 
   return `
     <div class="form-field form-field--price-range">
-      <span class="form-field-label" id="${id}-label">${escapeHtml(field.label)}</span>
+      <div class="form-field-label-row">
+        <span class="form-field-label" id="${id}-label">${escapeHtml(field.label)}</span>
+        <span class="form-field-hint">Max optionnel pour une fourchette</span>
+      </div>
       <div class="form-price-range" role="group" aria-labelledby="${id}-label">
         <div class="form-input-wrap">
           <input
@@ -39,7 +43,6 @@ export function renderPriceRangeField(field) {
           >
         </div>
       </div>
-      <span class="form-field-hint">Max optionnel pour une fourchette</span>
     </div>
   `;
 }
@@ -49,8 +52,8 @@ export function populatePriceRangeFields(form, item) {
   const minEl = form.elements.prixMin;
   const maxEl = form.elements.prixMax;
 
-  if (minEl) minEl.value = prixMin != null ? formatMoneyAmount(prixMin) : '';
-  if (maxEl) maxEl.value = prixMax != null ? formatMoneyAmount(prixMax) : '';
+  if (minEl) minEl.value = prixMin != null ? formatPrettyMoneyAmount(prixMin) : '';
+  if (maxEl) maxEl.value = prixMax != null ? formatPrettyMoneyAmount(prixMax) : '';
 }
 
 function hasInvalidMoneyInput(value) {

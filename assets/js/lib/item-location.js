@@ -1,4 +1,5 @@
 import { sanitizeHttpsUrl } from './safe-url.js';
+import { buildGoogleMapsUrl } from './google-maps-url.js';
 
 export function getItemLocationLabel(categoryId, item) {
   if (!item) return '';
@@ -9,27 +10,26 @@ export function getItemLocationLabel(categoryId, item) {
   return '';
 }
 
+function buildItemMapsUrl(item, categoryId) {
+  const name = categoryId === 'restaurants' || categoryId === 'activities'
+    ? item.nom?.trim() || ''
+    : '';
+  const address = getItemLocationLabel(categoryId, item);
+
+  return buildGoogleMapsUrl({
+    name,
+    address,
+    lat: item.latitude,
+    lng: item.longitude,
+    label: address,
+  }) || null;
+}
+
 export function getMapsUrl(item, categoryId) {
-  if (categoryId === 'restaurants') {
+  if (categoryId === 'restaurants' || categoryId === 'activities') {
     const safeLienMaps = sanitizeHttpsUrl(item.lienMaps);
     if (safeLienMaps) return safeLienMaps;
-    if (item.latitude != null && item.longitude != null) {
-      return `https://www.google.com/maps/search/?api=1&query=${item.latitude},${item.longitude}`;
-    }
-    if (item.adresse) {
-      return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.adresse)}`;
-    }
-    return null;
   }
 
-  if (item.latitude != null && item.longitude != null) {
-    return `https://www.google.com/maps/search/?api=1&query=${item.latitude},${item.longitude}`;
-  }
-
-  const locationText = getItemLocationLabel(categoryId, item);
-  if (locationText) {
-    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(locationText)}`;
-  }
-
-  return null;
+  return buildItemMapsUrl(item, categoryId);
 }

@@ -6,7 +6,7 @@ Application web privée partagée à deux. Centralise idées, lieux et envies co
 |                 |                                                                        |
 | --------------- | ---------------------------------------------------------------------- |
 | **Produit**     | Our Space - *À nous deux*                                              |
-| **Version**     | `2.5.1` (`APP_VERSION` · `[assets/js/config.js](assets/js/config.js)`) |
+| **Version**     | `2.6.0` (`APP_VERSION` · `[assets/js/config.js](assets/js/config.js)`) |
 | **Runtime**     | Single Page App (ESM), sans framework ni bundler                       |
 | **Backend**     | Firebase Auth + Cloud Firestore                                        |
 | **Hébergement** | GitHub Pages (CI)                                                      |
@@ -24,7 +24,8 @@ Application web privée partagée à deux. Centralise idées, lieux et envies co
 - **Accueil** — compteur de jours, suggestions / tirages, aperçu carte, accès rapide
 - **Profils & espace** — page Profil (hub) avec section **Notre espace**, avatars, tagline, réglages en sous-écrans
 - **Thèmes liquid glass** — DA personnelle par membre (mesh WebGL, chrome glass, modales) ; choix dans Paramètres → **Ton thème** ; écran de connexion toujours navy
-- **UX mobile / desktop** — header unifié, sidebar, bottom navigation, transitions premium, modal ajout en sheet, installable (web manifest)
+- **UX mobile / desktop** — header unifié, sidebar, bottom navigation, transitions premium, modal ajout en sheet plein écran mobile, installable (web manifest)
+- **Lieux (Google Places)** — recherche nom + adresse sur activités / restos ; suggestions contrôlées type & cuisine (mapping vers la taxonomie app) ; prix EUR estimé depuis Google
 
 ---
 
@@ -77,6 +78,7 @@ L’entrée unique est `index.html`. La navigation repose sur le hash (`#accueil
 | Icônes                  | Lucide                      | **1.23.0**                                                |
 | Géocodage FR            | API Adresse (BAN)           | —                                                         |
 | Géocodage international | Photon (Komoot)             | —                                                         |
+| Lieux (nom / détail)    | Google Places API (New)     | autocomplete + place details                              |
 | CI / hébergement        | GitHub Actions → Pages      | checkout@v4, configure-pages@v5, upload-pages-artifact@v3 |
 | PWA légère              | `site.webmanifest`          | —                                                         |
 
@@ -241,6 +243,8 @@ Historique aligné sur les bumps de `APP_VERSION`. Le numérotage n’a pas touj
 - Thème **Pink** conservé en interne (non proposé dans la grille) ; carte MapLibre indépendante du thème app
 - Aperçus thème dans les réglages (pastilles 35×35)
 
+CSP stricte côté `index.html` (scripts Firebase, tuiles CARTO, APIs d’adresse, Google Places).
+
 ### 2.5.1
 
 - **Thème par utilisateur** — `appTheme` sur le profil Firestore `users/{uid}` (plus sur `space/settings`) ; chaque membre a sa DA indépendante
@@ -248,3 +252,15 @@ Historique aligné sur les bumps de `APP_VERSION`. Le numérotage n’a pas touj
 - **Connexion** — écran login / auth toujours en navy (mesh + grain), quel que soit le thème choisi une fois connecté
 - **Barre de statut mobile** — `theme-color` et fond `<html>` synchronisés à chaud avec la couleur chrome du thème (`chromeColor`, recréation de la meta, `viewport-fit=cover`, `black-translucent` iOS)
 - `localStorage` par utilisateur (`app-theme:{uid}`) pour le splash du dernier compte connu sur l’appareil
+
+
+---
+
+### 2.6.0
+
+- **Google Places** — autocomplete sur le nom (activités, restaurants) : adresse, coords, lien Maps, fourchette de prix EUR
+- **Suggestions type** — mapping contrôlé Google → taxonomie app (type resto, cuisine, catégorie activité) ; chip « Suggéré » avec Appliquer / Ignorer ; enregistrement bloqué tant qu’une suggestion est en attente
+- **Brouillon formulaire** — chip discret dans le header du modal ; suggestions Google persistées dans le brouillon
+- **Formulaire ajout** — sheet plein écran mobile ; zone scrollable (scrollbar invisible) ; animations fluides (brouillon, suggestions, dates activité)
+- **Activités** — types Aquarium, Zoo ; cuisine thaïlandaise (restos) ; icônes associées
+- **Dates activité** — champs « À venir » / « Période limitée » avec dépliage animé

@@ -45,6 +45,16 @@ jobs:
           export const db = getFirestore(app);
           EOF
 
+      - name: Generate Google Places config
+        run: |
+          cat > assets/js/lib/google-places-config.js << 'EOF'
+          export const GOOGLE_PLACES_API_KEY = '${{ secrets.GOOGLE_PLACES_API_KEY }}';
+
+          export function isGooglePlacesConfigured() {
+            return Boolean(GOOGLE_PLACES_API_KEY?.trim());
+          }
+          EOF
+
       - name: Prepare site
         run: |
           mkdir -p _site

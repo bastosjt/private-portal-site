@@ -273,7 +273,14 @@ export function setSelectFieldValue(form, field, value, label, categoryId) {
     return;
   }
 
-  if (!value) return;
+  if (!value) {
+    if (field.allowCustom && categoryId) {
+      rebuildSelect(select, field, categoryId, PLACEHOLDER_OPTION_VALUE);
+    } else {
+      select.value = PLACEHOLDER_OPTION_VALUE;
+    }
+    return;
+  }
 
   if (field.allowCustom && categoryId) {
     const extra = [{ value, label: label || formatOptionLabel(value.replace(/_/g, ' ')) }];

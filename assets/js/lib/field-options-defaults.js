@@ -11,6 +11,8 @@ export const DEFAULT_FIELD_OPTIONS = {
     { value: 'sport', label: 'Sport' },
     { value: 'parc', label: 'Parc' },
     { value: 'jardin_botanique', label: 'Jardin botanique' },
+    { value: 'aquarium', label: 'Aquarium' },
+    { value: 'zoo', label: 'Zoo' },
     { value: 'centre_commercial', label: 'Centre commercial' },
     { value: 'monument', label: 'Monument' },
     { value: 'pont', label: 'Pont' },
@@ -49,6 +51,7 @@ export const DEFAULT_FIELD_OPTIONS = {
     { value: 'italienne', label: 'Italien' },
     { value: 'japonaise', label: 'Japonais' },
     { value: 'mexicaine', label: 'Mexicain' },
+    { value: 'thailandaise', label: 'Thaïlandais' },
   ],
   'travels.type': [
     { value: 'week_end', label: 'Week-end' },
