@@ -74,7 +74,23 @@ export function captureFormSnapshot(form, category) {
     }
   }
 
+  const placeSuggestions = capturePlaceFieldSuggestionsMeta(form);
+  if (placeSuggestions) meta.placeSuggestions = placeSuggestions;
+
   return { fields, meta };
+}
+
+function capturePlaceFieldSuggestionsMeta(form) {
+  if (!form) return null;
+
+  const placeSuggestions = {};
+  form.querySelectorAll('[data-place-suggestion].is-visible').forEach((el) => {
+    const fieldName = el.dataset.placeSuggestion?.trim();
+    const value = el.dataset.suggestedValue?.trim();
+    if (fieldName && value) placeSuggestions[fieldName] = value;
+  });
+
+  return Object.keys(placeSuggestions).length ? placeSuggestions : null;
 }
 
 function normalizeSnapshotValue(value) {

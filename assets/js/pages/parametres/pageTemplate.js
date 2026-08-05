@@ -38,7 +38,7 @@ export const SETTINGS_VIEW_HTML = `
         <p class="settings-hero-email" id="settings-email"></p>
       </section>
 
-      <section class="settings-section settings-section--love" aria-labelledby="settings-space-heading">
+      <section class="settings-section settings-section--love couple-ui" aria-labelledby="settings-space-heading">
         <div class="section-head">
           <div>
             <h2 id="settings-space-heading">Notre espace</h2>

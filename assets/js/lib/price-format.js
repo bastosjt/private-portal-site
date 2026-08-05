@@ -67,6 +67,26 @@ export function formatMoneyAmount(num) {
   return String(num).replace('.', ',');
 }
 
+/** Arrondi affichage fourchette : < ,50 → entier inf., = ,50 → conservé, > ,50 → entier sup. */
+export function roundPrettyPrice(num) {
+  if (num == null || !Number.isFinite(num) || num < 0) return null;
+
+  const cents = Math.round(num * 100);
+  const whole = Math.trunc(cents / 100);
+  const frac = ((cents % 100) + 100) % 100;
+
+  if (frac === 50) return whole + 0.5;
+  if (frac < 50) return whole;
+  return whole + 1;
+}
+
+export function formatPrettyMoneyAmount(num) {
+  const rounded = roundPrettyPrice(num);
+  if (rounded == null) return '';
+  if (Number.isInteger(rounded)) return String(rounded);
+  return `${Math.trunc(rounded)},50`;
+}
+
 function formatPriceRangeLabel(min, max) {
   if (max == null || max === min) {
     return min === 0 ? 'Gratuit' : `${formatMoneyAmount(min)} €`;

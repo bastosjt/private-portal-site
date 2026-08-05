@@ -1,5 +1,6 @@
 # Config locale
 assets/js/firebase/config.js
+assets/js/lib/google-places-config.js
 
 # Cahier des charges privé
 /dev/

@@ -1,12 +1,15 @@
 import { escapeHtml } from '../lib/escape-html.js';
 import { devWarn, devError } from '../lib/dev-log.js';
-import { HOME_CATEGORIES, getCategoryById } from '../config.js';
+import { HOME_CATEGORIES, getCategoryById, isPlaceLinkedAddressField } from '../config.js';
 import { addItem, updateItem } from '../firebase/firestore.js';
 import { patchCachedItem, upsertCachedItem, ensureItems, findCachedItemById } from '../data/appDataCache.js';
 import { setActiveTravelId } from '../lib/space-settings.js';
 import { Timestamp } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js';
 import { sidebarIcon } from './sidebar.js';
 import { initFormAddressFields } from './address-autocomplete.js';
+import { initFormPlaceNameFields } from './place-name-autocomplete.js';
+import { initPlaceFieldSuggestions, clearPlaceFieldSuggestions, restorePlaceFieldSuggestionsFromDraft, hasPendingPlaceFieldSuggestions, getFirstPendingPlaceFieldSuggestion } from './place-field-suggestions.js';
+import { initActivityScheduleFields, syncActivityScheduleFields } from './activity-schedule-fields.js';
 import { searchAddresses } from '../lib/address-search.js';
 import { waitForTransition, nextFrame } from '../lib/transitions.js';
 import {
@@ -94,11 +97,29 @@ function renderField(field, categoryId) {
 
   const inputType = field.type === 'url' ? 'url' : 'text';
   const numericAttrs = isMoneyField(field.name) ? ' inputmode="decimal" autocomplete="off"' : '';
+  const placeSearchAttrs = field.placeSearch ? ' autocomplete="off"' : '';
+  const placeSearchWrap = field.placeSearch ? ' address-field place-name-field' : '';
+
+  if (field.schedulePart) {
+    return `
+      <div class="form-field form-field--schedule is-conditional-hidden" data-schedule-part="${field.schedulePart}">
+        <div class="form-field--schedule__clip">
+          <label for="${id}">
+            <span class="form-field-label">${escapeHtml(field.label)}</span>
+            <div class="form-input-wrap">
+              <input type="${inputType}" id="${id}" name="${field.name}" class="form-input"${placeholder}${required}${numericAttrs}${placeSearchAttrs}>
+            </div>
+          </label>
+        </div>
+      </div>
+    `;
+  }
+
   return `
     <label class="form-field" for="${id}">
       <span class="form-field-label">${escapeHtml(field.label)}</span>
-      <div class="form-input-wrap">
-        <input type="${inputType}" id="${id}" name="${field.name}" class="form-input"${placeholder}${required}${numericAttrs}>
+      <div class="form-input-wrap${placeSearchWrap}">
+        <input type="${inputType}" id="${id}" name="${field.name}" class="form-input"${placeholder}${required}${numericAttrs}${placeSearchAttrs}>
       </div>
     </label>
   `;
@@ -124,22 +145,6 @@ function renderForm(category) {
   return `
     <form class="add-form" id="add-form" data-theme="${category.theme}" novalidate>
       <div class="add-form-scroll">
-        <div class="add-form-draft hidden" id="add-form-draft" role="status" aria-live="polite">
-          <span class="add-form-draft-icon" aria-hidden="true">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/>
-              <path d="M14 2v4a2 2 0 0 0 2 2h4"/>
-              <path d="M10 12h4"/><path d="M10 16h4"/>
-            </svg>
-          </span>
-          <div class="add-form-draft-content">
-            <p class="add-form-draft-title">Brouillon enregistré</p>
-            <p class="add-form-draft-meta" id="add-form-draft-meta">Sauvegardé localement sur cet appareil</p>
-          </div>
-          <button type="button" class="add-form-draft-clear" id="add-form-draft-clear" aria-label="Effacer le brouillon">
-            Effacer
-          </button>
-        </div>
         ${category.fields.map((field) => renderField(field, category.id)).join('')}
       </div>
       <div class="add-form-footer">
@@ -158,8 +163,11 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
   let editingItem = null;
   let isSubmitting = false;
   let addressCleanup = null;
+  let placeNameCleanup = null;
+  let placeFieldSuggestionsCleanup = null;
   let selectCleanup = null;
   let multiSelectCleanup = null;
+  let scheduleCleanup = null;
   let draftCleanup = null;
   let formDraftBaseline = null;
   let bodyTransitionToken = 0;
@@ -195,7 +203,19 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
             <path d="m15 18-6-6 6-6"/>
           </svg>
         </button>
-        <h2 class="add-modal-title" id="add-modal-title">Nouvelle idée</h2>
+        <div class="add-modal-head-main">
+          <h2 class="add-modal-title" id="add-modal-title">Nouvelle idée</h2>
+          <div class="add-form-draft" id="add-form-draft" role="status" aria-live="polite" aria-hidden="true">
+            <div class="add-form-draft__inner">
+              <div class="add-form-draft__content">
+                <span class="add-form-draft-label">Brouillon</span>
+                <button type="button" class="add-form-draft-clear" id="add-form-draft-clear" aria-label="Effacer le brouillon">
+                  Effacer
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
         <button type="button" class="add-modal-close" id="add-modal-close" aria-label="Fermer">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
@@ -211,6 +231,14 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
   const bodyEl = overlay.querySelector('#add-modal-body');
   const backBtn = overlay.querySelector('#add-modal-back');
   const closeBtn = overlay.querySelector('#add-modal-close');
+  const modalEl = overlay.querySelector('.add-modal');
+  const draftClearBtn = overlay.querySelector('#add-form-draft-clear');
+
+  draftClearBtn?.addEventListener('click', (event) => {
+    const form = getActiveForm();
+    const category = activeCategoryId ? getCategoryById(activeCategoryId) : null;
+    if (form && category) handleDraftClear(event, form, category);
+  });
 
   function getFieldDisplayLabel(categoryId, fieldName, value) {
     return getFieldOptionLabel(categoryId, fieldName, value);
@@ -259,6 +287,10 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
           delete el.dataset.lat;
           delete el.dataset.lng;
         }
+
+        if (isPlaceLinkedAddressField(category, field) && item.lienMaps) {
+          el.dataset.mapsUrl = item.lienMaps;
+        }
       }
     }
   }
@@ -281,30 +313,22 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
   function clearFieldCleanups() {
     addressCleanup?.();
     addressCleanup = null;
+    placeNameCleanup?.();
+    placeNameCleanup = null;
+    placeFieldSuggestionsCleanup?.();
+    placeFieldSuggestionsCleanup = null;
     selectCleanup?.();
     selectCleanup = null;
     multiSelectCleanup?.();
     multiSelectCleanup = null;
+    scheduleCleanup?.();
+    scheduleCleanup = null;
     draftCleanup?.();
     draftCleanup = null;
   }
 
   function getActiveForm() {
     return getContentEl()?.querySelector('#add-form') || null;
-  }
-
-  function formatDraftSavedAt(savedAt) {
-    if (!savedAt) return 'Sauvegardé localement sur cet appareil';
-
-    const diffMs = Date.now() - savedAt;
-    const mins = Math.floor(diffMs / 60000);
-    if (mins < 1) return 'Sauvegardé à l\'instant';
-    if (mins < 60) return `Sauvegardé il y a ${mins} min`;
-
-    const hours = Math.floor(mins / 60);
-    if (hours < 24) return `Sauvegardé il y a ${hours} h`;
-
-    return 'Sauvegardé localement sur cet appareil';
   }
 
   function resetDraftClearButton(btn) {
@@ -317,25 +341,36 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
     btn.setAttribute('aria-label', 'Effacer le brouillon');
   }
 
+  function updateSubmitAvailability(form) {
+    const submitBtn = form?.querySelector('#add-form-submit');
+    if (!submitBtn || isSubmitting) return;
+    submitBtn.disabled = hasPendingPlaceFieldSuggestions(form);
+  }
+
+  function hideDraftNotice() {
+    const notice = overlay.querySelector('#add-form-draft');
+    const clearBtn = overlay.querySelector('#add-form-draft-clear');
+    notice?.classList.remove('is-visible');
+    notice?.setAttribute('aria-hidden', 'true');
+    resetDraftClearButton(clearBtn);
+  }
+
   function updateDraftNotice(form, categoryId) {
-    const notice = form.querySelector('#add-form-draft');
-    const meta = form.querySelector('#add-form-draft-meta');
-    const clearBtn = form.querySelector('#add-form-draft-clear');
-    if (!notice) return;
+    const notice = overlay.querySelector('#add-form-draft');
+    const clearBtn = overlay.querySelector('#add-form-draft-clear');
+    if (!notice || !form) return;
 
     const category = getCategoryById(categoryId);
-    const draft = loadFormDraft(categoryId, editingItemId, category);
     const isDirty = formDraftBaseline
       ? !formSnapshotsEqual(captureFormSnapshot(form, category), formDraftBaseline)
-      : Boolean(draft);
+      : false;
 
-    notice.classList.toggle('hidden', !draft || !isDirty);
+    notice.classList.toggle('is-visible', isDirty);
+    notice.setAttribute('aria-hidden', isDirty ? 'false' : 'true');
 
-    if (draft && isDirty && meta) {
-      meta.textContent = formatDraftSavedAt(draft.savedAt);
+    if (clearBtn?.dataset.confirming !== 'true') {
+      resetDraftClearButton(clearBtn);
     }
-
-    resetDraftClearButton(clearBtn);
   }
 
   function blurFormFields(form) {
@@ -347,6 +382,7 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
   }
 
   function resetFormBaseline(form, category) {
+    clearPlaceFieldSuggestions(form);
     form.reset();
     for (const field of category.fields) {
       if (field.type === 'priceRange') {
@@ -375,6 +411,12 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
 
     if (editingItem) {
       populateForm(form, category, editingItem);
+    }
+
+    if (category.id === 'activities') {
+      const select = form.elements.disponibilite;
+      if (select) select.dataset.scheduleMode = select.value || 'permanent';
+      syncActivityScheduleFields(form, { purgeHidden: true });
     }
 
     formDraftBaseline = captureFormSnapshot(form, category);
@@ -423,6 +465,13 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
     let timer = null;
 
     const scheduleSave = () => {
+      if (activeCategoryId) {
+        const liveForm = getActiveForm();
+        if (liveForm) {
+          updateDraftNotice(liveForm, activeCategoryId);
+          updateSubmitAvailability(liveForm);
+        }
+      }
       clearTimeout(timer);
       timer = setTimeout(() => saveDraftNow(), 400);
     };
@@ -492,8 +541,11 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
     }
 
     addressCleanup = initFormAddressFields(form, category);
+    placeNameCleanup = initFormPlaceNameFields(form, category);
+    placeFieldSuggestionsCleanup = initPlaceFieldSuggestions(form, category);
     selectCleanup = await initFormSelectFields(form, category);
     multiSelectCleanup = await initFormMultiSelectFields(form, category);
+    scheduleCleanup = categoryId === 'activities' ? initActivityScheduleFields(form) : null;
 
     // Baseline = état initial (vide ou item édité), avant restauration d'un brouillon.
     formDraftBaseline = captureFormSnapshot(form, category);
@@ -526,6 +578,8 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
         );
       }
 
+      restorePlaceFieldSuggestionsFromDraft(form, category, draft.meta);
+
       // Brouillon déjà présent : resynchroniser uniquement s'il diffère vraiment de la baseline.
       const current = captureFormSnapshot(form, category);
       if (!formSnapshotsEqual(current, formDraftBaseline)) {
@@ -533,14 +587,19 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
       } else {
         clearFormDraft(categoryId, editingItemId);
       }
+
+      if (categoryId === 'activities') {
+        const select = form.elements.disponibilite;
+        if (select) select.dataset.scheduleMode = select.value || 'permanent';
+        syncActivityScheduleFields(form, { purgeHidden: true });
+      }
     }
 
     setupDraftAutosave(form, category);
+    modalEl.dataset.theme = category.theme;
     updateDraftNotice(form, categoryId);
+    updateSubmitAvailability(form);
     blurFormFields(form);
-
-    const draftClearBtn = form.querySelector('#add-form-draft-clear');
-    draftClearBtn?.addEventListener('click', (event) => handleDraftClear(event, form, category));
 
     return true;
   }
@@ -551,6 +610,8 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
     editingItem = null;
     activeCategoryId = null;
     formDraftBaseline = null;
+    delete modalEl.dataset.theme;
+    hideDraftNotice();
     setModalTitle('Nouvelle idée', false);
 
     const content = getContentEl() || bodyEl;
@@ -714,6 +775,8 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
     if (token !== modalTransitionToken) return;
 
     clearFieldCleanups();
+    delete modalEl.dataset.theme;
+    hideDraftNotice();
     overlay.classList.add('hidden');
     activeCategoryId = null;
     editingItemId = null;
@@ -776,6 +839,15 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
             }
           }
 
+          if (isPlaceLinkedAddressField(category, field)) {
+            const mapsUrl = sanitizeHttpsUrl(el.dataset.mapsUrl || suggestion?.mapsUrl || '');
+            if (mapsUrl) {
+              data.lienMaps = mapsUrl;
+            } else if (editingItemId) {
+              data.lienMaps = null;
+            }
+          }
+
           if (value) {
             data[field.name] = value;
           } else if (editingItemId) {
@@ -831,6 +903,13 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
     const requiredField = getRequiredField(category);
 
     errorEl.classList.add('hidden');
+
+    if (hasPendingPlaceFieldSuggestions(form)) {
+      errorEl.textContent = 'Acceptez ou ignorez les suggestions avant d\'enregistrer.';
+      errorEl.classList.remove('hidden');
+      getFirstPendingPlaceFieldSuggestion(form)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      return;
+    }
 
     if (requiredField) {
       const requiredValue = requiredField.type === 'select'
@@ -908,8 +987,8 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
       errorEl.classList.remove('hidden');
     } finally {
       isSubmitting = false;
-      submitBtn.disabled = false;
       submitBtn.textContent = editingItemId ? 'Mettre à jour' : 'Enregistrer';
+      updateSubmitAvailability(form);
     }
   }
 

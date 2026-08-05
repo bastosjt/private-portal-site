@@ -157,6 +157,8 @@ export function initAddressAutocomplete(input, { form, fills = {}, onSelect } = 
   }
 
   function scheduleSearch() {
+    if (input.dataset.suppressAutocomplete === '1') return;
+
     clearTimeout(debounceTimer);
     const value = input.value.trim();
 

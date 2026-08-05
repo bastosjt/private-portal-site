@@ -1,11 +1,17 @@
+import { buildGoogleMapsUrl } from './google-maps-url.js';
+
 const BAN_URL = 'https://api-adresse.data.gouv.fr/search/';
 const PHOTON_URL = 'https://photon.komoot.io/api/';
 
-function buildMapsUrl({ label, lat, lng }) {
-  if (lat != null && lng != null) {
-    return `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
-  }
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(label)}`;
+function withMapsUrl(suggestion) {
+  return {
+    ...suggestion,
+    mapsUrl: buildGoogleMapsUrl({
+      address: suggestion.label,
+      lat: suggestion.lat,
+      lng: suggestion.lng,
+    }),
+  };
 }
 
 function normalizeBanFeature(feature) {
@@ -50,13 +56,6 @@ function normalizePhotonFeature(feature) {
     lat: Number.isFinite(lat) ? lat : null,
     lng: Number.isFinite(lng) ? lng : null,
     source: 'photon',
-  };
-}
-
-function withMapsUrl(suggestion) {
-  return {
-    ...suggestion,
-    mapsUrl: buildMapsUrl(suggestion),
   };
 }
 
