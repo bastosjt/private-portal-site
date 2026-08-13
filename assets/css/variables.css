@@ -132,3 +132,17 @@
   --theme-midnight-bg: var(--midnight-bg);
   --theme-midnight-accent: var(--midnight-accent);
 }
+
+@keyframes count-pop {
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.06);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}

@@ -15,6 +15,19 @@ export const PLACE_TRAVEL_FIELD = {
   optionsFrom: 'travels',
 };
 
+export function createPlaceMapsUrlField() {
+  return {
+    name: 'mapsImportUrl',
+    label: 'Lien Google Maps (optionnel)',
+    type: 'url',
+    optional: true,
+    placeholder: 'https://maps.google.com/…',
+    urlImport: {
+      provider: 'googleMaps',
+    },
+  };
+}
+
 export function createPlaceNameField(placeholder, addressField) {
   return {
     name: 'nom',
@@ -23,6 +36,22 @@ export function createPlaceNameField(placeholder, addressField) {
     required: true,
     placeholder,
     placeSearch: { addressField },
+  };
+}
+
+export function createTravelLocationField(placeholder = 'Ex. Lisbonne, Provence, Japon…') {
+  return {
+    name: 'localisation',
+    label: 'Destination',
+    type: 'address',
+    required: true,
+    placeholder,
+    placeSearch: {
+      addressField: 'localisation',
+      mode: 'geographic',
+      fills: { pays: 'country' },
+    },
+    fills: { pays: 'country' },
   };
 }
 
@@ -35,12 +64,36 @@ export function createPlaceAddressField(name, label, placeholder) {
   };
 }
 
-export function getPlaceNameField(category) {
+export function getPlaceSearchField(category) {
   return category?.fields?.find((field) => field.placeSearch) ?? null;
 }
 
+function getPlaceTitleFieldName(placeSearchField) {
+  if (!placeSearchField?.placeSearch) return null;
+
+  for (const [fieldName, placeKey] of Object.entries(placeSearchField.placeSearch.fills || {})) {
+    if (placeKey === 'name') return fieldName;
+  }
+
+  if (placeSearchField.type !== 'address') return placeSearchField.name;
+  return null;
+}
+
+export function getPlaceNameField(category) {
+  const field = getPlaceSearchField(category);
+  if (!field) return null;
+
+  if (field.type === 'address') {
+    const titleFieldName = getPlaceTitleFieldName(field);
+    if (!titleFieldName) return null;
+    return { name: titleFieldName, placeSearch: field.placeSearch, sourceField: field };
+  }
+
+  return field;
+}
+
 export function getPlaceAddressFieldName(category) {
-  const placeField = getPlaceNameField(category);
+  const placeField = getPlaceSearchField(category);
   if (placeField?.placeSearch?.addressField) return placeField.placeSearch.addressField;
   return category?.fields?.find((field) => field.type === 'address')?.name ?? null;
 }

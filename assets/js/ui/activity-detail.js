@@ -1,15 +1,17 @@
 import { getCategoryById } from '../config.js';
-import { devWarn, devError } from '../lib/dev-log.js';
+import { devError } from '../lib/dev-log.js';
+import { fetchActivityDetailMedia, canLoadActivityPlacePhoto } from '../lib/google-place-photo.js';
+import { createPlaceDetailMediaLoader } from './place-detail-media-loader.js';
 import { updateItem, deleteItem } from '../firebase/firestore.js';
 import { syncCachedItemWrite } from '../data/appDataCache.js';
 import { formatItemPrice, hasItemPrice } from '../lib/price-format.js';
-import { renderItemTagChipsHtml } from '../lib/item-tags.js';
+import { normalizeItemTags } from '../lib/item-tags.js';
 import { getFieldOptionLabel, initCustomOptions } from '../lib/custom-types.js';
 import { renderActivityScheduleNote } from '../pages/activites/scheduleDisplay.js';
+import { renderActivityTypeIcon } from '../pages/activites/IconsType.js';
 import { waitForTransition, nextFrame } from '../lib/transitions.js';
 import { lockScroll, unlockScroll } from '../lib/scroll-lock.js';
 import { escapeHtml } from '../lib/escape-html.js';
-import { renderGeoCategoryLocation } from '../pages/shared/listLocation.js';
 import { getCategoryDoneToggleLabels } from '../lib/category-status-labels.js';
 import {
   createDetailModalOverlay,
@@ -17,23 +19,94 @@ import {
   renderDoneToggle,
   updateDoneToggleUI,
   wireModalDragClose,
-  renderLinkedTravelChip,
   wrapDetailContentHtml,
   itemHasMapPin,
 } from './item-detail-shared.js';
-import { paintItemAuthors, renderItemAuthorMarkup } from './item-author.js';
+import {
+  createDetailListSelection,
+  renderDetailBadge,
+  renderDetailBadgeRow,
+  renderDetailLocationBadge,
+  renderDetailMediaBlock,
+  renderDetailPlaceMedia,
+  renderDetailMetaRow,
+  renderDetailTravelBadge,
+  revealDetailPlacePhoto,
+} from './category-detail-layout.js';
 
-const DONE_LABELS = getCategoryDoneToggleLabels('activities');
+const COLLECTION = 'activities';
+const ITEM_ID_ATTR = 'data-activity-id';
+const DONE_LABELS = getCategoryDoneToggleLabels(COLLECTION);
 
 function getFieldLabel(category, fieldName, value) {
   return getFieldOptionLabel(category.id, fieldName, value);
 }
 
+function renderActivitySlotBadge(fieldLabel, value) {
+  if (!value) return '';
+  return `
+    <span class="url-import-preview__price-badge wishlist-detail-priority-badge">
+      <span class="wishlist-detail-priority-label">${escapeHtml(fieldLabel)}</span>
+      <span class="wishlist-detail-priority-value">${escapeHtml(value)}</span>
+    </span>
+  `;
+}
+
+function renderActivityMediaSlotBadges(item, label) {
+  const badges = [];
+  if (item.categorie) badges.push(renderActivitySlotBadge('Type', label('categorie', item.categorie)));
+  normalizeItemTags(item.tags).forEach((tagValue) => {
+    badges.push(renderActivitySlotBadge('Tag', label('tags', tagValue)));
+  });
+  return badges.join('');
+}
+
+function renderActivityDetailBadges(item) {
+  const travelBadge = renderDetailTravelBadge(item);
+  return renderDetailBadgeRow(travelBadge);
+}
+
+function renderActivityDetailScroll(item, category, {
+  placeMedia = null,
+  photoVisible = false,
+  isMediaLoading = false,
+} = {}) {
+  const esc = escapeHtml;
+  const label = (field, value) => getFieldLabel(category, field, value);
+  const locationBadge = renderDetailLocationBadge(item, COLLECTION, { escapeHtml: esc });
+  const priceBadge = hasItemPrice(item) ? renderDetailBadge(formatItemPrice(item)) : '';
+  const iconHtml = renderActivityTypeIcon(item.categorie, { width: 48, height: 48 });
+  const media = renderDetailPlaceMedia(placeMedia, {
+    fallbackIconHtml: iconHtml,
+    photoVisible,
+    isLoading: isMediaLoading,
+  });
+
+  return `
+    ${renderDetailMediaBlock(media, {
+      slotHtml: renderActivityMediaSlotBadges(item, label),
+    })}
+    <h3 class="act-detail-name">${esc(item.nom)}</h3>
+    ${renderDetailMetaRow(locationBadge, priceBadge)}
+    ${renderActivityDetailBadges(item)}
+    ${renderActivityScheduleNote(item, {
+      getDisponibiliteLabel: (value) => label('disponibilite', value),
+      escapeHtml: esc,
+    })}
+  `;
+}
+
 export function initActivityDetail({ onChanged, onEdit, onMovePin, onClose, theme = 'cyan' } = {}) {
-  const category = getCategoryById('activities');
+  const category = getCategoryById(COLLECTION);
   let currentItem = null;
   let isBusy = false;
   let confirmDelete = false;
+  const mediaLoader = createPlaceDetailMediaLoader({
+    canLoad: canLoadActivityPlacePhoto,
+    fetchMedia: fetchActivityDetailMedia,
+    logLabel: 'activity place media',
+  });
+  const { setSelectedItem, getSelectedRow } = createDetailListSelection(ITEM_ID_ATTR);
 
   const { overlay, bodyEl, closeBtn } = createDetailModalOverlay({
     overlayId: 'activity-detail-overlay',
@@ -43,38 +116,42 @@ export function initActivityDetail({ onChanged, onEdit, onMovePin, onClose, them
   const abort = new AbortController();
   const { signal } = abort;
 
-  function renderContent(item) {
-    const chips = [];
-    if (item.categorie) {
-      chips.push(`<span class="act-chip">${escapeHtml(getFieldLabel(category, 'categorie', item.categorie))}</span>`);
-    }
-    const travelChip = renderLinkedTravelChip(item, { escapeHtml });
-    if (travelChip) chips.push(travelChip);
-    if (hasItemPrice(item)) {
-      chips.push(`<span class="act-chip act-chip--muted">${escapeHtml(formatItemPrice(item))}</span>`);
-    }
-    const tagChips = renderItemTagChipsHtml('activities', item.tags, escapeHtml);
-    if (tagChips) chips.push(tagChips);
+  function renderContent(item, { placeMedia = null } = {}) {
+    const resolvedMedia = placeMedia || mediaLoader.getActivePlaceMedia();
+    const photoVisible = resolvedMedia?.type === 'photo';
+    const isMediaLoading = canLoadActivityPlacePhoto(item) && !photoVisible;
 
     bodyEl.innerHTML = wrapDetailContentHtml(`
-        <h3 class="act-detail-name">${escapeHtml(item.nom)}</h3>
-        ${chips.length ? `<div class="act-chips">${chips.join('')}</div>` : ''}
-        ${renderActivityScheduleNote(item, {
-          getDisponibiliteLabel: (value) => getFieldLabel(category, 'disponibilite', value),
-          escapeHtml,
+        ${renderActivityDetailScroll(item, category, {
+          placeMedia: resolvedMedia,
+          photoVisible,
+          isMediaLoading,
         })}
-        ${renderGeoCategoryLocation(item, 'activities', { escapeHtml })}
 
         ${renderDoneToggle(Boolean(item.done), isBusy, DONE_LABELS)}
-
-        ${renderItemAuthorMarkup(item)}
-    `, { done: item.done, confirmDelete, isBusy, canMovePin: itemHasMapPin(item) && Boolean(onMovePin) });
+    `, {
+      done: item.done,
+      confirmDelete,
+      isBusy,
+      canMovePin: itemHasMapPin(item) && Boolean(onMovePin),
+    });
 
     bodyEl.querySelector('#act-detail-done')?.addEventListener('click', handleToggleDone);
     bodyEl.querySelector('#act-detail-edit')?.addEventListener('click', handleEdit);
     bodyEl.querySelector('#act-detail-move-pin')?.addEventListener('click', handleMovePin);
     bodyEl.querySelector('#act-detail-delete')?.addEventListener('click', handleDelete);
-    paintItemAuthors(bodyEl);
+  }
+
+  function loadPlaceMedia(item) {
+    return mediaLoader.loadPlaceMedia(item, {
+      isCurrentItem: (entry) => currentItem?.id === entry.id,
+      onLoaded: (_entry, placeMedia) => {
+        revealDetailPlacePhoto(bodyEl.querySelector('.act-detail-media-wrap'), placeMedia.url);
+      },
+      onSettled: () => {
+        bodyEl.querySelector('.act-detail-media-stage')?.classList.remove('act-detail-media-stage--loading');
+      },
+    });
   }
 
   async function handleToggleDone() {
@@ -88,17 +165,16 @@ export function initActivityDetail({ onChanged, onEdit, onMovePin, onClose, them
     content?.classList.toggle('act-detail-content--done', done);
 
     try {
-      await updateItem('activities', currentItem.id, { done });
+      await updateItem(COLLECTION, currentItem.id, { done });
       currentItem = { ...currentItem, done };
-      syncCachedItemWrite('activities', currentItem.id, { patch: { done } });
-      onChanged?.('activities', currentItem.id, { patch: true });
-      close();
+      syncCachedItemWrite(COLLECTION, currentItem.id, { patch: { done } });
+      onChanged?.(COLLECTION, currentItem.id, { patch: true });
+      await close();
     } catch (err) {
       devError('toggle done:', err);
-      updateDoneToggleUI(bodyEl, !done, false, DONE_LABELS);
-      content?.classList.toggle('act-detail-content--done', !done);
       isBusy = false;
       updateDoneToggleUI(bodyEl, currentItem.done, false, DONE_LABELS);
+      content?.classList.toggle('act-detail-content--done', currentItem.done);
     }
   }
 
@@ -126,10 +202,10 @@ export function initActivityDetail({ onChanged, onEdit, onMovePin, onClose, them
 
     try {
       const itemId = currentItem.id;
-      await deleteItem('activities', itemId);
-      syncCachedItemWrite('activities', itemId, { deleted: true });
+      await deleteItem(COLLECTION, itemId);
+      syncCachedItemWrite(COLLECTION, itemId, { deleted: true });
       close();
-      onChanged?.('activities', itemId, { deleted: true });
+      onChanged?.(COLLECTION, itemId, { deleted: true });
     } catch (err) {
       devError('deleteItem:', err);
       confirmDelete = false;
@@ -146,6 +222,8 @@ export function initActivityDetail({ onChanged, onEdit, onMovePin, onClose, them
     confirmDelete = false;
     isBusy = false;
     renderContent(item);
+    setSelectedItem(item.id);
+    loadPlaceMedia(item);
     overlay.classList.remove('hidden');
     document.body.classList.add('modal-open');
     lockScroll();
@@ -157,6 +235,9 @@ export function initActivityDetail({ onChanged, onEdit, onMovePin, onClose, them
 
     dragClose.reset();
     onClose?.();
+    mediaLoader.cleanupPlaceMedia();
+
+    const rowToReveal = getSelectedRow();
 
     overlay.classList.remove('is-active');
     document.body.classList.remove('modal-open');
@@ -165,6 +246,8 @@ export function initActivityDetail({ onChanged, onEdit, onMovePin, onClose, them
     await waitForTransition(overlay.querySelector('.add-modal') || overlay, DETAIL_MODAL_MS);
 
     overlay.classList.add('hidden');
+    setSelectedItem(null);
+    rowToReveal?.scrollIntoView({ block: 'nearest' });
     currentItem = null;
     confirmDelete = false;
     isBusy = false;
@@ -193,6 +276,7 @@ export function initActivityDetail({ onChanged, onEdit, onMovePin, onClose, them
   function destroy() {
     abort.abort();
     dragClose.destroy();
+    mediaLoader.cleanupPlaceMedia();
     overlay.classList.remove('is-active');
     overlay.classList.add('hidden');
     document.body.classList.remove('modal-open');

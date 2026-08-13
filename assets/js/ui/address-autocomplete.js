@@ -230,6 +230,7 @@ export function initFormAddressFields(form, category) {
 
   for (const field of category.fields) {
     if (field.type !== 'address') continue;
+    if (field.placeSearch) continue;
 
     const input = form.elements[field.name];
     if (!input) continue;

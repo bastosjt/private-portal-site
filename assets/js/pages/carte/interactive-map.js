@@ -25,7 +25,8 @@ import {
   setMapLayerVisible,
   setMapMarkerClickHandler,
 } from './map-markers.js';
-import { getMapLibre, MAP_TILE_FADE_MS } from '../../lib/map-bootstrap.js';
+import { isMapTilesPrewarmed } from './map-warmup.js';
+import { getMapLibre, MAP_TILE_FADE_MS, revealMapCanvasWhenIdle } from '../../lib/map-bootstrap.js';
 
 export { refreshTravelMapZones } from './map-markers.js';
 
@@ -82,6 +83,7 @@ function configureScrollZoom(map) {
 }
 
 let mapInstance = null;
+let cancelMapReveal = null;
 let resizeObserver = null;
 let lastUserLocation = null;
 let onLayerToggled = null;
@@ -442,6 +444,14 @@ export function initInteractiveMap({
   const maplibregl = getMapLibre();
   if (!maplibregl) throw new Error('MapLibre GL is not loaded');
 
+  const tilesReady = isMapTilesPrewarmed();
+  if (tilesReady) {
+    container.classList.remove('is-map-loading');
+    container.classList.add('is-map-ready');
+  } else {
+    container.classList.add('is-map-loading');
+  }
+
   mapInstance = new maplibregl.Map({
     container,
     style: getOurSpaceMapStyle(),
@@ -449,7 +459,7 @@ export function initInteractiveMap({
     zoom: DEFAULT_ZOOM,
     minZoom: 3,
     maxZoom: 19,
-    fadeDuration: MAP_TILE_FADE_MS,
+    fadeDuration: tilesReady ? 0 : MAP_TILE_FADE_MS,
     attributionControl: false,
     pitch: 0,
     bearing: 0,
@@ -460,6 +470,10 @@ export function initInteractiveMap({
   });
 
   bindMapMarkerImageFallback(mapInstance);
+  cancelMapReveal?.();
+  cancelMapReveal = revealMapCanvasWhenIdle(mapInstance, container, {
+    skipLoadingVeil: tilesReady,
+  });
 
   stopUserLocationListener = onUserLocationChange((lngLat) => {
     if (mapInstance) syncMapUserLocation(mapInstance, controlsRoot, lngLat);
@@ -550,6 +564,8 @@ export function getInteractiveMap() {
 export function destroyInteractiveMap() {
   resizeObserver?.disconnect();
   resizeObserver = null;
+  cancelMapReveal?.();
+  cancelMapReveal = null;
   onLayerToggled = null;
   stopUserLocationListener?.();
   stopUserLocationListener = null;
@@ -562,6 +578,8 @@ export function destroyInteractiveMap() {
     mapInstance.remove();
     mapInstance = null;
   }
+
+  document.getElementById('interactive-map')?.classList.remove('is-map-loading', 'is-map-ready');
 
   lastUserLocation = null;
 }

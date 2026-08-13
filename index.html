@@ -4,11 +4,11 @@
   <meta charset="UTF-8">
   <meta http-equiv="Content-Security-Policy" content="
     default-src 'self';
-    script-src 'self' https://www.gstatic.com https://apis.google.com https://unpkg.com;
+    script-src 'self' https://www.gstatic.com https://apis.google.com https://unpkg.com https://maps.googleapis.com;
     style-src 'self' 'unsafe-inline';
     font-src 'self';
-    img-src 'self' data: https://tiles.basemaps.cartocdn.com;
-    connect-src 'self' https://www.gstatic.com https://apis.google.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://api-adresse.data.gouv.fr https://photon.komoot.io https://nominatim.openstreetmap.org https://basemaps.cartocdn.com https://tiles.basemaps.cartocdn.com https://places.googleapis.com https://api.frankfurter.dev https://unpkg.com;
+    img-src 'self' data: blob: https:;
+    connect-src 'self' https: https://www.gstatic.com https://apis.google.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://api-adresse.data.gouv.fr https://photon.komoot.io https://nominatim.openstreetmap.org https://basemaps.cartocdn.com https://tiles.basemaps.cartocdn.com https://places.googleapis.com https://api.frankfurter.dev https://unpkg.com https://api.exabase.io https://cdn.exabase.io;
     worker-src 'self' blob:;
     frame-src https://*.firebaseapp.com https://accounts.google.com;
     object-src 'none';
@@ -33,20 +33,20 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <link rel="modulepreload" href="https://unpkg.com/three@0.170.0/build/three.module.js" />
-  <link rel="stylesheet" href="assets/css/variables.css?v=34">
+  <link rel="stylesheet" href="assets/css/variables.css?v=35">
   <link rel="stylesheet" href="assets/css/base.css?v=19">
   <link rel="stylesheet" href="assets/css/love-hearts.css?v=3">
   <link rel="stylesheet" href="assets/css/splash.css?v=25">
   <link rel="stylesheet" href="assets/css/auth.css?v=9">
   <link rel="stylesheet" href="assets/css/layout.css?v=32">
-  <link rel="stylesheet" href="assets/css/home.css?v=65">
+  <link rel="stylesheet" href="assets/css/home.css?v=79">
   <link rel="stylesheet" href="assets/css/activities.css?v=76">
   <link rel="stylesheet" href="assets/css/maplibre-gl.css?v=1">
-  <link rel="stylesheet" href="assets/css/map.css?v=26">
+  <link rel="stylesheet" href="assets/css/map.css?v=34">
   <link rel="stylesheet" href="assets/css/item-author.css?v=8">
   <link rel="stylesheet" href="assets/css/add-item.css?v=70">
   <link rel="stylesheet" href="assets/css/settings.css?v=24">
-  <link rel="stylesheet" href="assets/css/bottom-nav.css?v=41">
+  <link rel="stylesheet" href="assets/css/bottom-nav.css?v=43">
   <link rel="stylesheet" href="assets/css/app-glass-theme.css?v=11">
 </head>
 <body class="splash-page">
@@ -174,6 +174,6 @@
 
   <script src="assets/js/vendor/maplibre-gl.js?v=1"></script>
   <script type="module" src="assets/js/page-bg-gradient.js?v=3"></script>
-  <script type="module" src="assets/js/app.js?v=88"></script>
+  <script type="module" src="assets/js/app.js?v=89"></script>
 </body>
 </html>

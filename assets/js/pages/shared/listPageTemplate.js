@@ -71,18 +71,6 @@ export function renderListSection({ listHeading, listSub, body }) {
   `;
 }
 
-export function renderListOnlyPanel({ listPanelId, listId }) {
-  return `
-      <div class="act-view-panel" id="${listPanelId}">
-        <div class="act-cat-panel">
-          <span class="cat-panel-accent" aria-hidden="true"></span>
-          <div class="act-list-toolbar" id="act-list-toolbar"></div>
-          <ul class="act-list is-loading" id="${listId}"></ul>
-        </div>
-      </div>
-  `;
-}
-
 export function renderCategoryListPageView({
   theme,
   pageRootClass = 'activities-page',

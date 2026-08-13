@@ -30,7 +30,7 @@ const GOOGLE_TYPE_TO_APP = {
   bistro: 'brasserie',
   beer_garden: 'brasserie',
   restaurant: 'restaurant',
-  fine_dining_restaurant: 'restaurant',
+  fine_dining_restaurant: 'restaurant_gastronomique',
   family_restaurant: 'restaurant',
   buffet_restaurant: 'restaurant',
   breakfast_restaurant: 'restaurant',
@@ -152,6 +152,13 @@ function collectGoogleTypes({ primaryType, types } = {}) {
 }
 
 function resolveSuggestedType(googleTypes, allowedTypes) {
+  const priorityGoogleTypes = ['fine_dining_restaurant'];
+  for (const googleType of priorityGoogleTypes) {
+    if (!googleTypes.includes(googleType)) continue;
+    const mapped = GOOGLE_TYPE_TO_APP[googleType];
+    if (mapped && allowedTypes.has(mapped)) return mapped;
+  }
+
   for (const googleType of googleTypes) {
     const mapped = GOOGLE_TYPE_TO_APP[googleType];
     if (!mapped || mapped === GENERIC_RESTAURANT_TYPE) continue;

@@ -68,6 +68,11 @@ function restoreCachedLocation() {
   return stored;
 }
 
+/** Position connue (localStorage) — sans prompt, utile pendant le splash. */
+export function hydrateUserLocationFromCache() {
+  return restoreCachedLocation();
+}
+
 export function isUserLocationEnabled() {
   return readConsent() === 'granted';
 }

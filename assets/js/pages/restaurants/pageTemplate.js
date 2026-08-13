@@ -1,30 +1,11 @@
-import { getCategoryById } from '../../config.js';
-import { renderListMapViewBlock } from '../shared/listMapSection.js';
-import {
-  renderCategoryListPageView,
-  renderListSection,
-} from '../shared/listPageTemplate.js';
+import { renderMapCategoryListPageView } from '../shared/categoryListPageTemplate.js';
 
-const THEME = getCategoryById('restaurants')?.theme || 'rose';
-
-const LIST_MAP_BLOCK = renderListMapViewBlock({
+export const RESTAURANTS_VIEW_HTML = renderMapCategoryListPageView({
+  categoryId: 'restaurants',
   prefix: 'restaurants',
-  viewSwitchId: 'restaurants-view-switch',
-  viewListBtnId: 'restaurants-view-list',
-  viewMapBtnId: 'restaurants-view-map',
-  listPanelId: 'restaurants-list-panel',
-  mapPanelId: 'restaurants-map-panel',
-  listId: 'restaurants-list',
+  themeFallback: 'rose',
+  listHeading: 'Toutes nos adresses',
   mapAriaLabel: 'Carte des restaurants',
   fitAllAriaLabel: 'Voir tous les restaurants',
   emptyHint: 'Ajoutez une adresse à vos restaurants pour les voir ici.',
-});
-
-export const RESTAURANTS_VIEW_HTML = renderCategoryListPageView({
-  theme: THEME,
-  listSectionHtml: renderListSection({
-    listHeading: 'Toutes nos adresses',
-    listSub: 'Votre liste complète',
-    body: LIST_MAP_BLOCK,
-  }),
 });

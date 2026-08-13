@@ -55,6 +55,26 @@ jobs:
           }
           EOF
 
+      - name: Generate TMDB config
+        run: |
+          cat > assets/js/lib/tmdb-config.js << 'EOF'
+          export const TMDB_READ_ACCESS_TOKEN = '${{ secrets.TMDB_READ_ACCESS_TOKEN }}';
+
+          export function isTmdbConfigured() {
+            return Boolean(TMDB_READ_ACCESS_TOKEN?.trim());
+          }
+          EOF
+
+      - name: Generate Exabase config
+        run: |
+          cat > assets/js/lib/exabase-config.js << 'EOF'
+          export const EXABASE_API_KEY = '${{ secrets.EXABASE_API_KEY }}';
+
+          export function isExabaseConfigured() {
+            return Boolean(EXABASE_API_KEY?.trim());
+          }
+          EOF
+
       - name: Prepare site
         run: |
           mkdir -p _site

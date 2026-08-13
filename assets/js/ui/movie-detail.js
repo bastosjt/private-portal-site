@@ -1,8 +1,11 @@
 import { getCategoryById } from '../config.js';
-import { devWarn, devError } from '../lib/dev-log.js';
+import { devError } from '../lib/dev-log.js';
+import { getMoviePosterUrl } from '../lib/tmdb-poster.js';
+import { createDetailImageMediaLoader } from './place-detail-media-loader.js';
 import { updateItem, deleteItem } from '../firebase/firestore.js';
 import { syncCachedItemWrite } from '../data/appDataCache.js';
 import { getFieldOptionLabel, initCustomOptions } from '../lib/custom-types.js';
+import { renderMovieTypeIcon } from '../pages/films/IconsType.js';
 import { waitForTransition, nextFrame } from '../lib/transitions.js';
 import { lockScroll, unlockScroll } from '../lib/scroll-lock.js';
 import { escapeHtml } from '../lib/escape-html.js';
@@ -15,20 +18,99 @@ import {
   wireModalDragClose,
   wrapDetailContentHtml,
 } from './item-detail-shared.js';
-import { paintItemAuthors, renderItemAuthorMarkup } from './item-author.js';
+import {
+  createDetailListSelection,
+  renderDetailBadge,
+  renderDetailMediaBlock,
+  renderDetailPlaceMedia,
+  renderDetailMetaRow,
+  revealDetailPlacePhoto,
+} from './category-detail-layout.js';
 
 const COLLECTION = 'movies';
-const DONE_LABELS = getCategoryDoneToggleLabels('movies');
+const ITEM_ID_ATTR = 'data-movie-id';
+const DONE_LABELS = getCategoryDoneToggleLabels(COLLECTION);
 
 function getFieldLabel(category, fieldName, value) {
   return getFieldOptionLabel(category.id, fieldName, value);
 }
 
+function renderMovieSlotBadge(fieldLabel, value) {
+  if (!value) return '';
+  return `
+    <span class="url-import-preview__price-badge wishlist-detail-priority-badge">
+      <span class="wishlist-detail-priority-label">${escapeHtml(fieldLabel)}</span>
+      <span class="wishlist-detail-priority-value">${escapeHtml(value)}</span>
+    </span>
+  `;
+}
+
+function renderMovieMediaSlotBadges(item, label) {
+  if (!item.type) return '';
+  return renderMovieSlotBadge('Type', label('type', item.type));
+}
+
+function renderMovieTypeCornerIcon(item) {
+  if (!item.type) return '';
+
+  return `
+    <span class="cat-panel-icon url-import-preview__price-badge act-detail-media-type-icon" aria-hidden="true">
+      ${renderMovieTypeIcon(item.type, { width: 24, height: 24 })}
+    </span>
+  `;
+}
+
+function renderMovieGenreMeta(item, category) {
+  const badges = [];
+
+  if (item.genre) {
+    badges.push(renderDetailBadge(getFieldLabel(category, 'genre', item.genre)));
+  }
+  if (item.genre2) {
+    badges.push(renderDetailBadge(getFieldLabel(category, 'genre', item.genre2)));
+  }
+
+  if (!badges.length) return '';
+
+  return `<div class="act-detail-meta-row__genres">${badges.join('')}</div>`;
+}
+
+function renderMovieDetailScroll(item, category, {
+  placeMedia = null,
+  photoVisible = false,
+  isMediaLoading = false,
+} = {}) {
+  const esc = escapeHtml;
+  const label = (field, value) => getFieldLabel(category, field, value);
+  const genreMeta = renderMovieGenreMeta(item, category);
+  const yearBadge = item.annee ? renderDetailBadge(String(item.annee)) : '';
+  const iconHtml = renderMovieTypeIcon(item.type, { width: 48, height: 48 });
+  const media = renderDetailPlaceMedia(placeMedia, {
+    fallbackIconHtml: iconHtml,
+    photoVisible,
+    isLoading: isMediaLoading,
+  });
+
+  return `
+    ${renderDetailMediaBlock(media, {
+      slotHtml: renderMovieMediaSlotBadges(item, label),
+      cornerSlotHtml: renderMovieTypeCornerIcon(item),
+    })}
+    <h3 class="act-detail-name">${esc(item.titre)}</h3>
+    ${renderDetailMetaRow(genreMeta, yearBadge)}
+  `;
+}
+
 export function initMovieDetail({ onChanged, onEdit, theme = 'violet' } = {}) {
-  const category = getCategoryById('movies');
+  const category = getCategoryById(COLLECTION);
   let currentItem = null;
   let isBusy = false;
   let confirmDelete = false;
+  const mediaLoader = createDetailImageMediaLoader({
+    getImageUrl: getMoviePosterUrl,
+    logLabel: 'movie poster',
+  });
+  const { setSelectedItem, getSelectedRow } = createDetailListSelection(ITEM_ID_ATTR);
 
   const { overlay, bodyEl, closeBtn } = createDetailModalOverlay({
     overlayId: 'movie-detail-overlay',
@@ -38,28 +120,36 @@ export function initMovieDetail({ onChanged, onEdit, theme = 'violet' } = {}) {
   const abort = new AbortController();
   const { signal } = abort;
 
-  function renderContent(item) {
-    const chips = [];
-    if (item.type) {
-      chips.push(`<span class="act-chip">${escapeHtml(getFieldLabel(category, 'type', item.type))}</span>`);
-    }
-    if (item.genre) {
-      chips.push(`<span class="act-chip">${escapeHtml(getFieldLabel(category, 'genre', item.genre))}</span>`);
-    }
+  function renderContent(item, { placeMedia = null } = {}) {
+    const resolvedMedia = placeMedia || mediaLoader.getActivePlaceMedia();
+    const photoVisible = resolvedMedia?.type === 'photo';
+    const isMediaLoading = mediaLoader.canLoad(item) && !photoVisible;
 
     bodyEl.innerHTML = wrapDetailContentHtml(`
-        <h3 class="act-detail-name">${escapeHtml(item.titre)}</h3>
-        ${chips.length ? `<div class="act-chips">${chips.join('')}</div>` : ''}
+        ${renderMovieDetailScroll(item, category, {
+          placeMedia: resolvedMedia,
+          photoVisible,
+          isMediaLoading,
+        })}
 
         ${renderDoneToggle(Boolean(item.done), isBusy, DONE_LABELS)}
-
-        ${renderItemAuthorMarkup(item)}
     `, { done: item.done, confirmDelete, isBusy });
 
     bodyEl.querySelector('#act-detail-done')?.addEventListener('click', handleToggleDone);
     bodyEl.querySelector('#act-detail-edit')?.addEventListener('click', handleEdit);
     bodyEl.querySelector('#act-detail-delete')?.addEventListener('click', handleDelete);
-    paintItemAuthors(bodyEl);
+  }
+
+  function loadMoviePoster(item) {
+    return mediaLoader.loadPlaceMedia(item, {
+      isCurrentItem: (entry) => currentItem?.id === entry.id,
+      onLoaded: (_entry, placeMedia) => {
+        revealDetailPlacePhoto(bodyEl.querySelector('.act-detail-media-wrap'), placeMedia.url);
+      },
+      onSettled: () => {
+        bodyEl.querySelector('.act-detail-media-stage')?.classList.remove('act-detail-media-stage--loading');
+      },
+    });
   }
 
   async function handleToggleDone() {
@@ -78,7 +168,7 @@ export function initMovieDetail({ onChanged, onEdit, theme = 'violet' } = {}) {
       currentItem = { ...currentItem, done, statut };
       syncCachedItemWrite(COLLECTION, currentItem.id, { patch: { done, statut } });
       onChanged?.(COLLECTION, currentItem.id, { patch: true });
-      close();
+      await close();
     } catch (err) {
       devError('toggle done:', err);
       isBusy = false;
@@ -126,6 +216,8 @@ export function initMovieDetail({ onChanged, onEdit, theme = 'violet' } = {}) {
     confirmDelete = false;
     isBusy = false;
     renderContent(item);
+    setSelectedItem(item.id);
+    loadMoviePoster(item);
     overlay.classList.remove('hidden');
     document.body.classList.add('modal-open');
     lockScroll();
@@ -136,6 +228,9 @@ export function initMovieDetail({ onChanged, onEdit, theme = 'violet' } = {}) {
     if (overlay.classList.contains('hidden')) return;
 
     dragClose.reset();
+    mediaLoader.cleanupPlaceMedia();
+
+    const rowToReveal = getSelectedRow();
 
     overlay.classList.remove('is-active');
     document.body.classList.remove('modal-open');
@@ -144,6 +239,8 @@ export function initMovieDetail({ onChanged, onEdit, theme = 'violet' } = {}) {
     await waitForTransition(overlay.querySelector('.add-modal') || overlay, DETAIL_MODAL_MS);
 
     overlay.classList.add('hidden');
+    setSelectedItem(null);
+    rowToReveal?.scrollIntoView({ block: 'nearest' });
     currentItem = null;
     confirmDelete = false;
     isBusy = false;
@@ -172,6 +269,7 @@ export function initMovieDetail({ onChanged, onEdit, theme = 'violet' } = {}) {
   function destroy() {
     abort.abort();
     dragClose.destroy();
+    mediaLoader.cleanupPlaceMedia();
     overlay.classList.remove('is-active');
     overlay.classList.add('hidden');
     document.body.classList.remove('modal-open');

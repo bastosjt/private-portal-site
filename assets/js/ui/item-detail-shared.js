@@ -149,5 +149,5 @@ export function renderLinkedTravelChip(item, { escapeHtml }) {
   if (!item?.travelId) return '';
   const travel = findCachedItemById('travels', item.travelId);
   if (!travel) return '';
-  return `<span class="act-chip act-chip--travel">${escapeHtml(travel.destination || 'Voyage')}</span>`;
+  return `<span class="act-chip act-chip--travel">${escapeHtml(travel.localisation || travel.pays || 'Voyage')}</span>`;
 }

@@ -1,6 +1,5 @@
-import { CalendarClock } from '../../vendor/lucide.mjs';
 import { getCategoryById } from '../../config.js';
-import { renderLucideIcon } from '../../lib/lucide-icon.js';
+import { escapeHtml } from '../../lib/escape-html.js';
 import { renderTravelTypeIcon } from './IconsType.js';
 import {
   createCategoryStatusFilterOptions,
@@ -14,6 +13,9 @@ import {
 import { renderPinLocation, renderGlobeLocation } from '../shared/listLocation.js';
 import { createMapTabOptions } from '../shared/listMapSection.js';
 import {
+  renderTravelListTypeIcon,
+} from '../activites/scheduleDisplay.js';
+import {
   initTravelHubDetail,
   renderTravelGroupHead,
   renderTravelGroupListItem,
@@ -26,7 +28,12 @@ const STATUS_FILTER_OPTIONS = createCategoryStatusFilterOptions('travels');
 
 const SORT_OPTIONS = DEFAULT_SORT_OPTIONS.filter((opt) => opt.id === 'alpha' || opt.id === 'recent');
 
-const PERIOD_ICON = renderLucideIcon(CalendarClock, { strokeWidth: 2, width: 16, height: 16 });
+const TRAVEL_THEME = getCategoryById('travels')?.theme || 'blue';
+
+const travelScheduleBadgeOptions = {
+  escapeHtml,
+  theme: TRAVEL_THEME,
+};
 
 function formatBudgetLabel(budget) {
   const value = String(budget || '').trim();
@@ -46,20 +53,6 @@ function hasTravelPeriod(item) {
   return Boolean(item.periode?.trim());
 }
 
-function renderTravelPeriodNote(item, { escapeHtml }) {
-  const periode = item.periode?.trim();
-  if (!periode) return '';
-
-  return `
-    <div class="act-schedule-note act-schedule-note--periode" role="note" aria-label="${escapeHtml(periode)}">
-      <span class="act-schedule-note-icon" aria-hidden="true">${PERIOD_ICON}</span>
-      <span class="act-schedule-note-copy">
-        <span class="act-schedule-note-period">${escapeHtml(periode)}</span>
-      </span>
-    </div>
-  `;
-}
-
 function renderTravelCountry(item, ctx) {
   const localisation = item.localisation?.trim();
   if (localisation) {
@@ -75,7 +68,7 @@ const { init, destroy, refresh } = createListPageController({
   categoryId: 'travels',
   collection: 'travels',
   theme: getCategoryById('travels')?.theme || 'blue',
-  titleKey: 'destination',
+  titleKey: 'localisation',
   enablePick: false,
   dom: {
     listId: 'voyages-list',
@@ -117,17 +110,14 @@ const { init, destroy, refresh } = createListPageController({
   resolveListItemFromRow: resolveTravelListItemFromRow,
   preloadCollections: ['activities', 'restaurants'],
   watchCollections: ['activities', 'restaurants'],
-  renderTypeIcon: (item) => renderTravelTypeIcon(item.type),
+  renderTypeIcon: (item) => renderTravelListTypeIcon(item, renderTravelTypeIcon, travelScheduleBadgeOptions),
   renderListMeta: (item, ctx) =>
     `<p class="act-list-meta">${ctx.escapeHtml(getTravelMetaLine(item, ctx))}</p>`,
   renderLocation: renderTravelCountry,
   getItemRowClasses: (item) => (hasTravelPeriod(item) ? ' act-list-item--scheduled' : ''),
-  renderItemBodyExtra: renderTravelPeriodNote,
   getPickLocation: (item) => item.localisation?.trim() || item.pays?.trim() || '',
   mapTab: createMapTabOptions({
     prefix: 'voyages',
-    countSingular: 'destination',
-    countPlural: 'destinations',
     emptyHint: 'Ajoutez une adresse à vos voyages pour les voir ici.',
     mapListFilters: (state) => ({
       status: state.status,

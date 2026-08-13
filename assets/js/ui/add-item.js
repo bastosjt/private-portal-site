@@ -8,6 +8,23 @@ import { Timestamp } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-f
 import { sidebarIcon } from './sidebar.js';
 import { initFormAddressFields } from './address-autocomplete.js';
 import { initFormPlaceNameFields } from './place-name-autocomplete.js';
+import { initFormMovieTitleFields } from './movie-title-autocomplete.js';
+import {
+  resetMovieTitleImport,
+  restoreMovieTitleImportFromDraft,
+  syncMovieTitleImportFromItem,
+} from './movie-title-import.js';
+import {
+  initFormPlaceMapsUrlFields,
+  resetPlaceMapsUrlImport,
+  restorePlaceMapsUrlImportFromDraft,
+  syncPlaceMapsUrlImportFromItem,
+} from './place-maps-url-import.js';
+import {
+  initFormWishlistPhotoFields,
+  refreshWishlistPhotoFields,
+  renderWishlistPhotoField,
+} from './wishlist-photo-field.js';
 import { initPlaceFieldSuggestions, clearPlaceFieldSuggestions, restorePlaceFieldSuggestionsFromDraft, hasPendingPlaceFieldSuggestions, getFirstPendingPlaceFieldSuggestion } from './place-field-suggestions.js';
 import { initActivityScheduleFields, syncActivityScheduleFields } from './activity-schedule-fields.js';
 import { searchAddresses } from '../lib/address-search.js';
@@ -22,12 +39,24 @@ import {
 } from './select-custom.js';
 import { formatPrice, isMoneyField } from '../lib/price-format.js';
 import {
+  isNameField,
+  renderNameFieldInputWrap,
+  resetPlaceNameFieldIcon,
+  isMovieTitleField,
+  renderMovieTitleFieldInputWrap,
+  resetMovieTitleFieldIcon,
+  updateMovieTitleFieldIcon,
+} from '../lib/form-name-field.js';
+import {
   collectPriceRangeData,
   populatePriceRangeFields,
   renderPriceRangeField,
+  renderPriceFieldInputWrap,
   validatePriceRangeFields,
 } from '../lib/form-price-field.js';
 import { getFieldOptionLabel } from '../lib/custom-types.js';
+import { getMapsUrl } from '../lib/item-location.js';
+import { getPlaceAddressFieldName } from '../lib/place-form-fields.js';
 import {
   applyFormDraft,
   captureFormSnapshot,
@@ -42,7 +71,7 @@ import {
   isRetryableFirestoreError,
 } from '../auth/ensure-auth.js';
 import { lockScroll, unlockScroll, releaseStalePageScrollLock } from '../lib/scroll-lock.js';
-import { sanitizeHttpsUrl } from '../lib/safe-url.js';
+import { sanitizeHttpsUrl, sanitizeImageUrl } from '../lib/safe-url.js';
 import { MODAL_DRAG_HANDLE_HTML, wireModalDragClose } from '../lib/modal-drag-close.js';
 import {
   initFormMultiSelectFields,
@@ -78,11 +107,39 @@ function renderField(field, categoryId) {
     return renderPriceRangeField(field);
   }
 
+  if (field.type === 'hidden') {
+    return `<input type="hidden" id="${id}" name="${field.name}">`;
+  }
+
+  if (field.type === 'wishlistPhoto') {
+    return renderWishlistPhotoField(field, categoryId);
+  }
+
+  if (field.type === 'url' && field.urlImport?.provider === 'googleMaps') {
+    return `
+      <label class="form-field form-field--url-import" for="${id}">
+        <span class="form-field-label">${escapeHtml(field.label)}</span>
+        <div class="form-input-wrap address-field url-import-field">
+          <span class="address-field-icon" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/>
+              <circle cx="12" cy="10" r="3"/>
+            </svg>
+          </span>
+          <input type="url" id="${id}" name="${field.name}" class="form-input form-input--url"${placeholder}${required} autocomplete="off" inputmode="url">
+        </div>
+        <p class="url-import-status hidden" data-url-import-status role="status" aria-live="polite"></p>
+        <div class="url-import-preview" data-url-import-preview aria-hidden="true"></div>
+      </label>
+    `;
+  }
+
   if (field.type === 'address') {
+    const searchClass = field.placeSearch ? ' place-name-field' : '';
     return `
       <label class="form-field" for="${id}">
         <span class="form-field-label">${escapeHtml(field.label)}</span>
-        <div class="form-input-wrap address-field">
+        <div class="form-input-wrap address-field${searchClass}">
           <span class="address-field-icon" aria-hidden="true">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
               <path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/>
@@ -96,9 +153,12 @@ function renderField(field, categoryId) {
   }
 
   const inputType = field.type === 'url' ? 'url' : 'text';
-  const numericAttrs = isMoneyField(field.name) ? ' inputmode="decimal" autocomplete="off"' : '';
+  const numericAttrs = isMoneyField(field.name)
+    ? ' inputmode="decimal" autocomplete="off"'
+    : (field.inputMode ? ` inputmode="${field.inputMode}"` : '');
   const placeSearchAttrs = field.placeSearch ? ' autocomplete="off"' : '';
-  const placeSearchWrap = field.placeSearch ? ' address-field place-name-field' : '';
+  const movieSearchAttrs = field.movieSearch ? ' autocomplete="off"' : '';
+  const searchAttrs = placeSearchAttrs || movieSearchAttrs;
 
   if (field.schedulePart) {
     return `
@@ -106,20 +166,75 @@ function renderField(field, categoryId) {
         <div class="form-field--schedule__clip">
           <label for="${id}">
             <span class="form-field-label">${escapeHtml(field.label)}</span>
+            ${isMoneyField(field.name) ? renderPriceFieldInputWrap({
+              inputHtml: `<input type="${inputType}" id="${id}" name="${field.name}" class="form-input form-input--price"${placeholder}${required}${numericAttrs}${searchAttrs}>`,
+            }) : isNameField(field.name) ? renderNameFieldInputWrap({
+              extraWrapClass: field.placeSearch ? 'place-name-field' : '',
+              inputHtml: `<input type="${inputType}" id="${id}" name="${field.name}" class="form-input form-input--name"${placeholder}${required}${numericAttrs}${searchAttrs}>`,
+            }) : isMovieTitleField(field.name) && field.movieSearch ? renderMovieTitleFieldInputWrap({
+              inputHtml: `<input type="${inputType}" id="${id}" name="${field.name}" class="form-input form-input--name"${placeholder}${required}${numericAttrs}${searchAttrs}>`,
+            }) : `
             <div class="form-input-wrap">
-              <input type="${inputType}" id="${id}" name="${field.name}" class="form-input"${placeholder}${required}${numericAttrs}${placeSearchAttrs}>
-            </div>
+              <input type="${inputType}" id="${id}" name="${field.name}" class="form-input"${placeholder}${required}${numericAttrs}${searchAttrs}>
+            </div>`}
           </label>
         </div>
       </div>
     `;
   }
 
+  if (isNameField(field.name)) {
+    return `
+      <label class="form-field" for="${id}">
+        <span class="form-field-label">${escapeHtml(field.label)}</span>
+        ${renderNameFieldInputWrap({
+          extraWrapClass: field.placeSearch ? 'place-name-field' : '',
+          inputHtml: `<input type="${inputType}" id="${id}" name="${field.name}" class="form-input form-input--name"${placeholder}${required}${numericAttrs}${searchAttrs}>`,
+        })}
+      </label>
+    `;
+  }
+
+  if (field.placeSearch) {
+    return `
+      <label class="form-field" for="${id}">
+        <span class="form-field-label">${escapeHtml(field.label)}</span>
+        ${renderNameFieldInputWrap({
+          extraWrapClass: 'place-name-field',
+          inputHtml: `<input type="${inputType}" id="${id}" name="${field.name}" class="form-input form-input--name"${placeholder}${required}${numericAttrs}${searchAttrs}>`,
+        })}
+      </label>
+    `;
+  }
+
+  if (isMovieTitleField(field.name) && field.movieSearch) {
+    return `
+      <label class="form-field form-field--movie-import" for="${id}">
+        <span class="form-field-label">${escapeHtml(field.label)}</span>
+        ${renderMovieTitleFieldInputWrap({
+          inputHtml: `<input type="${inputType}" id="${id}" name="${field.name}" class="form-input form-input--name"${placeholder}${required}${numericAttrs}${searchAttrs}>`,
+        })}
+        <div class="url-import-preview" data-url-import-preview aria-hidden="true"></div>
+      </label>
+    `;
+  }
+
+  if (isMoneyField(field.name)) {
+    return `
+      <label class="form-field" for="${id}">
+        <span class="form-field-label">${escapeHtml(field.label)}</span>
+        ${renderPriceFieldInputWrap({
+          inputHtml: `<input type="${inputType}" id="${id}" name="${field.name}" class="form-input form-input--price"${placeholder}${required}${numericAttrs}>`,
+        })}
+      </label>
+    `;
+  }
+
   return `
     <label class="form-field" for="${id}">
       <span class="form-field-label">${escapeHtml(field.label)}</span>
-      <div class="form-input-wrap${placeSearchWrap}">
-        <input type="${inputType}" id="${id}" name="${field.name}" class="form-input"${placeholder}${required}${numericAttrs}${placeSearchAttrs}>
+      <div class="form-input-wrap">
+        <input type="${inputType}" id="${id}" name="${field.name}" class="form-input"${placeholder}${required}${numericAttrs}${searchAttrs}>
       </div>
     </label>
   `;
@@ -164,6 +279,9 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
   let isSubmitting = false;
   let addressCleanup = null;
   let placeNameCleanup = null;
+  let movieTitleCleanup = null;
+  let placeMapsUrlCleanup = null;
+  let wishlistPhotoCleanup = null;
   let placeFieldSuggestionsCleanup = null;
   let selectCleanup = null;
   let multiSelectCleanup = null;
@@ -244,6 +362,20 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
     return getFieldOptionLabel(categoryId, fieldName, value);
   }
 
+  function populatePlaceMapsLinkFields(form, category, item) {
+    if (category.id !== 'activities' && category.id !== 'restaurants' && category.id !== 'travels') return;
+
+    const mapsUrl = getMapsUrl(item, category.id);
+    if (!mapsUrl) return;
+
+    const mapsInput = form.elements.mapsImportUrl;
+    if (mapsInput) mapsInput.value = mapsUrl;
+
+    const addressFieldName = getPlaceAddressFieldName(category);
+    const addressEl = addressFieldName ? form.elements[addressFieldName] : null;
+    if (addressEl) addressEl.dataset.mapsUrl = mapsUrl;
+  }
+
   function populateForm(form, category, item) {
     form.reset();
     for (const field of category.fields) {
@@ -256,9 +388,10 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
       if (value == null || value === '') continue;
 
       if (field.type === 'select') {
-        let displayLabel = getFieldDisplayLabel(category.id, field.name, value);
+        const labelFieldName = field.optionsField || field.name;
+        let displayLabel = getFieldDisplayLabel(category.id, labelFieldName, value);
         if (field.optionsFrom === 'travels') {
-          displayLabel = findCachedItemById('travels', value)?.destination || displayLabel;
+          displayLabel = findCachedItemById('travels', value)?.localisation || displayLabel;
         }
         setSelectFieldValue(
           form,
@@ -293,6 +426,12 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
         }
       }
     }
+
+    populatePlaceMapsLinkFields(form, category, item);
+
+    if (category.id === 'movies' && item.type) {
+      updateMovieTitleFieldIcon(form, item.type);
+    }
   }
 
   function getContentEl() {
@@ -315,6 +454,12 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
     addressCleanup = null;
     placeNameCleanup?.();
     placeNameCleanup = null;
+    movieTitleCleanup?.();
+    movieTitleCleanup = null;
+    placeMapsUrlCleanup?.();
+    placeMapsUrlCleanup = null;
+    wishlistPhotoCleanup?.();
+    wishlistPhotoCleanup = null;
     placeFieldSuggestionsCleanup?.();
     placeFieldSuggestionsCleanup = null;
     selectCleanup?.();
@@ -417,6 +562,20 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
       const select = form.elements.disponibilite;
       if (select) select.dataset.scheduleMode = select.value || 'permanent';
       syncActivityScheduleFields(form, { purgeHidden: true });
+    }
+
+    resetPlaceMapsUrlImport(form, category);
+
+    if (category.id === 'movies') {
+      resetMovieTitleImport(form, category);
+    }
+
+    if (category.id === 'restaurants' || category.id === 'activities') {
+      resetPlaceNameFieldIcon(form);
+    }
+
+    if (category.id === 'movies') {
+      resetMovieTitleFieldIcon(form);
     }
 
     formDraftBaseline = captureFormSnapshot(form, category);
@@ -542,6 +701,9 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
 
     addressCleanup = initFormAddressFields(form, category);
     placeNameCleanup = initFormPlaceNameFields(form, category);
+    movieTitleCleanup = initFormMovieTitleFields(form, category);
+    placeMapsUrlCleanup = initFormPlaceMapsUrlFields(form, category);
+    wishlistPhotoCleanup = initFormWishlistPhotoFields(form, category);
     placeFieldSuggestionsCleanup = initPlaceFieldSuggestions(form, category);
     selectCleanup = await initFormSelectFields(form, category);
     multiSelectCleanup = await initFormMultiSelectFields(form, category);
@@ -565,9 +727,9 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
         if (field.type !== 'select') continue;
         const value = draft.fields[field.name];
         if (!value || value === PLACEHOLDER_OPTION_VALUE) continue;
-        let displayLabel = getFieldDisplayLabel(categoryId, field.name, value);
+        let displayLabel = getFieldDisplayLabel(categoryId, field.optionsField || field.name, value);
         if (field.optionsFrom === 'travels') {
-          displayLabel = findCachedItemById('travels', value)?.destination || displayLabel;
+          displayLabel = findCachedItemById('travels', value)?.localisation || displayLabel;
         }
         setSelectFieldValue(
           form,
@@ -579,6 +741,14 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
       }
 
       restorePlaceFieldSuggestionsFromDraft(form, category, draft.meta);
+
+      if (categoryId === 'wishlist') {
+        refreshWishlistPhotoFields(form);
+      } else if (categoryId === 'activities' || categoryId === 'restaurants' || categoryId === 'travels') {
+        restorePlaceMapsUrlImportFromDraft(form, category, draft.meta);
+      } else if (categoryId === 'movies') {
+        restoreMovieTitleImportFromDraft(form, category, draft.meta);
+      }
 
       // Brouillon déjà présent : resynchroniser uniquement s'il diffère vraiment de la baseline.
       const current = captureFormSnapshot(form, category);
@@ -592,6 +762,18 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
         const select = form.elements.disponibilite;
         if (select) select.dataset.scheduleMode = select.value || 'permanent';
         syncActivityScheduleFields(form, { purgeHidden: true });
+      }
+    } else if (categoryId === 'activities' || categoryId === 'restaurants' || categoryId === 'travels') {
+      if (item) {
+        syncPlaceMapsUrlImportFromItem(form, category, item);
+      } else {
+        resetPlaceMapsUrlImport(form, category);
+      }
+    } else if (categoryId === 'movies') {
+      if (item) {
+        syncMovieTitleImportFromItem(form, category, item);
+      } else {
+        resetMovieTitleImport(form, category);
       }
     }
 
@@ -788,8 +970,25 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
   async function collectFormData(form, category) {
     const data = {};
     for (const field of category.fields) {
+      if (field.urlImport?.provider === 'googleMaps') continue;
+
       if (field.type === 'priceRange') {
         Object.assign(data, collectPriceRangeData(form, { isEdit: Boolean(editingItemId) }));
+        continue;
+      }
+
+      if (field.type === 'hidden' || field.type === 'wishlistPhoto') {
+        const hiddenEl = form.elements[field.name];
+        if (!hiddenEl) continue;
+        let hiddenValue = hiddenEl.value.trim();
+        if (field.name === 'imageUrl') {
+          hiddenValue = sanitizeImageUrl(hiddenValue);
+        }
+        if (hiddenValue) {
+          data[field.name] = hiddenValue;
+        } else if (editingItemId) {
+          data[field.name] = null;
+        }
         continue;
       }
 
@@ -840,7 +1039,8 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
           }
 
           if (isPlaceLinkedAddressField(category, field)) {
-            const mapsUrl = sanitizeHttpsUrl(el.dataset.mapsUrl || suggestion?.mapsUrl || '');
+            const mapsImportUrl = sanitizeHttpsUrl(form.elements.mapsImportUrl?.value?.trim() || '');
+            const mapsUrl = sanitizeHttpsUrl(el.dataset.mapsUrl || suggestion?.mapsUrl || mapsImportUrl || '');
             if (mapsUrl) {
               data.lienMaps = mapsUrl;
             } else if (editingItemId) {
@@ -881,13 +1081,20 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
 
       if (value && value !== ADD_OPTION_VALUE) {
         data[field.name] = isMoneyField(field.name) ? formatPrice(value) : value;
+      } else if (editingItemId && field.optional) {
+        data[field.name] = null;
       }
     }
+
+    if (category.id === 'travels' && editingItemId) {
+      data.destination = null;
+    }
+
     return data;
   }
 
-  function getRequiredField(category) {
-    return category.fields.find((f) => f.required);
+  function getRequiredFields(category) {
+    return category.fields.filter((field) => field.required);
   }
 
   async function handleSubmit(event) {
@@ -900,7 +1107,7 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
     const form = event.target;
     const errorEl = form.querySelector('#add-form-error');
     const submitBtn = form.querySelector('#add-form-submit');
-    const requiredField = getRequiredField(category);
+    const requiredFields = getRequiredFields(category);
 
     errorEl.classList.add('hidden');
 
@@ -911,15 +1118,15 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
       return;
     }
 
-    if (requiredField) {
-      const requiredValue = requiredField.type === 'select'
-        ? await getSelectFieldValue(form, requiredField, category.id)
-        : form.elements[requiredField.name]?.value.trim();
+    for (const field of requiredFields) {
+      const requiredValue = field.type === 'select'
+        ? await getSelectFieldValue(form, field, category.id)
+        : form.elements[field.name]?.value.trim();
 
       if (!requiredValue || requiredValue === ADD_OPTION_VALUE) {
-        errorEl.textContent = `Le champ « ${requiredField.label} » est requis.`;
+        errorEl.textContent = `Le champ « ${field.label} » est requis.`;
         errorEl.classList.remove('hidden');
-        form.elements[requiredField.name]?.focus();
+        form.elements[field.name]?.focus();
         return;
       }
     }
@@ -938,6 +1145,12 @@ export function initAddItem({ onAdded, onUpdated } = {}) {
 
       if (field.type === 'url') {
         const rawUrl = form.elements[field.name]?.value.trim();
+        if (field.required && !rawUrl) {
+          errorEl.textContent = `Le champ « ${field.label} » est requis.`;
+          errorEl.classList.remove('hidden');
+          form.elements[field.name]?.focus();
+          return;
+        }
         if (rawUrl && !sanitizeHttpsUrl(rawUrl)) {
           errorEl.textContent = `Le champ « ${field.label} » doit être un lien https:// valide.`;
           errorEl.classList.remove('hidden');

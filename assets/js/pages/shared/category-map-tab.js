@@ -32,6 +32,21 @@ import {
 const MAP_PADDING = { top: 48, bottom: 64, left: 40, right: 40 };
 const MARKER_FOCUS_ZOOM = 15;
 
+const PLACE_DISTANCE_ICON = `
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <polygon points="3 11 22 2 13 21 11 13 3 11"/>
+  </svg>
+`;
+
+function renderMapPlaceDistanceBadge(distanceLabel) {
+  return `
+    <span class="act-list-status url-import-preview__price-badge act-category-map-place-distance">
+      ${PLACE_DISTANCE_ICON}
+      ${escapeHtml(distanceLabel)}
+    </span>
+  `;
+}
+
 function resetGlobalMapState(categoryId) {
   setMapMarkerFilters({
     status: 'all',
@@ -51,13 +66,10 @@ export function createCategoryMapTab({
   categoryId,
   canvasId,
   emptyId,
-  summaryId,
   placesListId = null,
   placesScrollId = null,
   controlsId = null,
   accent,
-  countSingular = 'élément',
-  countPlural = 'éléments',
   emptyHint = 'Ajoutez une adresse géolocalisée pour l\'afficher ici.',
   mapListFilters = (state) => ({ status: state.status }),
   itemIdAttr = 'data-item-id',
@@ -162,7 +174,6 @@ export function createCategoryMapTab({
   function updateUi(filterState) {
     const emptyEl = document.getElementById(emptyId);
     const canvasEl = document.getElementById(canvasId);
-    const summaryEl = document.getElementById(summaryId);
     const placesEl = placesListId ? document.getElementById(placesListId) : null;
     const placesScrollEl = placesScrollId ? document.getElementById(placesScrollId) : null;
     const controlsEl = controlsId ? document.getElementById(controlsId) : null;
@@ -197,12 +208,6 @@ export function createCategoryMapTab({
           : emptyHint;
       }
     }
-
-    if (summaryEl) {
-      if (count === 0) summaryEl.textContent = `Aucune ${countPlural} sur la carte`;
-      else if (count === 1) summaryEl.textContent = `1 ${countSingular} affichée`;
-      else summaryEl.textContent = `${count} ${countPlural} affichées`;
-    }
   }
 
   function renderPlacesList() {
@@ -236,12 +241,12 @@ export function createCategoryMapTab({
             ${itemIdAttr}="${escapeHtml(marker.id)}"
             aria-pressed="${isSelected ? 'true' : 'false'}"
           >
-            <span class="act-category-map-place-icon" aria-hidden="true">${renderPlaceIcon(item || {})}</span>
+            <span class="cat-panel-icon url-import-preview__price-badge" aria-hidden="true">${renderPlaceIcon(item || {})}</span>
             <span class="act-category-map-place-copy">
               <span class="act-category-map-place-title">${title}</span>
               ${location ? `<span class="act-category-map-place-loc">${location}</span>` : ''}
             </span>
-            ${distanceLabel ? `<span class="act-category-map-place-distance">${distanceLabel}</span>` : ''}
+            ${distanceLabel ? renderMapPlaceDistanceBadge(distanceLabel) : ''}
           </button>
         </li>
       `;

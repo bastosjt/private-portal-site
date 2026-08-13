@@ -1,32 +1,27 @@
 import { getCategoryById } from '../../config.js';
 import { renderMovieTypeIcon } from './IconsType.js';
 import { initMovieDetail } from '../../ui/movie-detail.js';
-import {
-  createCategoryStatusFilterOptions,
-  getCategoryStatusLabels,
-} from '../../lib/category-status-labels.js';
 import { createListPageController, DEFAULT_SORT_OPTIONS } from '../shared/listPageController.js';
 import {
   createListFilterSections,
   createListPageLabels,
 } from '../shared/listPageBoilerplate.js';
+import { createListOnlyPageDom } from '../shared/listPageDom.js';
+import { createDotJoinedListMetaRenderer } from '../shared/listMetaRenderers.js';
+import { createTodoListPageStatus } from '../shared/todoListPageSetup.js';
 
-const MOVIE_STATUS = getCategoryStatusLabels('movies');
-const STATUS_FILTER_OPTIONS = createCategoryStatusFilterOptions('movies');
+const { statusLabels: MOVIE_STATUS, statusFilterOptions: STATUS_FILTER_OPTIONS } =
+  createTodoListPageStatus('movies');
 
-// Les films/séries n'ont ni prix ni adresse : le tri se limite à alpha/récent.
 const SORT_OPTIONS = DEFAULT_SORT_OPTIONS.filter((opt) => opt.id === 'alpha' || opt.id === 'recent');
 
-function getMovieMetaLine(item, { getFieldLabel }) {
-  const parts = [];
-  if (item.type) parts.push(getFieldLabel('type', item.type));
-  if (item.genre) parts.push(getFieldLabel('genre', item.genre));
-  return parts.join(' · ') || 'Film';
-}
-
-function renderMovieListMeta(item, ctx) {
-  return `<p class="act-list-meta">${ctx.escapeHtml(getMovieMetaLine(item, ctx))}</p>`;
-}
+const { renderListMeta: renderMovieListMeta } = createDotJoinedListMetaRenderer({
+  fallback: 'Film',
+  getParts: (item, { getFieldLabel }) => [
+    item.type && getFieldLabel('type', item.type),
+    item.genre && getFieldLabel('genre', item.genre),
+  ],
+});
 
 const { init, destroy, refresh } = createListPageController({
   categoryId: 'movies',
@@ -34,10 +29,7 @@ const { init, destroy, refresh } = createListPageController({
   pickScope: 'movies',
   theme: getCategoryById('movies')?.theme || 'violet',
   titleKey: 'titre',
-  dom: {
-    listId: 'films-list',
-    listPanelId: 'films-list-panel',
-  },
+  dom: createListOnlyPageDom('films'),
   itemIdAttr: 'data-movie-id',
   filterFieldKeys: ['type', 'genre'],
   sortOptions: SORT_OPTIONS,

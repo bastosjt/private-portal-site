@@ -134,6 +134,40 @@
   display: none;
 }
 
+.bottom-nav-explorer-badge.is-badge-enter .bottom-nav-page-badge,
+.bottom-nav-explorer-badge.is-badge-swap-in .bottom-nav-page-badge {
+  animation: bottom-nav-badge-in 0.44s var(--ease-out-expo) both;
+}
+
+.bottom-nav-explorer-badge.is-badge-leave .bottom-nav-page-badge,
+.bottom-nav-explorer-badge.is-badge-swap-out .bottom-nav-page-badge {
+  animation: bottom-nav-badge-out 0.24s var(--ease-page-leave) both;
+}
+
+@keyframes bottom-nav-badge-in {
+  from {
+    opacity: 0;
+    transform: scale(0.42);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes bottom-nav-badge-out {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: scale(0.52);
+  }
+}
+
 /* Disque gris type pin carte : shadow + bordure discrète */
 .bottom-nav-page-badge {
   display: flex;
@@ -296,9 +330,14 @@ body.modal-open .bottom-nav-fab svg {
   .bottom-nav-icon-glyph,
   .bottom-nav-icon-glyph > svg,
   .bottom-nav-page-badge,
+  .bottom-nav-explorer-badge.is-badge-enter .bottom-nav-page-badge,
+  .bottom-nav-explorer-badge.is-badge-leave .bottom-nav-page-badge,
+  .bottom-nav-explorer-badge.is-badge-swap-in .bottom-nav-page-badge,
+  .bottom-nav-explorer-badge.is-badge-swap-out .bottom-nav-page-badge,
   .bottom-nav-fab,
   .bottom-nav-fab svg {
     transition: none !important;
+    animation: none !important;
   }
 
   .bottom-nav-item.is-active .sidebar-link-icon,

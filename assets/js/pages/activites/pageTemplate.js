@@ -1,30 +1,11 @@
-import { getCategoryById } from '../../config.js';
-import { renderListMapViewBlock } from '../shared/listMapSection.js';
-import {
-  renderCategoryListPageView,
-  renderListSection,
-} from '../shared/listPageTemplate.js';
+import { renderMapCategoryListPageView } from '../shared/categoryListPageTemplate.js';
 
-const THEME = getCategoryById('activities')?.theme || 'cyan';
-
-const LIST_MAP_BLOCK = renderListMapViewBlock({
+export const ACTIVITIES_VIEW_HTML = renderMapCategoryListPageView({
+  categoryId: 'activities',
   prefix: 'activities',
-  viewSwitchId: 'activities-view-switch',
-  viewListBtnId: 'activities-view-list',
-  viewMapBtnId: 'activities-view-map',
-  listPanelId: 'activities-list-panel',
-  mapPanelId: 'activities-map-panel',
-  listId: 'activities-list',
+  themeFallback: 'cyan',
+  listHeading: 'Toutes nos idées',
   mapAriaLabel: 'Carte des activités',
   fitAllAriaLabel: 'Voir toutes les activités',
   emptyHint: 'Ajoutez une adresse à vos activités pour les voir ici.',
-});
-
-export const ACTIVITIES_VIEW_HTML = renderCategoryListPageView({
-  theme: THEME,
-  listSectionHtml: renderListSection({
-    listHeading: 'Toutes nos idées',
-    listSub: 'Votre liste complète',
-    body: LIST_MAP_BLOCK,
-  }),
 });

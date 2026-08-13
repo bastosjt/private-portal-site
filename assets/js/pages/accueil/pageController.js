@@ -8,6 +8,7 @@ import {
 import { getUserLocationLngLat, onUserLocationChange } from '../../lib/user-location.js';
 import { MAP_FALLBACK_CENTER } from '../carte/map-markers.js';
 import { initCustomOptions, getFieldOptionLabel } from '../../lib/custom-types.js';
+import { animateCount, animateCountElements } from '../../lib/animate-count.js';
 import { escapeHtml } from '../../lib/escape-html.js';
 import { renderNavIcon } from '../../lib/lucide-icon.js';
 import { mapPlaceHref, mapPlaceMoveHref } from '../../navigation/router.js';
@@ -26,6 +27,7 @@ import { isTravelLinkedItem } from '../../lib/travel-link.js';
 import { getDisplayNameForUid, getPartnerUid } from '../../lib/user-profile.js';
 
 const HOME_DETAIL_CATEGORIES = ['activities', 'restaurants', 'movies', 'travels', 'wishlist'];
+const HOME_COUNT_ANIM = { stagger: 48, duration: 980 };
 
 let currentUserName = '';
 let currentUserUid = '';
@@ -34,7 +36,7 @@ let stopNearbyLocationListener = null;
 let detailModals = {};
 
 function getItemTitle(item, titleKey) {
-  return item[titleKey] || item.nom || item.titre || item.destination || 'Sans titre';
+  return item[titleKey] || item.nom || item.titre || 'Sans titre';
 }
 
 function getDaysTogether(startDateStr) {
@@ -180,7 +182,7 @@ function getNearbyPlaceTag(categoryId, item) {
 
 function renderNearbyDistanceBadge(distanceLabel) {
   return `
-    <span class="act-list-status home-nearby-place-distance-badge">
+    <span class="act-list-status url-import-preview__price-badge home-nearby-place-distance-badge">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <polygon points="3 11 22 2 13 21 11 13 3 11"/>
       </svg>
@@ -255,7 +257,7 @@ function renderNearbySection() {
     return;
   }
 
-  const placesHtml = places.map(({ categoryId, item, title, location, distanceLabel }) => {
+  const placesHtml = places.map(({ categoryId, item, title, distanceLabel }) => {
     const cat = getCategoryById(categoryId);
     const theme = cat?.theme || BASE_THEME;
     const tag = getNearbyPlaceTag(categoryId, item);
@@ -267,11 +269,10 @@ function renderNearbySection() {
         data-theme="${theme}"
         aria-label="Voir ${escapeHtml(title)} sur la carte"
       >
-        <span class="home-nearby-place-icon" aria-hidden="true">${renderNearbyPlaceIcon(categoryId, item)}</span>
+        <span class="cat-panel-icon url-import-preview__price-badge" aria-hidden="true">${renderNearbyPlaceIcon(categoryId, item)}</span>
         <span class="home-nearby-place-copy">
           <span class="home-nearby-place-tag">${escapeHtml(tag)}</span>
           <span class="home-nearby-place-title">${escapeHtml(title)}</span>
-          ${location ? `<span class="home-nearby-place-loc">${escapeHtml(location)}</span>` : ''}
         </span>
         ${renderNearbyDistanceBadge(distanceLabel)}
         <span class="home-nearby-place-arrow" aria-hidden="true">
@@ -379,7 +380,7 @@ export async function initHomePage(user, { addItemModal: sharedModal } = {}) {
       renderNearbySection();
     }
   });
-  loadHomeData();
+  loadHomeData({ animateExplorerCounts: true });
 }
 
 function renderDaysCounter() {
@@ -389,7 +390,10 @@ function renderDaysCounter() {
   const labelEl = document.getElementById('days-label');
 
   if (daysEl) {
-    animateCount(daysEl, days);
+    daysEl.dataset.countTarget = String(days);
+    daysEl.style.setProperty('--count-digits', String(days).length);
+    daysEl.textContent = '0';
+    animateCount(daysEl, days, { duration: HOME_COUNT_ANIM.duration });
   }
   if (sinceEl) {
     sinceEl.textContent = formatStartDate(COUPLE_START_DATE);
@@ -400,22 +404,7 @@ function renderDaysCounter() {
   }
 }
 
-function animateCount(el, target) {
-  const duration = 900;
-  const start = performance.now();
-  const from = 0;
-
-  const step = (now) => {
-    const progress = Math.min((now - start) / duration, 1);
-    const eased = 1 - (1 - progress) ** 3;
-    el.textContent = Math.round(from + (target - from) * eased);
-    if (progress < 1) requestAnimationFrame(step);
-  };
-
-  requestAnimationFrame(step);
-}
-
-async function loadHomeData() {
+async function loadHomeData({ animateExplorerCounts = false } = {}) {
   await initCustomOptions();
   await ensurePrefetch();
 
@@ -428,7 +417,11 @@ async function loadHomeData() {
   renderNearbySection();
   renderShortcutsSection();
   if (window.matchMedia('(min-width: 640px)').matches) {
-    renderExplorerSection();
+    const explorerRoot = document.getElementById('home-explorer');
+    renderExplorerSection(explorerRoot, { animateCounts: animateExplorerCounts });
+    if (animateExplorerCounts) {
+      animateCountElements(explorerRoot, HOME_COUNT_ANIM);
+    }
   }
   void warmMapForApp();
 }

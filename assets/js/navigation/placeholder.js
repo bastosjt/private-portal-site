@@ -12,7 +12,7 @@ export function getPlaceholderViewHtml(routeId) {
           <span class="cat-panel-accent" aria-hidden="true"></span>
           <div class="cat-panel-head">
             <div class="cat-panel-title">
-              <span class="cat-panel-icon">${sidebarIcon(navItem.icon)}</span>
+              <span class="cat-panel-icon url-import-preview__price-badge">${sidebarIcon(navItem.icon)}</span>
               <div>
                 <h3>${navItem.label}</h3>
                 <p>Cette section arrive très bientôt</p>

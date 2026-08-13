@@ -118,6 +118,17 @@ export function formatItemPrice(item) {
   return formatPriceRangeLabel(min, max);
 }
 
+/** Prix affiché en liste / grille — masque « Gratuit » seul. */
+export function formatListItemPrice(item) {
+  const label = formatItemPrice(item);
+  if (!label || /^gratuit$/i.test(label.trim())) return '';
+  return label;
+}
+
+export function hasListItemPrice(item) {
+  return Boolean(formatListItemPrice(item));
+}
+
 export function getPriceSortMin(item) {
   const { prixMin, prixMax } = normalizeItemPrice(item);
   return prixMin ?? prixMax ?? null;

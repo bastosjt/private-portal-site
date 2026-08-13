@@ -1,6 +1,6 @@
 import { getCategoryById, getUserDisplayName, MAP_ACCENT } from '../../config.js';
 import { getListPreferences, saveListPreferences } from '../../lib/user-profile.js';
-import { formatItemPrice, compareItemsByPrice } from '../../lib/price-format.js';
+import { formatItemPrice, formatListItemPrice, compareItemsByPrice } from '../../lib/price-format.js';
 import { ensureItems, hasCachedItems, getCachedItems, findCachedItemById } from '../../data/appDataCache.js';
 import { sidebarIcon } from '../../ui/sidebar.js';
 import { initAddItem } from '../../ui/add-item.js';
@@ -25,6 +25,7 @@ import {
   resetTodayPicks,
 } from '../../firebase/dailyPicks.js';
 import { buildFieldFilterOptions } from './filterOptions.js';
+import { renderListToolbarHtml } from './listLayoutToolbar.js';
 import { normalizeSearchText } from '../../lib/normalize-search.js';
 import { escapeHtml } from '../../lib/escape-html.js';
 import { navigate, mapPlaceMoveHref } from '../../navigation/router.js';
@@ -43,7 +44,7 @@ function dataAttrToDatasetKey(attr) {
 
 function renderStatusBadge(done, { doneLabel, todoLabel }) {
   return `
-    <span class="act-list-status ${done ? 'act-list-status--done' : 'act-list-status--todo'}">
+    <span class="act-list-status url-import-preview__price-badge ${done ? 'act-list-status--done' : 'act-list-status--todo'}">
       ${done ? `
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M20 6 9 17l-5-5"/>
@@ -127,6 +128,7 @@ export function createListPageController(config) {
   let pageAbort = null;
   let currentUserUid = null;
   let listViewMode = 'list';
+  let listLayoutMode = 'list';
   let categoryMapTab = null;
 
   function normalizeListItems(items) {
@@ -171,7 +173,7 @@ export function createListPageController(config) {
 
   function filtersAreActive() {
     if (searchQuery.trim()) return true;
-    if (activeFilters.status !== 'all') return true;
+    if (activeFilters.status !== 'all' && !filterBadgeExcludeKeys.includes('status')) return true;
     return filterFieldKeys.some((key) => (activeFilters[key]?.length || 0) > 0);
   }
 
@@ -191,6 +193,7 @@ export function createListPageController(config) {
     const state = {
       status: activeFilters.status || 'all',
       sort: currentSort,
+      layout: listLayoutMode,
     };
     for (const key of filterFieldKeys) {
       state[key] = activeFilters[key] || [];
@@ -245,15 +248,31 @@ export function createListPageController(config) {
     const toolbar = document.getElementById('act-list-toolbar');
     if (!toolbar) return;
 
-    toolbar.innerHTML = `
-      <button type="button" class="act-filter-btn" id="act-filter-btn" aria-label="${escapeHtml(labels.filterToolbarAria)}">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/>
-        </svg>
-        <span>Filtres</span>
-        <span class="act-filter-badge hidden" aria-hidden="true">0</span>
-      </button>
-    `;
+    toolbar.innerHTML = renderListToolbarHtml({
+      filterAriaLabel: labels.filterToolbarAria,
+      escapeHtml,
+    });
+    syncListLayoutUi();
+  }
+
+  function syncListLayoutUi() {
+    const listEl = document.getElementById(dom.listId);
+    listEl?.classList.toggle('act-list--grid', listLayoutMode === 'grid');
+
+    const listBtn = document.getElementById('act-layout-list-btn');
+    const gridBtn = document.getElementById('act-layout-grid-btn');
+    listBtn?.classList.toggle('is-active', listLayoutMode === 'list');
+    gridBtn?.classList.toggle('is-active', listLayoutMode === 'grid');
+    listBtn?.setAttribute('aria-pressed', listLayoutMode === 'list' ? 'true' : 'false');
+    gridBtn?.setAttribute('aria-pressed', listLayoutMode === 'grid' ? 'true' : 'false');
+  }
+
+  function setListLayoutMode(mode) {
+    if (mode !== 'list' && mode !== 'grid') return;
+    if (listLayoutMode === mode) return;
+    listLayoutMode = mode;
+    syncListLayoutUi();
+    persistListSettings();
   }
 
   function syncMapPanelLayout() {
@@ -339,6 +358,10 @@ export function createListPageController(config) {
       searchQuery = settings.search;
     }
 
+    if (settings.layout === 'grid' || settings.layout === 'list') {
+      listLayoutMode = settings.layout;
+    }
+
     refreshListView();
     persistListSettings();
   }
@@ -413,6 +436,10 @@ export function createListPageController(config) {
     if (typeof saved.search === 'string') {
       searchQuery = saved.search;
     }
+
+    if (saved.layout === 'grid' || saved.layout === 'list') {
+      listLayoutMode = saved.layout;
+    }
   }
 
   function refreshListView() {
@@ -420,6 +447,7 @@ export function createListPageController(config) {
     listControls?.sync?.();
     renderList(sortItems(getFilteredItems()), { animate: !listHasAnimated });
     listHasAnimated = true;
+    syncListLayoutUi();
     if (listViewMode === 'map') {
       categoryMapTab?.sync(getFilterState());
       syncMapPanelLayout();
@@ -438,7 +466,7 @@ export function createListPageController(config) {
   const renderCtx = {
     escapeHtml,
     getFieldLabel,
-    formatItemPrice,
+    formatItemPrice: formatListItemPrice,
   };
 
   function renderPickResultItem(item, { period = 'today' } = {}) {
@@ -447,7 +475,7 @@ export function createListPageController(config) {
       <div class="act-pick-result${period !== 'today' ? ' act-pick-result--yesterday' : ''}" role="button" tabindex="0" ${itemIdAttr}="${escapeHtml(item.id)}" aria-label="Voir ${escapeHtml(item[titleKey])}">
         ${renderPickPeriodLabel(period)}
         <div class="act-list-item-head">
-          <span class="cat-panel-icon">${renderTypeIcon(item)}</span>
+          <span class="cat-panel-icon url-import-preview__price-badge">${renderTypeIcon(item)}</span>
           <div class="act-list-item-body">
             <h3>${escapeHtml(item[titleKey])}</h3>
             ${renderListMeta(item, renderCtx)}
@@ -595,7 +623,7 @@ export function createListPageController(config) {
         <div class="act-list-item-inner" ${itemIdAttr}="${item.id}" role="button" tabindex="0" aria-label="Voir ${escapeHtml(item[titleKey])}">
           <span class="cat-panel-accent" aria-hidden="true"></span>
           <div class="act-list-item-head">
-            <span class="cat-panel-icon">${renderTypeIcon(item)}</span>
+            <span class="cat-panel-icon url-import-preview__price-badge">${renderTypeIcon(item)}</span>
             <div class="act-list-item-body">
               <h3>${escapeHtml(item[titleKey])}</h3>
               ${renderListMeta(item, renderCtx)}
@@ -616,6 +644,7 @@ export function createListPageController(config) {
     listEl.classList.remove('is-loading');
     listEl.classList.toggle('act-list--instant', !animate);
     listEl.classList.toggle('act-list--grouped', Boolean(renderListGroups));
+    listEl.classList.toggle('act-list--grid', listLayoutMode === 'grid');
     updateListSub(items.length);
 
     if (!items.length) {
@@ -833,6 +862,14 @@ export function createListPageController(config) {
       filterModal?.open();
     }, { signal });
 
+    document.getElementById('act-layout-list-btn')?.addEventListener('click', () => {
+      setListLayoutMode('list');
+    }, { signal });
+
+    document.getElementById('act-layout-grid-btn')?.addEventListener('click', () => {
+      setListLayoutMode('grid');
+    }, { signal });
+
     document.getElementById(dom.listId)?.addEventListener('click', (event) => {
       const groupToggle = event.target.closest('[data-group-toggle]');
       if (groupToggle) {
@@ -931,6 +968,7 @@ export function createListPageController(config) {
     cleanupPickRollAnimation();
     listHasAnimated = false;
     listViewMode = 'list';
+    listLayoutMode = 'list';
     categoryMapTab?.destroy();
     categoryMapTab = null;
     document.querySelector(`.${pageRootClass}`)?.classList.remove('is-map-view');

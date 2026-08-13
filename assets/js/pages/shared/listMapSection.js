@@ -23,23 +23,55 @@ const MAP_EMPTY_PIN_ICON = `
  */
 export function createMapTabOptions({
   prefix,
-  countSingular,
-  countPlural,
   emptyHint,
   mapListFilters,
 }) {
   return {
     canvasId: `${prefix}-map-canvas`,
     emptyId: `${prefix}-map-empty`,
-    summaryId: `${prefix}-map-summary`,
     placesListId: `${prefix}-map-places`,
     placesScrollId: `${prefix}-map-places-scroll`,
     controlsId: `${prefix}-map-controls`,
-    countSingular,
-    countPlural,
     emptyHint,
     mapListFilters,
   };
+}
+
+function renderListPanelMarkup(listId) {
+  return `
+            <div class="act-cat-panel">
+              <span class="cat-panel-accent" aria-hidden="true"></span>
+              <ul class="act-list is-loading" id="${listId}"></ul>
+            </div>
+  `;
+}
+
+/**
+ * Bloc liste partagé (toolbar + panneau) — même structure que restos/activités, sans onglets ni carte.
+ */
+export function renderListViewBlock({
+  prefix,
+  listPanelId,
+  listId,
+  listPanelAttrs = '',
+  extraPanelsHtml = '',
+}) {
+  const mapBlockId = `${prefix}-map-block`;
+  const mapViewportId = `${prefix}-map-viewport`;
+
+  return `
+      <div class="act-map-block" id="${mapBlockId}">
+        <div class="act-list-toolbar-wrap">
+          <div class="act-list-toolbar" id="act-list-toolbar"></div>
+        </div>
+        <div class="act-map-viewport" id="${mapViewportId}">
+          <div class="act-view-panel" id="${listPanelId}"${listPanelAttrs}>
+            ${renderListPanelMarkup(listId)}
+          </div>
+          ${extraPanelsHtml}
+        </div>
+      </div>
+  `;
 }
 
 /**
@@ -57,53 +89,26 @@ export function renderListMapViewBlock({
   fitAllAriaLabel,
   emptyTitle = 'Aucune adresse géolocalisée',
   emptyHint,
-  summaryDefault = 'Chargement…',
-  fullMapLinkLabel = 'Carte complète',
 }) {
-  const mapBlockId = `${prefix}-map-block`;
-  const mapViewportId = `${prefix}-map-viewport`;
   const mapCanvasId = `${prefix}-map-canvas`;
   const mapControlsId = `${prefix}-map-controls`;
   const mapEmptyId = `${prefix}-map-empty`;
   const mapPlacesScrollId = `${prefix}-map-places-scroll`;
   const mapPlacesId = `${prefix}-map-places`;
-  const mapSummaryId = `${prefix}-map-summary`;
 
-  return `
-      <div class="act-view-switch" role="tablist" aria-label="Mode d'affichage" id="${viewSwitchId}">
-        <button type="button" class="act-view-switch-btn is-active" role="tab" id="${viewListBtnId}" aria-selected="true" aria-controls="${listPanelId}" data-view="list">
-          ${LIST_TAB_ICON}
-          <span>Liste</span>
-        </button>
-        <button type="button" class="act-view-switch-btn" role="tab" id="${viewMapBtnId}" aria-selected="false" aria-controls="${mapPanelId}" data-view="map">
-          ${MAP_TAB_ICON}
-          <span>Carte</span>
-        </button>
-      </div>
-      <div class="act-map-block" id="${mapBlockId}">
-        <div class="act-list-toolbar-wrap">
-          <div class="act-list-toolbar" id="act-list-toolbar"></div>
-        </div>
-        <div class="act-map-viewport" id="${mapViewportId}">
-          <div class="act-view-panel" id="${listPanelId}" role="tabpanel" aria-labelledby="${viewListBtnId}">
-            <div class="act-cat-panel">
-              <span class="cat-panel-accent" aria-hidden="true"></span>
-              <ul class="act-list is-loading" id="${listId}"></ul>
-            </div>
-          </div>
+  const mapPanelHtml = `
           <div class="act-view-panel hidden" id="${mapPanelId}" role="tabpanel" aria-labelledby="${viewMapBtnId}" hidden>
             <div class="act-cat-panel act-cat-panel--map">
-              <span class="cat-panel-accent" aria-hidden="true"></span>
               <div class="act-category-map">
                 <div class="act-category-map-body">
                   <div class="act-category-map-canvas" id="${mapCanvasId}" aria-label="${mapAriaLabel}"></div>
                   <div class="act-category-map-controls hidden" id="${mapControlsId}" hidden>
-                    <button type="button" class="act-category-map-control" data-map-action="fit-all" aria-label="${fitAllAriaLabel}">
+                    <button type="button" class="act-category-map-control cat-panel-icon url-import-preview__price-badge" data-map-action="fit-all" aria-label="${fitAllAriaLabel}">
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <path d="M15 3h6v6"/><path d="m21 3-7 7"/><path d="m3 21 7-7"/><path d="M9 21H3v-6"/>
                       </svg>
                     </button>
-                    <button type="button" class="act-category-map-control" data-map-action="locate" aria-label="Centrer sur ma position">
+                    <button type="button" class="act-category-map-control cat-panel-icon url-import-preview__price-badge" data-map-action="locate" aria-label="Centrer sur ma position">
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <path d="M12 21s7-4.35 7-11a7 7 0 1 0-14 0c0 6.65 7 11 7 11z"/>
                         <circle cx="12" cy="10" r="3"/>
@@ -119,14 +124,27 @@ export function renderListMapViewBlock({
                 <div class="act-category-map-places-scroll hidden" id="${mapPlacesScrollId}" hidden>
                   <ul class="act-category-map-places" id="${mapPlacesId}" role="list"></ul>
                 </div>
-                <footer class="act-category-map-foot">
-                  <p class="act-category-map-summary" id="${mapSummaryId}">${summaryDefault}</p>
-                  <a href="#carte" class="act-category-map-link">${fullMapLinkLabel}</a>
-                </footer>
               </div>
             </div>
-          </div>
-        </div>
+          </div>`;
+
+  return `
+      <div class="act-view-switch" role="tablist" aria-label="Mode d'affichage" id="${viewSwitchId}">
+        <button type="button" class="act-view-switch-btn is-active" role="tab" id="${viewListBtnId}" aria-selected="true" aria-controls="${listPanelId}" data-view="list">
+          ${LIST_TAB_ICON}
+          <span>Liste</span>
+        </button>
+        <button type="button" class="act-view-switch-btn" role="tab" id="${viewMapBtnId}" aria-selected="false" aria-controls="${mapPanelId}" data-view="map">
+          ${MAP_TAB_ICON}
+          <span>Carte</span>
+        </button>
       </div>
+      ${renderListViewBlock({
+        prefix,
+        listPanelId,
+        listId,
+        listPanelAttrs: ` role="tabpanel" aria-labelledby="${viewListBtnId}"`,
+        extraPanelsHtml: mapPanelHtml,
+      })}
   `;
 }

@@ -1,14 +1,16 @@
 import { getCategoryById } from '../config.js';
-import { devWarn, devError } from '../lib/dev-log.js';
+import { devError } from '../lib/dev-log.js';
+import { fetchRestaurantDetailMedia, canLoadRestaurantPlacePhoto } from '../lib/google-place-photo.js';
+import { createPlaceDetailMediaLoader } from './place-detail-media-loader.js';
 import { updateItem, deleteItem } from '../firebase/firestore.js';
 import { syncCachedItemWrite } from '../data/appDataCache.js';
 import { formatItemPrice, hasItemPrice } from '../lib/price-format.js';
-import { getFieldOptionLabel, initCustomOptions } from '../lib/custom-types.js';
 import { renderItemTagChipsHtml } from '../lib/item-tags.js';
+import { getFieldOptionLabel, initCustomOptions } from '../lib/custom-types.js';
+import { renderRestaurantTypeIcon } from '../pages/restaurants/IconsType.js';
 import { waitForTransition, nextFrame } from '../lib/transitions.js';
 import { lockScroll, unlockScroll } from '../lib/scroll-lock.js';
 import { escapeHtml } from '../lib/escape-html.js';
-import { renderGeoCategoryLocation } from '../pages/shared/listLocation.js';
 import { getCategoryDoneToggleLabels } from '../lib/category-status-labels.js';
 import {
   createDetailModalOverlay,
@@ -16,24 +18,106 @@ import {
   renderDoneToggle,
   updateDoneToggleUI,
   wireModalDragClose,
-  renderLinkedTravelChip,
   wrapDetailContentHtml,
   itemHasMapPin,
 } from './item-detail-shared.js';
-import { paintItemAuthors, renderItemAuthorMarkup } from './item-author.js';
+import {
+  createDetailListSelection,
+  renderDetailBadge,
+  renderDetailBadgeRow,
+  renderDetailLocationBadge,
+  renderDetailMediaBlock,
+  renderDetailPlaceMedia,
+  renderDetailMetaRow,
+  renderDetailTravelBadge,
+  revealDetailPlacePhoto,
+} from './category-detail-layout.js';
 
 const COLLECTION = 'restaurants';
-const DONE_LABELS = getCategoryDoneToggleLabels('restaurants');
+const ITEM_ID_ATTR = 'data-restaurant-id';
+const DONE_LABELS = getCategoryDoneToggleLabels(COLLECTION);
 
 function getFieldLabel(category, fieldName, value) {
   return getFieldOptionLabel(category.id, fieldName, value);
 }
 
+function renderRestaurantSlotBadge(fieldLabel, value) {
+  if (!value) return '';
+  return `
+    <span class="url-import-preview__price-badge wishlist-detail-priority-badge">
+      <span class="wishlist-detail-priority-label">${escapeHtml(fieldLabel)}</span>
+      <span class="wishlist-detail-priority-value">${escapeHtml(value)}</span>
+    </span>
+  `;
+}
+
+function renderRestaurantMediaSlotBadges(item, label) {
+  const badges = [];
+  if (item.type) badges.push(renderRestaurantSlotBadge('Type', label('type', item.type)));
+  if (item.cuisine) badges.push(renderRestaurantSlotBadge('Cuisine', label('cuisine', item.cuisine)));
+  return badges.join('');
+}
+
+function renderRestaurantTypeCornerIcon(item) {
+  if (!item.type) return '';
+
+  return `
+    <span class="cat-panel-icon url-import-preview__price-badge act-detail-media-type-icon" aria-hidden="true">
+      ${renderRestaurantTypeIcon(item.type, { width: 24, height: 24 })}
+    </span>
+  `;
+}
+
+function renderRestaurantDetailBadges(item, { escapeHtml: esc }) {
+  const badges = [];
+  const travelBadge = renderDetailTravelBadge(item);
+  if (travelBadge) badges.push(travelBadge);
+
+  const tagBadges = renderItemTagChipsHtml(COLLECTION, item.tags, esc)
+    .replace(/act-chip act-chip--tag/g, 'url-import-preview__price-badge');
+  if (tagBadges) badges.push(tagBadges);
+
+  return renderDetailBadgeRow(badges.join(''));
+}
+
+function renderRestaurantDetailScroll(item, category, {
+  placeMedia = null,
+  photoVisible = false,
+  isMediaLoading = false,
+} = {}) {
+  const esc = escapeHtml;
+  const label = (field, value) => getFieldLabel(category, field, value);
+  const locationBadge = renderDetailLocationBadge(item, COLLECTION, { escapeHtml: esc, escapeHref: true });
+  const priceBadge = hasItemPrice(item) ? renderDetailBadge(formatItemPrice(item)) : '';
+  const iconHtml = renderRestaurantTypeIcon(item.type, { width: 48, height: 48 });
+  const media = renderDetailPlaceMedia(placeMedia, {
+    fallbackIconHtml: iconHtml,
+    photoVisible,
+    isLoading: isMediaLoading,
+  });
+
+  return `
+    ${renderDetailMediaBlock(media, {
+      slotHtml: renderRestaurantMediaSlotBadges(item, label),
+      cornerSlotHtml: renderRestaurantTypeCornerIcon(item),
+    })}
+    <h3 class="act-detail-name">${esc(item.nom)}</h3>
+    ${renderDetailMetaRow(locationBadge, priceBadge)}
+    ${renderRestaurantDetailBadges(item, { escapeHtml: esc })}
+  `;
+}
+
 export function initRestaurantDetail({ onChanged, onEdit, onMovePin, onClose, theme = 'rose' } = {}) {
-  const category = getCategoryById('restaurants');
+  const category = getCategoryById(COLLECTION);
   let currentItem = null;
   let isBusy = false;
   let confirmDelete = false;
+  const mediaLoader = createPlaceDetailMediaLoader({
+    canLoad: canLoadRestaurantPlacePhoto,
+    fetchMedia: fetchRestaurantDetailMedia,
+    logLabel: 'restaurant place media',
+  });
+  const { setSelectedItem, getSelectedRow } = createDetailListSelection(ITEM_ID_ATTR);
 
   const { overlay, bodyEl, closeBtn } = createDetailModalOverlay({
     overlayId: 'restaurant-detail-overlay',
@@ -43,37 +127,42 @@ export function initRestaurantDetail({ onChanged, onEdit, onMovePin, onClose, th
   const abort = new AbortController();
   const { signal } = abort;
 
-  function renderContent(item) {
-    const chips = [];
-    if (item.type) {
-      chips.push(`<span class="act-chip">${escapeHtml(getFieldLabel(category, 'type', item.type))}</span>`);
-    }
-    if (item.cuisine) {
-      chips.push(`<span class="act-chip">${escapeHtml(getFieldLabel(category, 'cuisine', item.cuisine))}</span>`);
-    }
-    const travelChip = renderLinkedTravelChip(item, { escapeHtml });
-    if (travelChip) chips.push(travelChip);
-    if (hasItemPrice(item)) {
-      chips.push(`<span class="act-chip act-chip--muted">${escapeHtml(formatItemPrice(item))}</span>`);
-    }
-    const tagChips = renderItemTagChipsHtml('restaurants', item.tags, escapeHtml);
-    if (tagChips) chips.push(tagChips);
+  function renderContent(item, { placeMedia = null } = {}) {
+    const resolvedMedia = placeMedia || mediaLoader.getActivePlaceMedia();
+    const photoVisible = resolvedMedia?.type === 'photo';
+    const isMediaLoading = canLoadRestaurantPlacePhoto(item) && !photoVisible;
 
     bodyEl.innerHTML = wrapDetailContentHtml(`
-        <h3 class="act-detail-name">${escapeHtml(item.nom)}</h3>
-        ${chips.length ? `<div class="act-chips">${chips.join('')}</div>` : ''}
-        ${renderGeoCategoryLocation(item, 'restaurants', { escapeHtml, escapeHref: true })}
+        ${renderRestaurantDetailScroll(item, category, {
+          placeMedia: resolvedMedia,
+          photoVisible,
+          isMediaLoading,
+        })}
 
         ${renderDoneToggle(Boolean(item.done), isBusy, DONE_LABELS)}
-
-        ${renderItemAuthorMarkup(item)}
-    `, { done: item.done, confirmDelete, isBusy, canMovePin: itemHasMapPin(item) && Boolean(onMovePin) });
+    `, {
+      done: item.done,
+      confirmDelete,
+      isBusy,
+      canMovePin: itemHasMapPin(item) && Boolean(onMovePin),
+    });
 
     bodyEl.querySelector('#act-detail-done')?.addEventListener('click', handleToggleDone);
     bodyEl.querySelector('#act-detail-edit')?.addEventListener('click', handleEdit);
     bodyEl.querySelector('#act-detail-move-pin')?.addEventListener('click', handleMovePin);
     bodyEl.querySelector('#act-detail-delete')?.addEventListener('click', handleDelete);
-    paintItemAuthors(bodyEl);
+  }
+
+  function loadPlaceMedia(item) {
+    return mediaLoader.loadPlaceMedia(item, {
+      isCurrentItem: (entry) => currentItem?.id === entry.id,
+      onLoaded: (_entry, placeMedia) => {
+        revealDetailPlacePhoto(bodyEl.querySelector('.act-detail-media-wrap'), placeMedia.url);
+      },
+      onSettled: () => {
+        bodyEl.querySelector('.act-detail-media-stage')?.classList.remove('act-detail-media-stage--loading');
+      },
+    });
   }
 
   async function handleToggleDone() {
@@ -91,13 +180,12 @@ export function initRestaurantDetail({ onChanged, onEdit, onMovePin, onClose, th
       currentItem = { ...currentItem, done };
       syncCachedItemWrite(COLLECTION, currentItem.id, { patch: { done } });
       onChanged?.(COLLECTION, currentItem.id, { patch: true });
-      close();
+      await close();
     } catch (err) {
       devError('toggle done:', err);
-      updateDoneToggleUI(bodyEl, !done, false, DONE_LABELS);
-      content?.classList.toggle('act-detail-content--done', !done);
       isBusy = false;
       updateDoneToggleUI(bodyEl, currentItem.done, false, DONE_LABELS);
+      content?.classList.toggle('act-detail-content--done', currentItem.done);
     }
   }
 
@@ -145,6 +233,8 @@ export function initRestaurantDetail({ onChanged, onEdit, onMovePin, onClose, th
     confirmDelete = false;
     isBusy = false;
     renderContent(item);
+    setSelectedItem(item.id);
+    loadPlaceMedia(item);
     overlay.classList.remove('hidden');
     document.body.classList.add('modal-open');
     lockScroll();
@@ -156,6 +246,9 @@ export function initRestaurantDetail({ onChanged, onEdit, onMovePin, onClose, th
 
     dragClose.reset();
     onClose?.();
+    mediaLoader.cleanupPlaceMedia();
+
+    const rowToReveal = getSelectedRow();
 
     overlay.classList.remove('is-active');
     document.body.classList.remove('modal-open');
@@ -164,6 +257,8 @@ export function initRestaurantDetail({ onChanged, onEdit, onMovePin, onClose, th
     await waitForTransition(overlay.querySelector('.add-modal') || overlay, DETAIL_MODAL_MS);
 
     overlay.classList.add('hidden');
+    setSelectedItem(null);
+    rowToReveal?.scrollIntoView({ block: 'nearest' });
     currentItem = null;
     confirmDelete = false;
     isBusy = false;
@@ -192,6 +287,7 @@ export function initRestaurantDetail({ onChanged, onEdit, onMovePin, onClose, th
   function destroy() {
     abort.abort();
     dragClose.destroy();
+    mediaLoader.cleanupPlaceMedia();
     overlay.classList.remove('is-active');
     overlay.classList.add('hidden');
     document.body.classList.remove('modal-open');

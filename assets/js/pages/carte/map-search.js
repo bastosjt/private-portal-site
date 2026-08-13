@@ -2,6 +2,13 @@ import { getCategoryById } from '../../config.js';
 import { findCachedItemById } from '../../data/appDataCache.js';
 import { getFieldOptionLabel } from '../../lib/custom-types.js';
 import { escapeHtml } from '../../lib/escape-html.js';
+import { renderMapSearchEmptyHtml } from '../../lib/map-search-empty.js';
+import {
+  closeMapSearchResultsPanel,
+  forceCloseMapSearchResultsPanel,
+  openMapSearchResultsPanel,
+  updateMapSearchResultsPanel,
+} from '../../lib/map-search-results-panel.js';
 import { getItemLocationLabel } from '../../lib/item-location.js';
 import { normalizeItemTags } from '../../lib/item-tags.js';
 import { normalizeSearchText } from '../../lib/normalize-search.js';
@@ -180,26 +187,46 @@ export function initMapSearch({ signal, onSelect } = {}) {
   input.setAttribute('aria-expanded', 'false');
   input.setAttribute('aria-controls', 'map-search-results');
 
+  function syncResultsPanelState(isOpen) {
+    root.classList.toggle('is-open', isOpen);
+    input.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    if (!isOpen) input.removeAttribute('aria-activedescendant');
+  }
+
+  function showResultsPanel(html) {
+    const isOpen = !resultsEl.classList.contains('hidden');
+    if (isOpen) {
+      updateMapSearchResultsPanel(resultsEl, { html });
+    } else {
+      openMapSearchResultsPanel(resultsEl, { html });
+    }
+    syncResultsPanelState(true);
+  }
+
   function closeResults() {
     activeIndex = -1;
     currentResults = [];
-    resultsEl.classList.add('hidden');
-    resultsEl.innerHTML = '';
-    root.classList.remove('is-open');
-    input.setAttribute('aria-expanded', 'false');
-    input.removeAttribute('aria-activedescendant');
+    closeMapSearchResultsPanel(resultsEl, {
+      onDone: () => syncResultsPanelState(false),
+    });
   }
 
-  function renderResults(entries) {
+  function renderResults(entries, query = '') {
     currentResults = entries;
     activeIndex = -1;
 
     if (!entries.length) {
-      closeResults();
+      if (!query.trim()) {
+        closeResults();
+        return;
+      }
+
+      showResultsPanel(renderMapSearchEmptyHtml(query));
+      input.removeAttribute('aria-activedescendant');
       return;
     }
 
-    resultsEl.innerHTML = entries.map((entry, index) => `
+    showResultsPanel(entries.map((entry, index) => `
       <li
         id="map-search-option-${index}"
         class="map-search-option"
@@ -217,11 +244,7 @@ export function initMapSearch({ signal, onSelect } = {}) {
           </span>
         </span>
       </li>
-    `).join('');
-
-    resultsEl.classList.remove('hidden');
-    root.classList.add('is-open');
-    input.setAttribute('aria-expanded', 'true');
+    `).join(''));
   }
 
   function setActiveIndex(nextIndex) {
@@ -252,7 +275,7 @@ export function initMapSearch({ signal, onSelect } = {}) {
         return;
       }
 
-      renderResults(rankSearchResults(buildSearchEntries(), query));
+      renderResults(rankSearchResults(buildSearchEntries(), query), query);
     }, SEARCH_DEBOUNCE_MS);
   }
 
@@ -332,7 +355,8 @@ export function initMapSearch({ signal, onSelect } = {}) {
 
   signal?.addEventListener('abort', () => {
     window.clearTimeout(debounceTimer);
-    closeResults();
+    forceCloseMapSearchResultsPanel(resultsEl);
+    syncResultsPanelState(false);
   }, { once: true });
 }
 

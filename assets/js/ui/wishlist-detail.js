@@ -1,12 +1,12 @@
 import { getCategoryById } from '../config.js';
-import { devWarn, devError } from '../lib/dev-log.js';
+import { devError } from '../lib/dev-log.js';
 import { updateItem, deleteItem } from '../firebase/firestore.js';
 import { syncCachedItemWrite } from '../data/appDataCache.js';
 import { formatItemPrice, formatPrice, hasItemPrice } from '../lib/price-format.js';
 import { getFieldOptionLabel, initCustomOptions } from '../lib/custom-types.js';
 import { waitForTransition, nextFrame } from '../lib/transitions.js';
 import { lockScroll, unlockScroll } from '../lib/scroll-lock.js';
-import { sanitizeHttpsUrl } from '../lib/safe-url.js';
+import { sanitizeHttpsUrl, sanitizeImageUrl } from '../lib/safe-url.js';
 import { escapeHtml } from '../lib/escape-html.js';
 import { getCategoryDoneToggleLabels } from '../lib/category-status-labels.js';
 import {
@@ -17,7 +17,15 @@ import {
   wireModalDragClose,
   wrapDetailContentHtml,
 } from './item-detail-shared.js';
-import { paintItemAuthors, renderItemAuthorMarkup } from './item-author.js';
+import { renderWishlistPriorityIcon } from '../pages/wishlist/IconsType.js';
+import { createDetailImageMediaLoader } from './place-detail-media-loader.js';
+import {
+  createDetailListSelection,
+  renderDetailMediaBlock,
+  renderDetailMetaRow,
+  renderDetailPlaceMedia,
+  revealDetailPlacePhoto,
+} from './category-detail-layout.js';
 
 const COLLECTION = 'wishlist';
 const DONE_LABELS = getCategoryDoneToggleLabels('wishlist');
@@ -41,28 +49,75 @@ const LINK_ICON = `
   </svg>
 `;
 
-function renderWishlistLinkBlock(item) {
+function renderWishlistPriorityBadge(category, item) {
+  if (!item.priorite) return '';
+
+  const label = escapeHtml(getFieldLabel(category, 'priorite', item.priorite));
+  return `
+    <span class="url-import-preview__price-badge wishlist-detail-priority-badge wishlist-detail-priority-badge--${item.priorite}">
+      <span class="wishlist-detail-priority-label">Priorité</span>
+      <span class="wishlist-detail-priority-value">${label}</span>
+    </span>
+  `;
+}
+
+function renderWishlistImageBlock(item, category, {
+  photoVisible = false,
+  isMediaLoading = false,
+  resolvedMedia = null,
+} = {}) {
+  const iconHtml = renderWishlistPriorityIcon(item.priorite, { width: 48, height: 48 });
+  const priorityBadge = renderWishlistPriorityBadge(category, item);
+  const media = renderDetailPlaceMedia(resolvedMedia, {
+    fallbackIconHtml: iconHtml,
+    photoVisible,
+    isLoading: isMediaLoading,
+  });
+
+  return renderDetailMediaBlock(media, { slotHtml: priorityBadge });
+}
+
+function renderWishlistLinkBadge(item) {
   const rawLink = item.lien?.trim();
   if (!rawLink) return '';
 
   const safeUrl = sanitizeHttpsUrl(rawLink);
   const label = escapeHtml(getLinkLabel(rawLink));
+  const content = `${LINK_ICON}<span>${label}</span>`;
 
   if (safeUrl) {
     return `
-      <a href="${escapeHtml(safeUrl)}" class="act-location" target="_blank" rel="noopener noreferrer">
-        ${LINK_ICON}
-        <span>${label}</span>
-      </a>
+      <a
+        href="${escapeHtml(safeUrl)}"
+        class="url-import-preview__price-badge wishlist-detail-badge-link"
+        target="_blank"
+        rel="noopener noreferrer"
+      >${content}</a>
     `;
   }
 
-  return `
-    <p class="act-location act-location--text">
-      ${LINK_ICON}
-      <span>${label}</span>
-    </p>
-  `;
+  return `<span class="url-import-preview__price-badge wishlist-detail-badge-link">${content}</span>`;
+}
+
+function renderWishlistPriceLabel(item) {
+  if (hasItemPrice(item)) {
+    return escapeHtml(formatItemPrice(item));
+  }
+  if (item.prix) {
+    return escapeHtml(formatPrice(item.prix));
+  }
+  return '';
+}
+
+function renderWishlistLinkPriceRow(item) {
+  const linkHtml = renderWishlistLinkBadge(item);
+  const priceLabel = renderWishlistPriceLabel(item);
+  if (!linkHtml && !priceLabel) return '';
+
+  return renderDetailMetaRow(
+    linkHtml,
+    priceLabel ? `<span class="url-import-preview__price-badge">${priceLabel}</span>` : '',
+  );
 }
 
 export function initWishlistDetail({ onChanged, onEdit, theme = 'pink' } = {}) {
@@ -70,17 +125,11 @@ export function initWishlistDetail({ onChanged, onEdit, theme = 'pink' } = {}) {
   let currentItem = null;
   let isBusy = false;
   let confirmDelete = false;
-  let selectedRow = null;
-
-  function setSelectedItem(itemId) {
-    selectedRow?.classList.remove('is-selected');
-    selectedRow = null;
-    if (!itemId) return;
-
-    const inner = document.querySelector(`[data-wishlist-id="${CSS.escape(itemId)}"]`);
-    selectedRow = inner?.closest('.act-list-item') || null;
-    selectedRow?.classList.add('is-selected');
-  }
+  const mediaLoader = createDetailImageMediaLoader({
+    getImageUrl: (item) => sanitizeImageUrl(item.imageUrl),
+    logLabel: 'wishlist detail image',
+  });
+  const { setSelectedItem, getSelectedRow } = createDetailListSelection('data-wishlist-id');
 
   const { overlay, bodyEl, closeBtn } = createDetailModalOverlay({
     overlayId: 'wishlist-detail-overlay',
@@ -91,32 +140,33 @@ export function initWishlistDetail({ onChanged, onEdit, theme = 'pink' } = {}) {
   const { signal } = abort;
 
   function renderContent(item) {
-    const chips = [];
-
-    if (item.priorite) {
-      chips.push(`<span class="act-chip wishlist-chip-priority wishlist-chip-priority--${item.priorite}">${escapeHtml(getFieldLabel(category, 'priorite', item.priorite))}</span>`);
-    }
-    if (hasItemPrice(item)) {
-      chips.push(`<span class="act-chip act-chip--muted">${escapeHtml(formatItemPrice(item))}</span>`);
-    } else if (item.prix) {
-      chips.push(`<span class="act-chip act-chip--muted">${escapeHtml(formatPrice(item.prix))}</span>`);
-    }
+    const resolvedMedia = mediaLoader.getActivePlaceMedia();
+    const photoVisible = resolvedMedia?.type === 'photo';
+    const isMediaLoading = mediaLoader.canLoad(item) && !photoVisible;
 
     bodyEl.innerHTML = wrapDetailContentHtml(`
+        ${renderWishlistImageBlock(item, category, { photoVisible, isMediaLoading, resolvedMedia })}
         <h3 class="act-detail-name">${escapeHtml(item.nom)}</h3>
-        ${chips.length ? `<div class="act-chips">${chips.join('')}</div>` : ''}
-        ${item.description ? `<p class="act-detail-description">${escapeHtml(item.description)}</p>` : ''}
-        ${renderWishlistLinkBlock(item)}
+        ${renderWishlistLinkPriceRow(item)}
 
         ${renderDoneToggle(Boolean(item.done), isBusy, DONE_LABELS)}
-
-        ${renderItemAuthorMarkup(item)}
     `, { done: item.done, confirmDelete, isBusy });
 
     bodyEl.querySelector('#act-detail-done')?.addEventListener('click', handleToggleDone);
     bodyEl.querySelector('#act-detail-edit')?.addEventListener('click', handleEdit);
     bodyEl.querySelector('#act-detail-delete')?.addEventListener('click', handleDelete);
-    paintItemAuthors(bodyEl);
+  }
+
+  function loadWishlistImage(item) {
+    return mediaLoader.loadPlaceMedia(item, {
+      isCurrentItem: (entry) => currentItem?.id === entry.id,
+      onLoaded: (_entry, placeMedia) => {
+        revealDetailPlacePhoto(bodyEl.querySelector('.act-detail-media-wrap'), placeMedia.url);
+      },
+      onSettled: () => {
+        bodyEl.querySelector('.act-detail-media-stage')?.classList.remove('act-detail-media-stage--loading');
+      },
+    });
   }
 
   async function handleToggleDone() {
@@ -186,7 +236,10 @@ export function initWishlistDetail({ onChanged, onEdit, theme = 'pink' } = {}) {
     overlay.classList.remove('hidden');
     document.body.classList.add('modal-open');
     lockScroll();
-    nextFrame().then(() => overlay.classList.add('is-active'));
+    nextFrame().then(() => {
+      overlay.classList.add('is-active');
+      loadWishlistImage(item);
+    });
   }
 
   async function close() {
@@ -194,7 +247,9 @@ export function initWishlistDetail({ onChanged, onEdit, theme = 'pink' } = {}) {
 
     dragClose.reset();
 
-    const rowToReveal = selectedRow;
+    mediaLoader.cleanupPlaceMedia();
+
+    const rowToReveal = getSelectedRow();
 
     overlay.classList.remove('is-active');
     document.body.classList.remove('modal-open');
@@ -233,6 +288,7 @@ export function initWishlistDetail({ onChanged, onEdit, theme = 'pink' } = {}) {
   function destroy() {
     abort.abort();
     dragClose.destroy();
+    mediaLoader.cleanupPlaceMedia();
     overlay.classList.remove('is-active');
     overlay.classList.add('hidden');
     document.body.classList.remove('modal-open');

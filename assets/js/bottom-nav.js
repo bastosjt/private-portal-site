@@ -58,13 +58,17 @@ function renderPageBadgeHtml(navItem) {
   `.trim();
 }
 
-function renderExplorerBadge(routeId) {
+function renderExplorerBadge(routeId, { animateIn = false } = {}) {
   const pageItem = resolveExplorerPageItem(routeId);
   if (!pageItem) {
     return '<span class="bottom-nav-explorer-badge" data-explorer-badge hidden></span>';
   }
   return `
-    <span class="bottom-nav-explorer-badge" data-explorer-badge>
+    <span
+      class="bottom-nav-explorer-badge${animateIn ? ' is-badge-enter' : ''}"
+      data-explorer-badge
+      data-badge-route="${pageItem.id}"
+    >
       ${renderPageBadgeHtml(pageItem)}
     </span>
   `;
@@ -73,7 +77,7 @@ function renderExplorerBadge(routeId) {
 function renderRouteItem(routeId, label, iconName, activeId, routeIdForBadge = null) {
   const isActive = routeId === activeId;
   const badgeHtml = routeId === EXPLORER_ROUTE && routeIdForBadge != null
-    ? renderExplorerBadge(routeIdForBadge)
+    ? renderExplorerBadge(routeIdForBadge, { animateIn: Boolean(resolveExplorerPageItem(routeIdForBadge)) })
     : '';
 
   return `
@@ -95,19 +99,76 @@ function renderRouteItem(routeId, label, iconName, activeId, routeIdForBadge = n
   `;
 }
 
-function syncExplorerBadge(routeId = getActiveId()) {
+const BADGE_ENTER_MS = 440;
+const BADGE_LEAVE_MS = 240;
+const BADGE_SWAP_OUT_MS = 200;
+
+let badgeAnimToken = 0;
+
+function clearBadgeAnimClasses(host) {
+  host.classList.remove('is-badge-enter', 'is-badge-leave', 'is-badge-swap-out', 'is-badge-swap-in');
+}
+
+function wait(ms) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+async function syncExplorerBadge(routeId = getActiveId()) {
   const host = document.querySelector('.bottom-nav-item[data-route="explorer"] [data-explorer-badge]');
   if (!host) return;
 
+  const token = ++badgeAnimToken;
   const pageItem = resolveExplorerPageItem(routeId);
+  const nextKey = pageItem?.id || '';
+
   if (!pageItem) {
+    if (host.hidden) return;
+    clearBadgeAnimClasses(host);
+    host.classList.add('is-badge-leave');
+    await wait(BADGE_LEAVE_MS);
+    if (token !== badgeAnimToken) return;
     host.innerHTML = '';
     host.hidden = true;
+    host.dataset.badgeRoute = '';
+    clearBadgeAnimClasses(host);
     return;
   }
 
+  const prevKey = host.dataset.badgeRoute || '';
+
+  if (host.hidden || !prevKey) {
+    host.dataset.badgeRoute = nextKey;
+    host.innerHTML = renderPageBadgeHtml(pageItem);
+    host.hidden = false;
+    clearBadgeAnimClasses(host);
+    host.classList.add('is-badge-enter');
+    await wait(BADGE_ENTER_MS);
+    if (token !== badgeAnimToken) return;
+    clearBadgeAnimClasses(host);
+    return;
+  }
+
+  if (prevKey === nextKey) {
+    if (host.classList.contains('is-badge-enter')) {
+      await wait(BADGE_ENTER_MS);
+      if (token !== badgeAnimToken) return;
+      host.classList.remove('is-badge-enter');
+    }
+    return;
+  }
+
+  clearBadgeAnimClasses(host);
+  host.classList.add('is-badge-swap-out');
+  await wait(BADGE_SWAP_OUT_MS);
+  if (token !== badgeAnimToken) return;
+
+  host.dataset.badgeRoute = nextKey;
   host.innerHTML = renderPageBadgeHtml(pageItem);
-  host.hidden = false;
+  host.classList.remove('is-badge-swap-out');
+  host.classList.add('is-badge-swap-in');
+  await wait(BADGE_ENTER_MS);
+  if (token !== badgeAnimToken) return;
+  clearBadgeAnimClasses(host);
 }
 
 function ensureBottomNavGlass(shell) {

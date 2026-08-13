@@ -1,24 +1,19 @@
-import { getPlaceAddressFieldName } from '../lib/place-form-fields.js';
 import { escapeHtml } from '../lib/escape-html.js';
 import { devWarn } from '../lib/dev-log.js';
 import { buildGoogleMapsUrl } from '../lib/google-maps-url.js';
 import {
   createPlaceSearchSessionToken,
+  isGeographicPlace,
   retrievePlace,
   suggestPlaces,
 } from '../lib/google-places-search.js';
 import { resolvePlaceSearchContext } from '../lib/place-search-context.js';
 import { isGooglePlacesConfigured } from '../lib/google-places-config.js';
-import { populatePriceRangeFields } from '../lib/form-price-field.js';
+import { applyPlaceToForm } from '../lib/apply-place-to-form.js';
 import {
   clearPlaceFieldSuggestions,
-  showPlaceFieldSuggestions,
 } from './place-field-suggestions.js';
 import { supportsPlaceFieldSuggestions } from '../lib/place-google-type-mapping.js';
-
-function getPlaceSearchFills(field) {
-  return field.placeSearch?.fills || {};
-}
 
 export function initPlaceNameAutocomplete(input, {
   form,
@@ -31,8 +26,6 @@ export function initPlaceNameAutocomplete(input, {
   const wrap = input.closest('.place-name-field') || input.closest('.address-field');
   if (!wrap) return () => {};
 
-  const addressFieldName = getPlaceAddressFieldName(category);
-  const fills = getPlaceSearchFills(field);
   const fieldWrap = wrap.closest('.form-field') || wrap;
   const listId = `${input.id}-place-suggestions`;
   let suggestions = [];
@@ -137,41 +130,11 @@ export function initPlaceNameAutocomplete(input, {
     }
   }
 
-  function applyFills(place) {
-    if (!form) return;
-
-    for (const [fieldName, placeKey] of Object.entries(fills)) {
-      const target = form.elements[fieldName];
-      if (!target || place[placeKey] == null) continue;
-      target.value = place[placeKey];
-      target.dispatchEvent(new Event('input', { bubbles: true }));
+  function dismissMobileKeyboard() {
+    input.blur();
+    if (document.activeElement === input) {
+      input.blur();
     }
-  }
-
-  function fillAddressField(place) {
-    if (!form || !addressFieldName) return;
-
-    const addressInput = form.elements[addressFieldName];
-    if (!addressInput) return;
-
-    addressInput.dataset.suppressAutocomplete = '1';
-    addressInput.value = place.address || '';
-    addressInput.dataset.lat = place.lat ?? '';
-    addressInput.dataset.lng = place.lng ?? '';
-    addressInput.dataset.mapsUrl = place.mapsUrl ?? '';
-    delete addressInput.dataset.suppressAutocomplete;
-
-    form.dispatchEvent(new Event('input', { bubbles: true }));
-  }
-
-  function fillPriceFields(place) {
-    if (!form) return;
-    if (!form.elements.prixMin && !form.elements.prixMax) return;
-
-    populatePriceRangeFields(form, {
-      prixMin: place.prixMin ?? null,
-      prixMax: place.prixMax ?? null,
-    });
   }
 
   function finalizeSelection(place) {
@@ -180,7 +143,14 @@ export function initPlaceNameAutocomplete(input, {
     abortController?.abort();
 
     const name = place.name?.trim() || input.value.trim();
-    const enriched = {
+    const enriched = applyPlaceToForm(form, category, { ...place, name }, {
+      sourceUrl: place.mapsUrl || buildGoogleMapsUrl({
+        name,
+        address: place.address,
+        lat: place.lat,
+        lng: place.lng,
+      }),
+    }) || {
       ...place,
       name,
       mapsUrl: place.mapsUrl || buildGoogleMapsUrl({
@@ -191,20 +161,11 @@ export function initPlaceNameAutocomplete(input, {
       }),
     };
 
-    input.value = enriched.name;
     closeList();
-    fillAddressField(enriched);
-    fillPriceFields(enriched);
-    applyFills(enriched);
-    if (supportsPlaceFieldSuggestions(category?.id)) {
-      showPlaceFieldSuggestions(form, category, enriched);
-    } else {
-      clearPlaceFieldSuggestions(form);
-    }
-    form?.dispatchEvent(new Event('input', { bubbles: true }));
     onSelect?.(enriched);
     resetSessionToken();
     suppressSearch = false;
+    dismissMobileKeyboard();
   }
 
   async function selectSuggestion(suggestion) {
@@ -213,6 +174,7 @@ export function initPlaceNameAutocomplete(input, {
     abortController?.abort();
     input.value = suggestion.name;
     closeList();
+    dismissMobileKeyboard();
     wrap.classList.add('is-searching');
     abortController = new AbortController();
 
@@ -228,6 +190,11 @@ export function initPlaceNameAutocomplete(input, {
       }
 
       if (!place) {
+        suppressSearch = false;
+        return;
+      }
+
+      if (field.placeSearch?.mode === 'geographic' && !isGeographicPlace(place)) {
         suppressSearch = false;
         return;
       }
@@ -254,6 +221,7 @@ export function initPlaceNameAutocomplete(input, {
         sessionToken,
         signal: abortController.signal,
         context: resolvePlaceSearchContext(form, category, field),
+        searchMode: field.placeSearch?.mode || null,
       });
       if (input.value.trim() !== value.trim()) return;
       renderSuggestions(results);

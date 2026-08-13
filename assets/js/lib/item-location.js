@@ -6,14 +6,16 @@ export function getItemLocationLabel(categoryId, item) {
 
   if (categoryId === 'activities') return item.localisation?.trim() || '';
   if (categoryId === 'restaurants') return item.adresse?.trim() || '';
-  if (categoryId === 'travels') return item.localisation?.trim() || item.destination?.trim() || '';
+  if (categoryId === 'travels') return item.localisation?.trim() || '';
   return '';
 }
 
 function buildItemMapsUrl(item, categoryId) {
   const name = categoryId === 'restaurants' || categoryId === 'activities'
     ? item.nom?.trim() || ''
-    : '';
+    : categoryId === 'travels'
+      ? item.localisation?.trim() || ''
+      : '';
   const address = getItemLocationLabel(categoryId, item);
 
   return buildGoogleMapsUrl({
@@ -26,7 +28,7 @@ function buildItemMapsUrl(item, categoryId) {
 }
 
 export function getMapsUrl(item, categoryId) {
-  if (categoryId === 'restaurants' || categoryId === 'activities') {
+  if (categoryId === 'restaurants' || categoryId === 'activities' || categoryId === 'travels') {
     const safeLienMaps = sanitizeHttpsUrl(item.lienMaps);
     if (safeLienMaps) return safeLienMaps;
   }

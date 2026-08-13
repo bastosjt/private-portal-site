@@ -76,6 +76,12 @@ export const SETTINGS_VIEW_HTML = `
           ${renderMenuLink({ id: 'theme', icon: 'palette', label: 'Ton thème', valueId: 'settings-menu-theme-value' })}
           ${renderMenuLink({ id: 'app', icon: 'settings', label: 'Application', valueId: 'settings-menu-app-value' })}
         </nav>
+
+        <div class="settings-menu-footer">
+          <button type="button" class="settings-btn settings-btn--danger settings-logout-btn" id="settings-logout-btn">
+            <span class="settings-btn-label">Se déconnecter</span>
+          </button>
+        </div>
       </section>
     </div>
 
@@ -138,7 +144,7 @@ export const SETTINGS_VIEW_HTML = `
         <div class="section-head">
           <div>
             <h2 id="settings-data-heading">Données</h2>
-            <p>Synchronisation avec Firestore</p>
+            <p>Synchronisation avec Firestore et cache local.</p>
           </div>
         </div>
 
@@ -206,7 +212,7 @@ export const SETTINGS_VIEW_HTML = `
         <div class="section-head">
           <div>
             <h2 id="settings-app-heading">Application</h2>
-            <p>Version et session</p>
+            <p>Version et services connectés.</p>
           </div>
         </div>
 
@@ -217,13 +223,18 @@ export const SETTINGS_VIEW_HTML = `
               <span class="settings-row-label">Version</span>
               <span id="settings-version" aria-label="Version de l'application">—</span>
             </div>
-            <div class="settings-row settings-row--action">
-              <button type="button" class="settings-btn settings-btn--danger" id="settings-logout-btn">
-                <span class="settings-btn-label">Se déconnecter</span>
-              </button>
-            </div>
           </div>
         </article>
+
+        <div class="settings-api-section">
+          <div class="section-head">
+            <div>
+              <h3>Services par catégorie</h3>
+              <p>APIs externes par section. Les clés optionnelles enrichissent l’expérience sans bloquer l’app.</p>
+            </div>
+          </div>
+          <div class="settings-api-catalog" id="settings-api-catalog" aria-live="polite"></div>
+        </div>
       </section>
     </div>
   </main>

@@ -37,8 +37,9 @@
   box-shadow: var(--neu-up-sm);
 }
 
-.map-page .act-cat-panel--map .cat-panel-accent {
-  z-index: 2;
+.map-page .act-cat-panel--map.map-panel::before,
+.map-page .act-cat-panel--map > .cat-panel-accent {
+  display: none;
 }
 
 .map-panel-body {
@@ -54,12 +55,44 @@
   overscroll-behavior: none;
 }
 
+.map-tile-prewarm-host {
+  position: fixed;
+  left: -9999px;
+  top: 0;
+  width: 512px;
+  height: 512px;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  overflow: hidden;
+}
+
 .map-canvas {
   flex: 1;
   min-height: 0;
   width: 100%;
   background: var(--map-surface);
   touch-action: none;
+}
+
+.map-canvas.is-map-loading .maplibregl-canvas {
+  opacity: 0;
+}
+
+.map-canvas.is-map-ready .maplibregl-canvas {
+  opacity: 1;
+  transition: opacity 0.72s var(--ease-premium);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .map-canvas.is-map-ready .maplibregl-canvas,
+  .home-nearby-map-preview.is-map-ready .home-nearby-map-preview-canvas .maplibregl-canvas {
+    transition: none;
+  }
+
+  .home-nearby-map-preview-fallback {
+    transition: none;
+  }
 }
 
 .map-canvas.maplibregl-map {
@@ -196,10 +229,10 @@
 
 .map-search.is-open .map-search-field,
 .map-search-field:focus-within {
-  border-color: color-mix(in srgb, var(--cat-color) 45%, transparent);
+  border-color: color-mix(in srgb, var(--cat-color) 38%, transparent);
   box-shadow:
-    var(--neu-up-sm),
-    0 0 16px color-mix(in srgb, var(--cat-glow) 70%, transparent);
+    var(--neu-in),
+    0 0 0 1px color-mix(in srgb, var(--cat-color) 22%, transparent);
 }
 
 .map-search-icon {
@@ -269,6 +302,24 @@
   border: 1px solid color-mix(in srgb, var(--cat-border) 55%, transparent);
   box-shadow: var(--neu-in);
   backdrop-filter: blur(12px);
+  transform: translate3d(0, 0, 0);
+  will-change: height, opacity, transform;
+}
+
+.map-search-results.is-panel-animating {
+  overflow: hidden;
+}
+
+.map-search-empty {
+  padding: 14px 12px;
+  text-align: center;
+}
+
+.map-search-empty-text {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--text-secondary);
 }
 
 .map-search-option {
@@ -283,7 +334,7 @@
 
 .map-search-option.is-active,
 .map-search-option:hover {
-  background: color-mix(in srgb, var(--cat-color) 10%, transparent);
+  background: color-mix(in srgb, var(--cat-color) 6%, transparent);
 }
 
 .map-search-option-icon {
@@ -341,6 +392,16 @@
 .map-search-option[data-category="travels"] {
   --cat-color: #0ea5e9;
   --cat-border: rgba(14, 165, 233, 0.28);
+}
+
+.map-search-option[data-category="movies"] {
+  --cat-color: #8b5cf6;
+  --cat-border: rgba(139, 92, 246, 0.28);
+}
+
+.map-search-option[data-category="wishlist"] {
+  --cat-color: #ec4899;
+  --cat-border: rgba(236, 72, 153, 0.28);
 }
 
 .map-controls .map-compass-icon {
@@ -784,6 +845,10 @@ body.map-pin-move-active .map-filters-panel {
   padding-right: 12px;
 }
 
+#map-travel-mode-overlay .add-modal-content:has(.map-travel-picker-footer) {
+  overflow: hidden;
+}
+
 #map-travel-mode-overlay .add-modal-content:not(:has(.add-form)) {
   overflow-x: clip;
   overflow-y: auto;
@@ -792,18 +857,27 @@ body.map-pin-move-active .map-filters-panel {
   padding-bottom: 22px;
 }
 
+.map-travel-picker-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 6px 8px 16px;
+  margin: 0;
+}
+
 .map-travel-picker-hint {
   margin: -8px 0 14px;
   font-size: 0.78rem;
   line-height: 1.45;
   color: var(--text-secondary);
   text-align: center;
-}
-
-.map-travel-picker-scroll {
-  overflow: visible;
-  padding: 6px 8px 16px;
-  margin: 0;
 }
 
 .map-travel-picker-list {

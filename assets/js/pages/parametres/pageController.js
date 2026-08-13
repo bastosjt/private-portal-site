@@ -31,6 +31,7 @@ import {
 import { getSpaceTagline } from '../../lib/space-settings.js';
 import { getAppTheme, getAppThemeMeta, setAppTheme } from '../../lib/app-theme.js';
 import { renderNavIcon } from '../../lib/lucide-icon.js';
+import { renderCategoryApiCatalogHtml } from '../../lib/category-api-sources.js';
 import {
   getUserLocationConsent,
   getUserLocationLngLat,
@@ -76,7 +77,7 @@ const PANEL_HEADERS = {
   couple: { title: 'Notre couple', sub: 'Surnom et nom de votre espace', icon: 'heart' },
   data: { title: 'Données', sub: 'Synchronisation Firestore', icon: 'database' },
   theme: { title: 'Ton thème', sub: 'Apparence personnelle', icon: 'palette' },
-  app: { title: 'Application', sub: 'Version et session', icon: 'settings' },
+  app: { title: 'Application', sub: 'Version et APIs', icon: 'settings' },
 };
 
 function getDaysTogether(startDateStr) {
@@ -261,7 +262,12 @@ function renderAppInfo() {
     versionEl.innerHTML = renderVersionBadgeHtml(APP_VERSION);
     versionEl.setAttribute('aria-label', `Version ${APP_VERSION}`);
   }
-  setText('settings-menu-app-value', `Version et session`);
+  setText('settings-menu-app-value', 'Version et APIs');
+
+  const apiCatalog = document.getElementById('settings-api-catalog');
+  if (apiCatalog) {
+    apiCatalog.innerHTML = renderCategoryApiCatalogHtml();
+  }
 }
 
 function renderLocationStatus() {

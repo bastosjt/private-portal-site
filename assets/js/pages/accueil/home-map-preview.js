@@ -1,6 +1,6 @@
 import { MAP_ACCENT } from '../../config.js';
 import { getLngLatDeltaForRadiusKm } from '../../lib/geo-utils.js';
-import { getMapLibre, MAP_TILE_FADE_MS, waitForContainerSize } from '../../lib/map-bootstrap.js';
+import { getMapLibre, MAP_TILE_FADE_MS, revealMapCanvasWhenIdle, waitForContainerSize } from '../../lib/map-bootstrap.js';
 import { getOurSpaceMapStyle } from '../carte/map-style.js';
 import { bindMapMarkerImageFallback } from '../carte/map-marker-images.js';
 import {
@@ -8,7 +8,7 @@ import {
   destroyMapUserLocationLayer,
   syncMapUserLocationLayer,
 } from '../carte/map-user-location.js';
-import { warmMapForApp } from '../carte/map-warmup.js';
+import { warmMapForApp, ensureMapTilesPrewarmed, isMapTilesPrewarmed } from '../carte/map-warmup.js';
 import {
   MAP_FALLBACK_CENTER,
   MAP_LOCAL_RADIUS_KM,
@@ -27,6 +27,7 @@ const PREVIEW_PADDING = { top: 14, bottom: 42, left: 14, right: 14 };
 let previewMap = null;
 let resizeObserver = null;
 let stopLocationListener = null;
+let cancelMapReveal = null;
 let initToken = 0;
 
 function getPreviewCenter() {
@@ -62,12 +63,10 @@ function syncPreviewUserLocation(map) {
   clearMapUserLocationLayer(map);
 }
 
-function markPreviewReady(previewRoot) {
-  previewRoot?.classList.add('is-ready');
-}
-
 export function destroyHomeMapPreview() {
   initToken += 1;
+  cancelMapReveal?.();
+  cancelMapReveal = null;
   stopLocationListener?.();
   stopLocationListener = null;
   resizeObserver?.disconnect();
@@ -78,6 +77,7 @@ export function destroyHomeMapPreview() {
     previewMap.remove();
   }
   previewMap = null;
+  document.querySelector('.home-nearby-map-preview')?.classList.remove('is-map-loading', 'is-map-ready');
 }
 
 async function mountHomeMapPreview(token) {
@@ -91,6 +91,18 @@ async function mountHomeMapPreview(token) {
   await waitForContainerSize(container);
   if (token !== initToken || !document.getElementById('home-nearby-map-canvas')) return;
 
+  await ensureMapTilesPrewarmed();
+  if (token !== initToken || !document.getElementById('home-nearby-map-canvas')) return;
+
+  const tilesReady = isMapTilesPrewarmed();
+  if (tilesReady) {
+    previewRoot?.classList.remove('is-map-loading');
+    previewRoot?.classList.add('is-map-ready');
+  } else {
+    previewRoot?.classList.remove('is-map-ready');
+    previewRoot?.classList.add('is-map-loading');
+  }
+
   previewMap = new maplibregl.Map({
     container,
     style: getOurSpaceMapStyle(),
@@ -98,7 +110,7 @@ async function mountHomeMapPreview(token) {
     zoom: PREVIEW_ZOOM,
     minZoom: 3,
     maxZoom: 16,
-    fadeDuration: MAP_TILE_FADE_MS,
+    fadeDuration: tilesReady ? 0 : MAP_TILE_FADE_MS,
     interactive: false,
     attributionControl: false,
     pitch: 0,
@@ -116,7 +128,6 @@ async function mountHomeMapPreview(token) {
   previewMap.on('load', () => {
     if (token !== initToken || !previewMap) return;
 
-    markPreviewReady(previewRoot);
     previewMap.resize();
     fitPreviewMap(previewMap);
     syncPreviewUserLocation(previewMap);
@@ -124,7 +135,11 @@ async function mountHomeMapPreview(token) {
     refreshMapMarkers(previewMap, {
       onUpdated: () => syncPreviewUserLocation(previewMap),
     });
-    void warmMapForApp();
+    cancelMapReveal?.();
+    cancelMapReveal = revealMapCanvasWhenIdle(previewMap, previewRoot, {
+      skipLoadingVeil: tilesReady,
+    });
+  void warmMapForApp();
   });
 
   previewMap.once('idle', () => {

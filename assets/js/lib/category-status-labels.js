@@ -9,7 +9,7 @@ export const CATEGORY_STATUS_LABELS = {
     todoHint: 'Cocher une fois l\'activité faite',
   },
   restaurants: {
-    todo: 'À essayer',
+    todo: 'À visiter',
     done: 'Visité',
     todoDetail: 'Adresse à essayer',
     doneDetail: 'Adresse visitée',

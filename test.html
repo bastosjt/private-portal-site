@@ -4,11 +4,11 @@
   <meta charset="UTF-8" />
   <meta http-equiv="Content-Security-Policy" content="
     default-src 'self';
-    script-src 'self' https://www.gstatic.com https://apis.google.com https://unpkg.com;
+    script-src 'self' https://www.gstatic.com https://apis.google.com https://unpkg.com https://maps.googleapis.com;
     style-src 'self' 'unsafe-inline';
     font-src 'self';
-    img-src 'self' data: https://tiles.basemaps.cartocdn.com;
-    connect-src 'self' https://www.gstatic.com https://apis.google.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://api-adresse.data.gouv.fr https://photon.komoot.io https://nominatim.openstreetmap.org https://basemaps.cartocdn.com https://tiles.basemaps.cartocdn.com https://places.googleapis.com https://api.frankfurter.dev https://unpkg.com;
+    img-src 'self' data: blob: https:;
+    connect-src 'self' https: https://www.gstatic.com https://apis.google.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://api-adresse.data.gouv.fr https://photon.komoot.io https://nominatim.openstreetmap.org https://basemaps.cartocdn.com https://tiles.basemaps.cartocdn.com https://places.googleapis.com https://api.frankfurter.dev https://unpkg.com https://api.exabase.io https://cdn.exabase.io;
     worker-src 'self' blob:;
     frame-src https://*.firebaseapp.com https://accounts.google.com;
     object-src 'none';
