@@ -38,10 +38,7 @@ async function loadPlacePhotoObjectUrl(photoName, { signal } = {}) {
   const mediaUrl = buildPlacePhotoMediaUrl(photoName);
   if (!mediaUrl) return null;
 
-  const response = await fetch(mediaUrl, {
-    signal,
-    referrerPolicy: 'no-referrer',
-  });
+  const response = await fetch(mediaUrl, { signal });
 
   if (!response.ok) {
     devWarn('google place photo media:', response.status);
