@@ -13,9 +13,9 @@ import { renderBottomNav, initBottomNav, updateBottomNavActive } from './bottom-
 import { initAddItem } from './ui/add-item.js';
 import { waitForTransition, nextFrame } from './lib/transitions.js';
 import { initSplash, dismissSplash, setSplashProgress } from './ui/splash.js';
-import { prefetchAppData, clearAppDataCache, scheduleBackgroundRefreshIfNeeded, onSecondaryPrefetchDone, onPrefetchProgress, getMapMarkersFromCache } from './data/appDataCache.js';
-import { preloadMapMarkerImages } from './pages/carte/map-marker-images.js';
-import { resetMapWarmup } from './pages/carte/map-warmup.js';
+import { prefetchAppData, clearAppDataCache, scheduleBackgroundRefreshIfNeeded, onSecondaryPrefetchDone, onPrefetchProgress } from './data/appDataCache.js';
+import { backfillMissingPlaceMapsLinks } from './lib/place-maps-link-backfill.js';
+import { loadAppMapAssets, resetMapWarmup } from './pages/carte/map-warmup.js';
 import { initUserProfiles, clearUserProfilesCache } from './lib/user-profile.js';
 import { initSpaceSettings, clearSpaceSettingsCache } from './lib/space-settings.js';
 import { initAppTheme, restoreSplashThemeHint, applyAuthTheme } from './lib/app-theme.js';
@@ -169,7 +169,7 @@ function syncStaleDataIfNeeded({ hiddenDurationMs = 0 } = {}) {
 }
 
 onSecondaryPrefetchDone(() => {
-  void preloadMapMarkerImages(getMapMarkersFromCache());
+  void loadAppMapAssets();
   if (currentUser && !splashActive) refreshCurrentView();
 });
 
@@ -348,9 +348,13 @@ async function showAppView(user, { reveal = true, awaitData = false } = {}) {
   await initUserProfiles(user.uid);
   // Prefetch parallèle : collections + pioches + space settings (activeTravelId).
   const prefetch = prefetchAppData();
+  void prefetch.then(() => backfillMissingPlaceMapsLinks());
   await initSpaceSettings();
   if (!splashActive) initAppTheme();
-  if (awaitData) await prefetch;
+  if (awaitData) {
+    await prefetch;
+    await loadAppMapAssets();
+  }
   if (!splashActive) void initUserLocationAtLaunch();
   currentUser = user;
   authView?.classList.add('hidden');
@@ -400,9 +404,12 @@ async function showAppView(user, { reveal = true, awaitData = false } = {}) {
 async function finishSplashForApp() {
   setSplashProgress(0.12);
   await Promise.all([
-    bootMountDone.then(() => setSplashProgress(0.9)),
     prefetchAppData(),
+    bootMountDone,
   ]);
+  setSplashProgress(0.84);
+  await loadAppMapAssets();
+  setSplashProgress(0.97);
   document.body.classList.add('app-page');
   document.body.classList.remove('auth-page');
   initAppTheme();
@@ -503,8 +510,8 @@ initSplash();
 
 onPrefetchProgress((completed, total) => {
   if (!splashActive || !total) return;
-  // Auth (~8–12 %) → prefetch occupe jusqu’à ~88 %, le montage final pousse à 100 %.
-  setSplashProgress(0.12 + (completed / total) * 0.76);
+  // Auth (~8–12 %) → prefetch ~12–82 %, cartes ~84–97 % pendant finishSplashForApp.
+  setSplashProgress(0.12 + (completed / total) * 0.7);
 });
 
 const appVersionEl = document.getElementById('app-version');

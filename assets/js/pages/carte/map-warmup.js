@@ -1,14 +1,29 @@
 import { ensureMapDataReady, getMapMarkersFromCache } from '../../data/appDataCache.js';
+import { getMapLibre } from '../../lib/map-bootstrap.js';
+import { getUserLocationLngLat, hydrateUserLocationFromCache } from '../../lib/user-location.js';
+import { getOurSpaceMapStyle } from './map-style.js';
+import { MAP_FALLBACK_CENTER } from './map-markers.js';
 import { preloadMapMarkerImages, resetMapMarkerImages } from './map-marker-images.js';
+
+const PREWARM_ZOOM = 14;
+const PREWARM_IDLE_TIMEOUT_MS = 12000;
+const PREWARM_HOST_ID = 'map-tile-prewarm';
 
 let warmupPromise = null;
 let mapWarmReady = false;
+let prewarmPromise = null;
+let tilesPrewarmed = false;
+let prewarmMap = null;
 
 export function isMapWarmReady() {
   return mapWarmReady;
 }
 
-/** Données + icônes pins prêtes pour la page Carte (une fois l’accueil chargé). */
+export function isMapTilesPrewarmed() {
+  return tilesPrewarmed;
+}
+
+/** Données + icônes pins prêtes pour la page Carte. */
 export function warmMapForApp() {
   if (mapWarmReady) return Promise.resolve();
   if (warmupPromise) return warmupPromise;
@@ -25,8 +40,106 @@ export function warmMapForApp() {
   return warmupPromise;
 }
 
+function destroyPrewarmMap() {
+  prewarmMap?.remove();
+  prewarmMap = null;
+  document.getElementById(PREWARM_HOST_ID)?.remove();
+}
+
+function waitForMapIdle(map, timeoutMs = PREWARM_IDLE_TIMEOUT_MS) {
+  return new Promise((resolve) => {
+    let settled = false;
+
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      resolve();
+    };
+
+    if (typeof map.areTilesLoaded === 'function' && map.areTilesLoaded() && !map.isMoving()) {
+      finish();
+      return;
+    }
+
+    map.once('idle', finish);
+    window.setTimeout(finish, timeoutMs);
+  });
+}
+
+/** Carte cachée : style + tuiles vectorielles en cache navigateur avant la 1re vue. */
+export function prewarmMapTiles() {
+  if (tilesPrewarmed) return Promise.resolve();
+  if (prewarmPromise) return prewarmPromise;
+
+  prewarmPromise = (async () => {
+    await warmMapForApp();
+
+    const maplibregl = getMapLibre();
+    if (!maplibregl) return;
+
+    destroyPrewarmMap();
+
+    const host = document.createElement('div');
+    host.id = PREWARM_HOST_ID;
+    host.className = 'map-tile-prewarm-host';
+    host.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(host);
+
+    hydrateUserLocationFromCache();
+    const center = getUserLocationLngLat() || MAP_FALLBACK_CENTER;
+
+    prewarmMap = new maplibregl.Map({
+      container: host,
+      style: getOurSpaceMapStyle(),
+      center,
+      zoom: PREWARM_ZOOM,
+      minZoom: 3,
+      maxZoom: 16,
+      interactive: false,
+      attributionControl: false,
+      fadeDuration: 0,
+      pitch: 0,
+      bearing: 0,
+      dragRotate: false,
+      touchZoomRotate: false,
+    });
+
+    await new Promise((resolve) => {
+      if (prewarmMap.isStyleLoaded()) {
+        resolve();
+        return;
+      }
+      prewarmMap.once('load', resolve);
+      window.setTimeout(resolve, PREWARM_IDLE_TIMEOUT_MS);
+    });
+
+    await waitForMapIdle(prewarmMap);
+    tilesPrewarmed = true;
+  })().catch((err) => {
+    console.warn('prewarmMapTiles:', err.message);
+    prewarmPromise = null;
+    destroyPrewarmMap();
+  });
+
+  return prewarmPromise;
+}
+
+/** Attend le préchargement tuiles (no-op si déjà fait pendant le splash). */
+export function ensureMapTilesPrewarmed() {
+  return prewarmMapTiles();
+}
+
+/** Données, icônes pins et tuiles basemap — à terminer pendant le splash. */
+export async function loadAppMapAssets() {
+  await warmMapForApp();
+  await prewarmMapTiles();
+}
+
 export function resetMapWarmup() {
   warmupPromise = null;
   mapWarmReady = false;
+  prewarmPromise = null;
+  tilesPrewarmed = false;
+  destroyPrewarmMap();
   resetMapMarkerImages();
 }

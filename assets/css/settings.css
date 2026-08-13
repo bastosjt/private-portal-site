@@ -267,6 +267,19 @@
   height: 18px;
 }
 
+.settings-menu-footer {
+  margin-top: 16px;
+}
+
+.settings-logout-btn {
+  border: 1px solid color-mix(in srgb, #fb7185 22%, transparent);
+  background: linear-gradient(
+    160deg,
+    color-mix(in srgb, #fb7185 7%, var(--cat-bg, var(--surface))) 0%,
+    var(--bg) 58%
+  );
+}
+
 .settings-section {
   margin: 0;
 }
@@ -1091,4 +1104,122 @@
     animation: none !important;
     transition: none !important;
   }
+}
+
+/* ── API catalog (Application) ── */
+.settings-api-section {
+  margin-top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.settings-api-section .section-head {
+  margin-bottom: 12px;
+}
+
+.settings-api-section .section-head h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  background: var(--cat-title-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+.settings-api-section .section-head p {
+  margin: 4px 0 0;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--cat-header-sub, var(--text-secondary));
+  font-weight: 500;
+}
+
+.settings-api-catalog {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.settings-api-panel.settings-panel--spaced {
+  margin-top: 14px;
+}
+
+.settings-api-panel.settings-panel--spaced:first-child {
+  margin-top: 0;
+}
+
+.settings-api-panel .settings-panel-inner {
+  background: linear-gradient(155deg, var(--cat-bg) 0%, var(--surface) 55%);
+  border-color: var(--cat-border);
+}
+
+.settings-api-panel-head .settings-row-label {
+  font-size: 0.9rem;
+  font-weight: 650;
+  color: var(--cat-color);
+}
+
+.settings-api-panel-head .settings-row-value {
+  font-size: 0.72rem;
+}
+
+.settings-api-row {
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.settings-api-row .settings-row-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.settings-api-row .settings-row-value {
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
+
+.settings-api-badge {
+  flex-shrink: 0;
+  align-self: center;
+  max-width: 38%;
+  padding: 5px 10px;
+  border-radius: var(--radius-pill);
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-align: center;
+  line-height: 1.25;
+  background: var(--bg);
+  color: var(--text-secondary);
+  box-shadow: var(--neu-in);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.settings-api-badge--configured {
+  color: #1f8f5f;
+  background: color-mix(in srgb, #22a06b 12%, var(--bg));
+  border-color: color-mix(in srgb, #22a06b 28%, transparent);
+  box-shadow: var(--neu-in), 0 0 12px color-mix(in srgb, #22a06b 12%, transparent);
+}
+
+.settings-api-badge--missing {
+  color: var(--error);
+  background: color-mix(in srgb, var(--error) 10%, var(--bg));
+  border-color: color-mix(in srgb, var(--error) 24%, transparent);
+}
+
+.settings-api-badge--optional {
+  color: var(--text-secondary);
+}
+
+.settings-api-badge--public,
+.settings-api-badge--neutral {
+  color: color-mix(in srgb, var(--cat-color, var(--accent)) 72%, var(--text-secondary));
+  background: color-mix(in srgb, var(--cat-soft, var(--accent-soft)) 55%, var(--bg));
+  border-color: color-mix(in srgb, var(--cat-border, var(--accent)) 40%, transparent);
 }

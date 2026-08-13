@@ -18,7 +18,7 @@ function getTravelSelectOptions() {
   const travels = getCachedItems('travels') ?? [];
   return sortOptionsByLabel(travels.map((travel) => ({
     value: travel.id,
-    label: travel.destination || 'Sans titre',
+    label: travel.localisation || travel.pays || 'Sans titre',
   })));
 }
 
@@ -50,9 +50,13 @@ function rebuildTravelSelect(select, field, selectedValue, extra = []) {
   return resolved;
 }
 
+function getOptionsFieldName(field) {
+  return field.optionsField || field.name;
+}
+
 function getMergedFieldOptions(field, categoryId, extra = []) {
   const options = field.allowCustom
-    ? getCategoryFieldOptions(categoryId, field.name)
+    ? getCategoryFieldOptions(categoryId, getOptionsFieldName(field))
     : (field.options || []);
 
   const seen = new Set();
@@ -114,7 +118,7 @@ function buildOptionsHtml(field, categoryId) {
 export function renderSelectField(field, categoryId) {
   const id = `add-field-${field.name}`;
   const required = field.required ? ' required' : '';
-  const storageKey = getStorageKey(categoryId, field.name);
+  const storageKey = getStorageKey(categoryId, getOptionsFieldName(field));
 
   const addBlock = field.allowCustom ? `
     <div class="form-select-add" id="${id}-add">

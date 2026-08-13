@@ -1,8 +1,8 @@
 /** Style vectoriel minimal — fond plat, sans relief, labels FR. */
 export const FRENCH_NAME = ['coalesce', ['get', 'name:fr'], ['get', 'name:latin'], ['get', 'name']];
 
-/** Ramp d’apparition (~1 niveau de zoom), puis plateau — pas de transparence au dézoom. */
-const APPEAR_SPAN = 1.05;
+/** Ramp d’apparition (~1,7 niveau de zoom), puis plateau — pas de transparence au dézoom. */
+const APPEAR_SPAN = 1.75;
 const ZOOM_CEIL = 24;
 
 /** Interpolation douce pour tailles / épaisseurs (croissance progressive). */
@@ -18,8 +18,10 @@ export function appear(peak, tileZoom) {
   return [
     'interpolate', ['linear'], ['zoom'],
     tileZoom, 0,
-    tileZoom + APPEAR_SPAN * 0.28, peak * 0.42,
-    tileZoom + APPEAR_SPAN * 0.62, peak * 0.88,
+    tileZoom + APPEAR_SPAN * 0.16, peak * 0.24,
+    tileZoom + APPEAR_SPAN * 0.42, peak * 0.58,
+    tileZoom + APPEAR_SPAN * 0.68, peak * 0.84,
+    tileZoom + APPEAR_SPAN * 0.9, peak * 0.96,
     end, peak,
     ZOOM_CEIL, peak,
   ];

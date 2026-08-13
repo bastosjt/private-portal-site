@@ -19,7 +19,7 @@ function getTravelSearchContext(travel) {
   if (travel.localisation?.trim()) {
     context.near = travel.localisation.trim();
   } else {
-    const nearParts = [travel.destination, travel.pays].filter(Boolean);
+    const nearParts = [travel.localisation, travel.pays].filter(Boolean);
     if (nearParts.length) context.near = nearParts.join(', ');
   }
 

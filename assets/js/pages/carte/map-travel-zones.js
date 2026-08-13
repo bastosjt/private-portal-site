@@ -11,7 +11,7 @@ let syncTravelZonesGeneration = 0;
 
 function getTravelLabel(marker) {
   const item = findCachedItemById('travels', marker.id);
-  return item?.localisation?.trim() || item?.destination?.trim() || marker.title;
+  return item?.localisation?.trim() || marker.title;
 }
 
 function syncTravelZonePaint(map) {

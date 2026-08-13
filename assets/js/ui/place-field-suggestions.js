@@ -6,6 +6,7 @@ import {
   supportsPlaceFieldSuggestions,
 } from '../lib/place-google-type-mapping.js';
 import { setSelectFieldValue } from './select-custom.js';
+import { applyPlaceTypeVisuals } from '../lib/place-type-visuals.js';
 
 function getSelectFieldWrap(form, fieldName) {
   return form.querySelector(`[data-select-field="${fieldName}"]`);
@@ -155,6 +156,9 @@ export function initPlaceFieldSuggestions(form, category) {
 
     const label = getFieldOptionLabel(category.id, fieldName, value);
     setSelectFieldValue(form, field, value, label, category.id);
+    if (fieldName === 'type' || fieldName === 'categorie') {
+      applyPlaceTypeVisuals(form, category, value);
+    }
     hideSuggestionEl(suggestionEl);
     notifyFormDraft(form);
   }

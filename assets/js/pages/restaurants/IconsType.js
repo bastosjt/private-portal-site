@@ -1,11 +1,11 @@
 /**
  * Icônes par type de restaurant — clé = value du champ `type` (config.js).
- * Valeur = nom Lucide (voir https://lucide.dev/icons).
  */
 import {
   Beef,
   Beer,
   CakeSlice,
+  ChefHat,
   Coffee,
   Cookie,
   Croissant,
@@ -14,11 +14,12 @@ import {
   PaperBag,
   UtensilsCrossed,
 } from '../../vendor/lucide.mjs';
-import { renderLucideIcon } from '../../lib/lucide-icon.js';
+import { createTypeIconRenderer } from '../shared/createTypeIconRenderer.js';
 import { Ramen } from './custom-type-icons.js';
 
 const ICON_REGISTRY = {
   'utensils-crossed': UtensilsCrossed,
+  'chef-hat': ChefHat,
   'paper-bag': PaperBag,
   beer: Beer,
   beef: Beef,
@@ -33,6 +34,8 @@ const ICON_REGISTRY = {
 
 const RESTAURANT_TYPE_ICONS = {
   restaurant: 'utensils-crossed',
+  restaurant_gastronomique: 'chef-hat',
+  gastronomique: 'chef-hat',
   cafe: 'coffee',
   brasserie: 'beer',
   bar_a_cocktail: 'martini',
@@ -46,12 +49,12 @@ const RESTAURANT_TYPE_ICONS = {
   restauration_rapide: 'paper-bag',
 };
 
-export function getRestaurantTypeLucideIcon(typeValue) {
-  const iconName = RESTAURANT_TYPE_ICONS[typeValue] || 'utensils-crossed';
-  return ICON_REGISTRY[iconName] || UtensilsCrossed;
-}
+const { getTypeLucideIcon, renderTypeIcon } = createTypeIconRenderer({
+  iconRegistry: ICON_REGISTRY,
+  typeMap: RESTAURANT_TYPE_ICONS,
+  defaultIconKey: 'utensils-crossed',
+  defaultIcon: UtensilsCrossed,
+});
 
-export function renderRestaurantTypeIcon(typeValue, options = {}) {
-  const Icon = getRestaurantTypeLucideIcon(typeValue);
-  return renderLucideIcon(Icon, { strokeWidth: 2, ...options });
-}
+export const getRestaurantTypeLucideIcon = getTypeLucideIcon;
+export const renderRestaurantTypeIcon = renderTypeIcon;

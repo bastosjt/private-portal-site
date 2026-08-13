@@ -6,7 +6,7 @@ Application web privée partagée à deux. Centralise idées, lieux et envies co
 |                 |                                                                        |
 | --------------- | ---------------------------------------------------------------------- |
 | **Produit**     | Our Space - *À nous deux*                                              |
-| **Version**     | `2.6.0` (`APP_VERSION` · `[assets/js/config.js](assets/js/config.js)`) |
+| **Version**     | `2.7.0` (`APP_VERSION` · `[assets/js/config.js](assets/js/config.js)`) |
 | **Runtime**     | Single Page App (ESM), sans framework ni bundler                       |
 | **Backend**     | Firebase Auth + Cloud Firestore                                        |
 | **Hébergement** | GitHub Pages (CI)                                                      |
@@ -26,6 +26,31 @@ Application web privée partagée à deux. Centralise idées, lieux et envies co
 - **Thèmes liquid glass** — DA personnelle par membre (mesh WebGL, chrome glass, modales) ; choix dans Paramètres → **Ton thème** ; écran de connexion toujours navy
 - **UX mobile / desktop** — header unifié, sidebar, bottom navigation, transitions premium, modal ajout en sheet plein écran mobile, installable (web manifest)
 - **Lieux (Google Places)** — recherche nom + adresse sur activités / restos ; suggestions contrôlées type & cuisine (mapping vers la taxonomie app) ; prix EUR estimé depuis Google
+- **Import par lien** — lieux depuis un URL Google Maps ; films via TMDB (affiche, métadonnées)
+- **Wishlist** — saisie manuelle (nom, prix, lien, photo) ; recadrage photo dans le formulaire (zoom, fond blanc à l’export)
+- **Paramètres** — catalogue des services/APIs par catégorie ; déconnexion sous le menu Réglages
+
+---
+
+## Configuration locale (optionnel)
+
+Copier chaque `*.example.js` vers le fichier sans `.example` :
+
+| Fichier | Rôle |
+| ------- | ---- |
+| `assets/js/firebase/config.js` | Firebase Auth + Firestore |
+| `assets/js/lib/google-places-config.js` | Autocomplete et fiches lieux |
+| `assets/js/lib/tmdb-config.js` | Recherche films & séries |
+| `assets/js/lib/exabase-config.js` | Import liens Google Maps (activités, restos, voyages) |
+
+En production (GitHub Pages), les clés sont injectées en CI via les secrets du dépôt :
+
+| Secret GitHub | Service |
+| ------------- | ------- |
+| `FIREBASE_*` | Firebase Auth + Firestore |
+| `GOOGLE_PLACES_API_KEY` | Google Places (lieux) |
+| `TMDB_READ_ACCESS_TOKEN` | TMDB (films & séries) |
+| `EXABASE_API_KEY` | Exabase — preview lien Google Maps (optionnel) |
 
 ---
 
@@ -56,7 +81,7 @@ L’entrée unique est `index.html`. La navigation repose sur le hash (`#accueil
 | `assets/js/ui/`         | Modales, détails d’items, splash, header chrome, bottom nav |
 | `assets/js/lib/`        | Adresses, géo, profils, utilitaires                   |
 | `assets/js/vendor/`     | Dépendances embarquées (MapLibre, Lucide, …)          |
-| `.github/workflows/`    | Build Pages + injection des secrets Firebase          |
+| `.github/workflows/`    | Build Pages + injection des secrets (Firebase, Places, TMDB, Exabase) |
 
 
 **Données** — collections Firestore `activities`, `restaurants`, `movies`, `travels`, `wishlist`, plus profils / settings / daily picks. Documents typiques : horodatage, auteur, localisation optionnelle, liens inter-catégories (ex. voyage associé).
@@ -79,11 +104,13 @@ L’entrée unique est `index.html`. La navigation repose sur le hash (`#accueil
 | Géocodage FR            | API Adresse (BAN)           | —                                                         |
 | Géocodage international | Photon (Komoot)             | —                                                         |
 | Lieux (nom / détail)    | Google Places API (New)     | autocomplete + place details                              |
+| Films & séries          | TMDB API                    | recherche titre, affiches, métadonnées                    |
+| Import liens Google Maps | Exabase (optionnel)         | activités, restaurants, voyages                           |
 | CI / hébergement        | GitHub Actions → Pages      | checkout@v4, configure-pages@v5, upload-pages-artifact@v3 |
 | PWA légère              | `site.webmanifest`          | —                                                         |
 
 
-CSP stricte côté `index.html` (scripts Firebase, tuiles CARTO, APIs d’adresse uniquement).
+CSP stricte côté `index.html` (Firebase, CARTO, APIs d’adresse, Google Places, TMDB, Exabase).
 
 ---
 
@@ -253,9 +280,6 @@ CSP stricte côté `index.html` (scripts Firebase, tuiles CARTO, APIs d’adress
 - **Barre de statut mobile** — `theme-color` et fond `<html>` synchronisés à chaud avec la couleur chrome du thème (`chromeColor`, recréation de la meta, `viewport-fit=cover`, `black-translucent` iOS)
 - `localStorage` par utilisateur (`app-theme:{uid}`) pour le splash du dernier compte connu sur l’appareil
 
-
----
-
 ### 2.6.0
 
 - **Google Places** — autocomplete sur le nom (activités, restaurants) : adresse, coords, lien Maps, fourchette de prix EUR
@@ -264,3 +288,14 @@ CSP stricte côté `index.html` (scripts Firebase, tuiles CARTO, APIs d’adress
 - **Formulaire ajout** — sheet plein écran mobile ; zone scrollable (scrollbar invisible) ; animations fluides (brouillon, suggestions, dates activité)
 - **Activités** — types Aquarium, Zoo ; cuisine thaïlandaise (restos) ; icônes associées
 - **Dates activité** — champs « À venir » / « Période limitée » avec dépliage animé
+
+
+---
+### 2.7.0
+
+- **Wishlist** — saisie manuelle (nom, prix, lien, photo) ; retrait de l’import automatique par URL
+- **Wishlist — photo** — recadrage / zoom dans le formulaire, export JPEG avec letterbox blanc
+- **Films & Séries — TMDB** — autocomplétion titre, import affiche et métadonnées
+- **Lieux — lien Google Maps** — collage d’URL Maps sur activités, restaurants, voyages (Exabase, optionnel)
+- **Paramètres → Application** — catalogue des services par catégorie, badges clé configurée / manquante / optionnel
+- **Réglages** — bouton « Se déconnecter » sous le menu hub

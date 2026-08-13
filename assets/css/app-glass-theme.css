@@ -272,7 +272,7 @@ body.app-page[data-app-theme="navy"] .home-page .cat-card-inner {
 }
 
 /* ── Listes catégories (activités, restaurants, voyages, wishlist…) ── */
-body.app-page[data-app-theme="navy"] .activities-page .act-cat-panel:not(.act-cat-panel--map):not(:has(.act-list-group--travel)),
+body.app-page[data-app-theme="navy"] .activities-page .act-cat-panel:not(:has(.act-list-group--travel)),
 body.app-page[data-app-theme="navy"] .activities-page .act-pick-card,
 body.app-page[data-app-theme="navy"] .activities-page .act-list-group--travel {
   background: var(--glass-panel-bg) !important;
@@ -282,7 +282,7 @@ body.app-page[data-app-theme="navy"] .activities-page .act-list-group--travel {
   box-shadow: var(--neu-up-sm);
 }
 
-body.app-page[data-app-theme="navy"] .activities-page .act-cat-panel:not(.act-cat-panel--map):not(:has(.act-list-group--travel))::before,
+body.app-page[data-app-theme="navy"] .activities-page .act-cat-panel:not(:has(.act-list-group--travel))::before,
 body.app-page[data-app-theme="navy"] .activities-page .act-list-group--travel::before {
   display: none;
 }
@@ -307,13 +307,6 @@ body.app-page[data-app-theme="navy"] .activities-page .act-list-item-inner::befo
 
 body.app-page[data-app-theme="navy"] .activities-page .act-filter-btn:not(.is-active) {
   background: color-mix(in srgb, var(--bg) 68%, transparent);
-  border-color: var(--surface-border);
-}
-
-body.app-page[data-app-theme="navy"] .activities-page .act-category-map-control {
-  background: var(--glass-chrome-bg);
-  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
   border-color: var(--surface-border);
 }
 
@@ -839,7 +832,7 @@ body.app-page[data-app-theme="orange"] .home-page .cat-card-inner {
 }
 
 /* ── Listes catégories (activités, restaurants, voyages, wishlist…) ── */
-body.app-page[data-app-theme="orange"] .activities-page .act-cat-panel:not(.act-cat-panel--map):not(:has(.act-list-group--travel)),
+body.app-page[data-app-theme="orange"] .activities-page .act-cat-panel:not(:has(.act-list-group--travel)),
 body.app-page[data-app-theme="orange"] .activities-page .act-pick-card,
 body.app-page[data-app-theme="orange"] .activities-page .act-list-group--travel {
   background: var(--glass-panel-bg) !important;
@@ -849,7 +842,7 @@ body.app-page[data-app-theme="orange"] .activities-page .act-list-group--travel 
   box-shadow: var(--neu-up-sm);
 }
 
-body.app-page[data-app-theme="orange"] .activities-page .act-cat-panel:not(.act-cat-panel--map):not(:has(.act-list-group--travel))::before,
+body.app-page[data-app-theme="orange"] .activities-page .act-cat-panel:not(:has(.act-list-group--travel))::before,
 body.app-page[data-app-theme="orange"] .activities-page .act-list-group--travel::before {
   display: none;
 }
@@ -874,13 +867,6 @@ body.app-page[data-app-theme="orange"] .activities-page .act-list-item-inner::be
 
 body.app-page[data-app-theme="orange"] .activities-page .act-filter-btn:not(.is-active) {
   background: color-mix(in srgb, var(--bg) 68%, transparent);
-  border-color: var(--surface-border);
-}
-
-body.app-page[data-app-theme="orange"] .activities-page .act-category-map-control {
-  background: var(--glass-chrome-bg);
-  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
   border-color: var(--surface-border);
 }
 
@@ -1406,7 +1392,7 @@ body.app-page[data-app-theme="sunset"] .home-page .cat-card-inner {
 }
 
 /* ── Listes catégories (activités, restaurants, voyages, wishlist…) ── */
-body.app-page[data-app-theme="sunset"] .activities-page .act-cat-panel:not(.act-cat-panel--map):not(:has(.act-list-group--travel)),
+body.app-page[data-app-theme="sunset"] .activities-page .act-cat-panel:not(:has(.act-list-group--travel)),
 body.app-page[data-app-theme="sunset"] .activities-page .act-pick-card,
 body.app-page[data-app-theme="sunset"] .activities-page .act-list-group--travel {
   background: var(--glass-panel-bg) !important;
@@ -1416,7 +1402,7 @@ body.app-page[data-app-theme="sunset"] .activities-page .act-list-group--travel 
   box-shadow: var(--neu-up-sm);
 }
 
-body.app-page[data-app-theme="sunset"] .activities-page .act-cat-panel:not(.act-cat-panel--map):not(:has(.act-list-group--travel))::before,
+body.app-page[data-app-theme="sunset"] .activities-page .act-cat-panel:not(:has(.act-list-group--travel))::before,
 body.app-page[data-app-theme="sunset"] .activities-page .act-list-group--travel::before {
   display: none;
 }
@@ -1441,13 +1427,6 @@ body.app-page[data-app-theme="sunset"] .activities-page .act-list-item-inner::be
 
 body.app-page[data-app-theme="sunset"] .activities-page .act-filter-btn:not(.is-active) {
   background: color-mix(in srgb, var(--bg) 68%, transparent);
-  border-color: var(--surface-border);
-}
-
-body.app-page[data-app-theme="sunset"] .activities-page .act-category-map-control {
-  background: var(--glass-chrome-bg);
-  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
   border-color: var(--surface-border);
 }
 
@@ -1985,7 +1964,7 @@ body.app-page[data-app-theme="forest"] .home-page .cat-card-inner {
 }
 
 /* ── Listes catégories (activités, restaurants, voyages, wishlist…) ── */
-body.app-page[data-app-theme="forest"] .activities-page .act-cat-panel:not(.act-cat-panel--map):not(:has(.act-list-group--travel)),
+body.app-page[data-app-theme="forest"] .activities-page .act-cat-panel:not(:has(.act-list-group--travel)),
 body.app-page[data-app-theme="forest"] .activities-page .act-pick-card,
 body.app-page[data-app-theme="forest"] .activities-page .act-list-group--travel {
   background: var(--glass-panel-bg) !important;
@@ -1995,7 +1974,7 @@ body.app-page[data-app-theme="forest"] .activities-page .act-list-group--travel 
   box-shadow: var(--neu-up-sm);
 }
 
-body.app-page[data-app-theme="forest"] .activities-page .act-cat-panel:not(.act-cat-panel--map):not(:has(.act-list-group--travel))::before,
+body.app-page[data-app-theme="forest"] .activities-page .act-cat-panel:not(:has(.act-list-group--travel))::before,
 body.app-page[data-app-theme="forest"] .activities-page .act-list-group--travel::before {
   display: none;
 }
@@ -2020,13 +1999,6 @@ body.app-page[data-app-theme="forest"] .activities-page .act-list-item-inner::be
 
 body.app-page[data-app-theme="forest"] .activities-page .act-filter-btn:not(.is-active) {
   background: color-mix(in srgb, var(--bg) 68%, transparent);
-  border-color: var(--surface-border);
-}
-
-body.app-page[data-app-theme="forest"] .activities-page .act-category-map-control {
-  background: var(--glass-chrome-bg);
-  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
   border-color: var(--surface-border);
 }
 
@@ -2564,7 +2536,7 @@ body.app-page[data-app-theme="violet"] .home-page .cat-card-inner {
 }
 
 /* ── Listes catégories (activités, restaurants, voyages, wishlist…) ── */
-body.app-page[data-app-theme="violet"] .activities-page .act-cat-panel:not(.act-cat-panel--map):not(:has(.act-list-group--travel)),
+body.app-page[data-app-theme="violet"] .activities-page .act-cat-panel:not(:has(.act-list-group--travel)),
 body.app-page[data-app-theme="violet"] .activities-page .act-pick-card,
 body.app-page[data-app-theme="violet"] .activities-page .act-list-group--travel {
   background: var(--glass-panel-bg) !important;
@@ -2574,7 +2546,7 @@ body.app-page[data-app-theme="violet"] .activities-page .act-list-group--travel 
   box-shadow: var(--neu-up-sm);
 }
 
-body.app-page[data-app-theme="violet"] .activities-page .act-cat-panel:not(.act-cat-panel--map):not(:has(.act-list-group--travel))::before,
+body.app-page[data-app-theme="violet"] .activities-page .act-cat-panel:not(:has(.act-list-group--travel))::before,
 body.app-page[data-app-theme="violet"] .activities-page .act-list-group--travel::before {
   display: none;
 }
@@ -2599,13 +2571,6 @@ body.app-page[data-app-theme="violet"] .activities-page .act-list-item-inner::be
 
 body.app-page[data-app-theme="violet"] .activities-page .act-filter-btn:not(.is-active) {
   background: color-mix(in srgb, var(--bg) 68%, transparent);
-  border-color: var(--surface-border);
-}
-
-body.app-page[data-app-theme="violet"] .activities-page .act-category-map-control {
-  background: var(--glass-chrome-bg);
-  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
   border-color: var(--surface-border);
 }
 
@@ -3143,7 +3108,7 @@ body.app-page[data-app-theme="pink"] .home-page .cat-card-inner {
 }
 
 /* ── Listes catégories (activités, restaurants, voyages, wishlist…) ── */
-body.app-page[data-app-theme="pink"] .activities-page .act-cat-panel:not(.act-cat-panel--map):not(:has(.act-list-group--travel)),
+body.app-page[data-app-theme="pink"] .activities-page .act-cat-panel:not(:has(.act-list-group--travel)),
 body.app-page[data-app-theme="pink"] .activities-page .act-pick-card,
 body.app-page[data-app-theme="pink"] .activities-page .act-list-group--travel {
   background: var(--glass-panel-bg) !important;
@@ -3153,7 +3118,7 @@ body.app-page[data-app-theme="pink"] .activities-page .act-list-group--travel {
   box-shadow: var(--neu-up-sm);
 }
 
-body.app-page[data-app-theme="pink"] .activities-page .act-cat-panel:not(.act-cat-panel--map):not(:has(.act-list-group--travel))::before,
+body.app-page[data-app-theme="pink"] .activities-page .act-cat-panel:not(:has(.act-list-group--travel))::before,
 body.app-page[data-app-theme="pink"] .activities-page .act-list-group--travel::before {
   display: none;
 }
@@ -3178,13 +3143,6 @@ body.app-page[data-app-theme="pink"] .activities-page .act-list-item-inner::befo
 
 body.app-page[data-app-theme="pink"] .activities-page .act-filter-btn:not(.is-active) {
   background: color-mix(in srgb, var(--bg) 68%, transparent);
-  border-color: var(--surface-border);
-}
-
-body.app-page[data-app-theme="pink"] .activities-page .act-category-map-control {
-  background: var(--glass-chrome-bg);
-  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
   border-color: var(--surface-border);
 }
 
@@ -3722,7 +3680,7 @@ body.app-page[data-app-theme="midnight"] .home-page .cat-card-inner {
 }
 
 /* ── Listes catégories (activités, restaurants, voyages, wishlist…) ── */
-body.app-page[data-app-theme="midnight"] .activities-page .act-cat-panel:not(.act-cat-panel--map):not(:has(.act-list-group--travel)),
+body.app-page[data-app-theme="midnight"] .activities-page .act-cat-panel:not(:has(.act-list-group--travel)),
 body.app-page[data-app-theme="midnight"] .activities-page .act-pick-card,
 body.app-page[data-app-theme="midnight"] .activities-page .act-list-group--travel {
   background: var(--glass-panel-bg) !important;
@@ -3732,7 +3690,7 @@ body.app-page[data-app-theme="midnight"] .activities-page .act-list-group--trave
   box-shadow: var(--neu-up-sm);
 }
 
-body.app-page[data-app-theme="midnight"] .activities-page .act-cat-panel:not(.act-cat-panel--map):not(:has(.act-list-group--travel))::before,
+body.app-page[data-app-theme="midnight"] .activities-page .act-cat-panel:not(:has(.act-list-group--travel))::before,
 body.app-page[data-app-theme="midnight"] .activities-page .act-list-group--travel::before {
   display: none;
 }
@@ -3757,13 +3715,6 @@ body.app-page[data-app-theme="midnight"] .activities-page .act-list-item-inner::
 
 body.app-page[data-app-theme="midnight"] .activities-page .act-filter-btn:not(.is-active) {
   background: color-mix(in srgb, var(--bg) 68%, transparent);
-  border-color: var(--surface-border);
-}
-
-body.app-page[data-app-theme="midnight"] .activities-page .act-category-map-control {
-  background: var(--glass-chrome-bg);
-  backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.12);
   border-color: var(--surface-border);
 }
 

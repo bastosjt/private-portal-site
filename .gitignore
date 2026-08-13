@@ -1,6 +1,8 @@
 # Config locale
 assets/js/firebase/config.js
 assets/js/lib/google-places-config.js
+assets/js/lib/tmdb-config.js
+assets/js/lib/exabase-config.js
 
 # Cahier des charges privé
 /dev/

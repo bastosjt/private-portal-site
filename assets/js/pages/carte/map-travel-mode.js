@@ -9,7 +9,7 @@ import { focusMapOnUserLocation } from './interactive-map.js';
 import { initMapTravelModePicker } from './map-travel-mode-picker.js';
 
 function getTravelLabel(travel) {
-  return travel?.destination?.trim() || 'Voyage';
+  return travel?.localisation?.trim() || travel?.pays?.trim() || 'Voyage';
 }
 
 function listTravels() {

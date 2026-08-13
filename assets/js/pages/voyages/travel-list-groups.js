@@ -1,23 +1,22 @@
 import { getCachedItems, findCachedItemById } from '../../data/appDataCache.js';
 import { getTravelLinkId } from '../../lib/travel-link.js';
 import { getFieldOptionLabel } from '../../lib/custom-types.js';
-import { formatItemPrice, hasItemPrice } from '../../lib/price-format.js';
+import { formatListItemPrice, hasListItemPrice } from '../../lib/price-format.js';
 import { getCategoryStatusLabels } from '../../lib/category-status-labels.js';
 import { renderActivityTypeIcon } from '../activites/IconsType.js';
 import {
   getActivityListMetaParts,
   hasActivitySchedule,
-  renderActivityScheduleNote,
+  renderActivityListTypeIcon,
+  renderTravelListTypeIcon,
 } from '../activites/scheduleDisplay.js';
 import { renderRestaurantTypeIcon } from '../restaurants/IconsType.js';
 import { renderTravelTypeIcon } from './IconsType.js';
-import { renderGeoCategoryLocation } from '../shared/listLocation.js';
 import { initTravelDetail } from '../../ui/travel-detail.js';
 import { initActivityDetail } from '../../ui/activity-detail.js';
 import { initRestaurantDetail } from '../../ui/restaurant-detail.js';
 import { getCategoryById } from '../../config.js';
-import { CalendarClock } from '../../vendor/lucide.mjs';
-import { renderLucideIcon } from '../../lib/lucide-icon.js';
+import { escapeHtml } from '../../lib/escape-html.js';
 
 const TRAVEL_STATUS = getCategoryStatusLabels('travels');
 const ACTIVITY_STATUS = getCategoryStatusLabels('activities');
@@ -27,11 +26,17 @@ const ACTIVITY_STATUS_BADGE = { doneLabel: ACTIVITY_STATUS.done, todoLabel: ACTI
 const RESTAURANT_STATUS_BADGE = { doneLabel: RESTAURANT_STATUS.done, todoLabel: RESTAURANT_STATUS.todo };
 const ACTIVITY_THEME = getCategoryById('activities')?.theme || 'cyan';
 const RESTAURANT_THEME = getCategoryById('restaurants')?.theme || 'rose';
-const PERIOD_ICON = renderLucideIcon(CalendarClock, { strokeWidth: 2, width: 16, height: 16 });
+const TRAVEL_THEME = getCategoryById('travels')?.theme || 'blue';
 
-const scheduleNoteOptions = {
+const scheduleBadgeOptions = {
   getDisponibiliteLabel: (value) => getFieldOptionLabel('activities', 'disponibilite', value),
   showPeriod: false,
+  theme: ACTIVITY_THEME,
+};
+
+const travelScheduleBadgeOptions = {
+  escapeHtml,
+  theme: TRAVEL_THEME,
 };
 
 function formatBudgetLabel(budget) {
@@ -54,7 +59,7 @@ function getTravelMetaLine(travel) {
 
 function renderStatusBadge(done, { doneLabel, todoLabel }) {
   return `
-    <span class="act-list-status ${done ? 'act-list-status--done' : 'act-list-status--todo'}">
+    <span class="act-list-status url-import-preview__price-badge ${done ? 'act-list-status--done' : 'act-list-status--todo'}">
       ${done ? `
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M20 6 9 17l-5-5"/>
@@ -109,25 +114,11 @@ export function renderTravelListGroups(travels, { activeFilters }) {
   });
 }
 
-function renderTravelPeriodNote(travel, escapeHtml) {
-  const periode = travel.periode?.trim();
-  if (!periode) return '';
-
-  return `
-    <div class="act-schedule-note act-schedule-note--periode" role="note" aria-label="${escapeHtml(periode)}">
-      <span class="act-schedule-note-icon" aria-hidden="true">${PERIOD_ICON}</span>
-      <span class="act-schedule-note-copy">
-        <span class="act-schedule-note-period">${escapeHtml(periode)}</span>
-      </span>
-    </div>
-  `;
-}
-
-export function renderTravelGroupHead(group, { collapsed, escapeHtml }) {
+export function renderTravelGroupHead(group, { collapsed, escapeHtml: escapeHtmlFn }) {
   const travel = group.travel;
   if (!travel) return '';
 
-  const title = travel.localisation?.trim() || travel.pays?.trim() || travel.destination || 'Voyage';
+  const title = travel.localisation?.trim() || travel.pays?.trim() || 'Voyage';
   const metaLine = getTravelMetaLine(travel);
   const linkedHint = group.linkedCount > 0
     ? `${group.linkedCount} ${group.linkedCount > 1 ? 'idées' : 'idée'}`
@@ -139,27 +130,26 @@ export function renderTravelGroupHead(group, { collapsed, escapeHtml }) {
         <button
           type="button"
           class="travel-group-body"
-          data-travel-id="${escapeHtml(travel.id)}"
-          aria-label="Voir ${escapeHtml(title)}"
+          data-travel-id="${escapeHtmlFn(travel.id)}"
+          aria-label="Voir ${escapeHtmlFn(title)}"
         >
           <div class="act-list-item-head travel-group-body-main">
-            <span class="cat-panel-icon">${renderTravelTypeIcon(travel.type)}</span>
+            <span class="cat-panel-icon url-import-preview__price-badge">${renderTravelListTypeIcon(travel, renderTravelTypeIcon, { ...travelScheduleBadgeOptions, escapeHtml: escapeHtmlFn })}</span>
             <div class="act-list-item-body">
-              <h3>${escapeHtml(title)}</h3>
-              <p class="act-list-meta">${escapeHtml(metaLine)}</p>
+              <h3>${escapeHtmlFn(title)}</h3>
+              <p class="act-list-meta">${escapeHtmlFn(metaLine)}</p>
             </div>
             ${renderStatusBadge(travel.done, TRAVEL_STATUS_BADGE)}
           </div>
-          ${renderTravelPeriodNote(travel, escapeHtml)}
         </button>
         <button
           type="button"
           class="travel-group-toggle act-list-group-toggle"
-          data-group-toggle="${escapeHtml(group.id)}"
+          data-group-toggle="${escapeHtmlFn(group.id)}"
           aria-expanded="${collapsed ? 'false' : 'true'}"
-          aria-label="${collapsed ? 'Déplier' : 'Replier'} ${escapeHtml(title)}"
+          aria-label="${collapsed ? 'Déplier' : 'Replier'} ${escapeHtmlFn(title)}"
         >
-          <span class="act-list-group-label">${escapeHtml(linkedHint)}</span>
+          <span class="act-list-group-label">${escapeHtmlFn(linkedHint)}</span>
           <svg class="act-list-group-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="m6 9 6 6 6-6"/>
           </svg>
@@ -172,7 +162,7 @@ export function renderTravelGroupHead(group, { collapsed, escapeHtml }) {
 function renderTravelGroupActivityItem(activity, index, { animate, escapeHtml }) {
   const metaLine = getActivityListMetaParts(activity, {
     getCategorieLabel: (value) => getFieldOptionLabel('activities', 'categorie', value),
-    formatItemPrice,
+    formatItemPrice: formatListItemPrice,
   }).join(' · ') || 'Activité';
   const extraClasses = hasActivitySchedule(activity) ? ' act-list-item--scheduled' : '';
 
@@ -181,15 +171,13 @@ function renderTravelGroupActivityItem(activity, index, { animate, escapeHtml })
       <div class="act-list-item-inner" data-theme="${ACTIVITY_THEME}" data-activity-id="${escapeHtml(activity.id)}" role="button" tabindex="0" aria-label="Voir ${escapeHtml(activity.nom)}">
         <span class="cat-panel-accent" aria-hidden="true"></span>
         <div class="act-list-item-head">
-          <span class="cat-panel-icon">${renderActivityTypeIcon(activity.categorie)}</span>
+          <span class="cat-panel-icon url-import-preview__price-badge">${renderActivityListTypeIcon(activity, renderActivityTypeIcon, { ...scheduleBadgeOptions, escapeHtml })}</span>
           <div class="act-list-item-body">
             <h3>${escapeHtml(activity.nom)}</h3>
             <p class="act-list-meta">${escapeHtml(metaLine)}</p>
           </div>
           ${renderStatusBadge(activity.done, ACTIVITY_STATUS_BADGE)}
         </div>
-        ${renderActivityScheduleNote(activity, { ...scheduleNoteOptions, escapeHtml })}
-        ${renderGeoCategoryLocation(activity, 'activities', { escapeHtml })}
       </div>
     </li>
   `;
@@ -202,14 +190,14 @@ function renderTravelGroupRestaurantItem(restaurant, index, { animate, escapeHtm
   const cuisine = restaurant.cuisine
     ? escapeHtml(getFieldOptionLabel('restaurants', 'cuisine', restaurant.cuisine))
     : '';
-  const price = hasItemPrice(restaurant) ? escapeHtml(formatItemPrice(restaurant)) : '';
+  const price = hasListItemPrice(restaurant) ? escapeHtml(formatListItemPrice(restaurant)) : '';
 
   return `
     <li class="act-list-item${restaurant.done ? ' act-list-item--done' : ''}"${animate ? ` style="animation-delay: ${index * 40}ms"` : ''}>
       <div class="act-list-item-inner" data-theme="${RESTAURANT_THEME}" data-restaurant-id="${escapeHtml(restaurant.id)}" role="button" tabindex="0" aria-label="Voir ${escapeHtml(restaurant.nom)}">
         <span class="cat-panel-accent" aria-hidden="true"></span>
         <div class="act-list-item-head">
-          <span class="cat-panel-icon">${renderRestaurantTypeIcon(restaurant.type)}</span>
+          <span class="cat-panel-icon url-import-preview__price-badge">${renderRestaurantTypeIcon(restaurant.type)}</span>
           <div class="act-list-item-body">
             <h3>${escapeHtml(restaurant.nom)}</h3>
             <div class="act-list-meta act-list-meta--restaurant">
@@ -224,7 +212,6 @@ function renderTravelGroupRestaurantItem(restaurant, index, { animate, escapeHtm
           </div>
           ${renderStatusBadge(restaurant.done, RESTAURANT_STATUS_BADGE)}
         </div>
-        ${renderGeoCategoryLocation(restaurant, 'restaurants', { escapeHtml })}
       </div>
     </li>
   `;

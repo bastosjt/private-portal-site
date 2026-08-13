@@ -71,13 +71,62 @@ export function captureFormSnapshot(form, category) {
     if (field.type === 'address') {
       if (el.dataset.lat) meta[`${field.name}Lat`] = el.dataset.lat;
       if (el.dataset.lng) meta[`${field.name}Lng`] = el.dataset.lng;
+      if (el.dataset.mapsUrl) meta[`${field.name}MapsUrl`] = el.dataset.mapsUrl;
     }
   }
 
   const placeSuggestions = capturePlaceFieldSuggestionsMeta(form);
   if (placeSuggestions) meta.placeSuggestions = placeSuggestions;
 
+  const urlImportPreview = captureUrlImportPreviewMeta(form);
+  if (urlImportPreview) meta.urlImportPreview = urlImportPreview;
+
   return { fields, meta };
+}
+
+function captureUrlImportPreviewMeta(form) {
+  if (!form) return null;
+
+  const preview = form.querySelector(
+    '[data-url-import-preview].is-visible[data-state="success"], [data-url-import-preview].is-visible[data-state="blocked"]',
+  );
+  if (!preview) return null;
+
+  const fieldWrap = preview.closest('.form-field--url-import, .form-field--movie-import');
+  const input = fieldWrap?.querySelector('input[type="url"]')
+    || fieldWrap?.querySelector('.movie-title-field input');
+  const state = preview.dataset.state;
+  const url = preview.dataset.importUrl?.trim()
+    || input?.value?.trim()
+    || '';
+
+  if (state === 'blocked') {
+    return {
+      state: 'blocked',
+      url,
+      title: preview.dataset.importTitle?.trim() || '',
+      imageUrl: preview.dataset.importImageUrl?.trim() || '',
+      price: preview.dataset.importPrice?.trim() || '',
+      siteLabel: preview.dataset.importSiteLabel?.trim() || '',
+      address: preview.dataset.importAddress?.trim() || '',
+      typeValue: preview.dataset.importType?.trim() || '',
+    };
+  }
+
+  if (state === 'success') {
+    return {
+      state: 'success',
+      url,
+      title: preview.dataset.importTitle?.trim() || '',
+      imageUrl: preview.dataset.importImageUrl?.trim() || '',
+      price: preview.dataset.importPrice?.trim() || '',
+      siteLabel: preview.dataset.importSiteLabel?.trim() || '',
+      address: preview.dataset.importAddress?.trim() || '',
+      typeValue: preview.dataset.importType?.trim() || '',
+    };
+  }
+
+  return null;
 }
 
 function capturePlaceFieldSuggestionsMeta(form) {
@@ -95,6 +144,7 @@ function capturePlaceFieldSuggestionsMeta(form) {
 
 function normalizeSnapshotValue(value) {
   if (Array.isArray(value)) return JSON.stringify([...value].sort());
+  if (value && typeof value === 'object') return JSON.stringify(value);
   return String(value ?? '').trim();
 }
 
@@ -205,12 +255,18 @@ export function applyFormDraft(form, category, draft) {
     if (field.type === 'address') {
       const lat = draft.meta?.[`${field.name}Lat`];
       const lng = draft.meta?.[`${field.name}Lng`];
+      const mapsUrl = draft.meta?.[`${field.name}MapsUrl`];
       if (lat && lng) {
         el.dataset.lat = lat;
         el.dataset.lng = lng;
       } else {
         delete el.dataset.lat;
         delete el.dataset.lng;
+      }
+      if (mapsUrl) {
+        el.dataset.mapsUrl = mapsUrl;
+      } else {
+        delete el.dataset.mapsUrl;
       }
     }
   }

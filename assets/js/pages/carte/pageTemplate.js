@@ -6,7 +6,6 @@ const THEME = MAP_THEME;
 export const MAP_VIEW_HTML = `
   <main class="page-content map-page" data-theme="${THEME}">
     <section class="act-cat-panel act-cat-panel--map map-panel">
-      <span class="cat-panel-accent" aria-hidden="true"></span>
       <div class="map-panel-body">
         <div id="interactive-map" class="map-canvas" role="application" aria-label="Carte interactive"></div>
         <div class="map-vignette" aria-hidden="true"></div>

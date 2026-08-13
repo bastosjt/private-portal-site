@@ -1,4 +1,4 @@
-import { formatOptionLabel } from './options-labels.js';
+import { formatOptionLabel, formatCuisineLabel } from './options-labels.js';
 import { DEFAULT_FIELD_OPTIONS } from './field-options-defaults.js';
 import { HOME_CATEGORIES } from '../config.js';
 import { fetchAllCustomOptions, persistCustomOptions } from '../firebase/firestore.js';
@@ -25,10 +25,18 @@ function readLegacyLocalStorage() {
   }
 }
 
-function normalizeOptions(options) {
+function getFieldNameFromStorageKey(storageKey) {
+  const dot = storageKey.indexOf('.');
+  return dot === -1 ? '' : storageKey.slice(dot + 1);
+}
+
+function normalizeOptions(options, storageKey) {
+  const fieldName = getFieldNameFromStorageKey(storageKey);
   return options.map((opt) => ({
     ...opt,
-    label: formatOptionLabel(opt.label),
+    label: fieldName === 'cuisine'
+      ? formatCuisineLabel(opt.label)
+      : formatOptionLabel(opt.label),
   }));
 }
 
@@ -40,7 +48,7 @@ async function seedMissingDefaultOptions(initializedKeys) {
     if (!FIRESTORE_OPTION_CATEGORIES.includes(categoryId)) continue;
     if (initializedKeys.has(storageKey)) continue;
 
-    cache[storageKey] = normalizeOptions(defaults.filter((opt) => opt?.value));
+    cache[storageKey] = normalizeOptions(defaults.filter((opt) => opt?.value), storageKey);
     initializedKeys.add(storageKey);
     updates.push(persistCustomOptions(storageKey, cache[storageKey]));
   }
@@ -63,7 +71,7 @@ async function mergeMissingDefaultOptions() {
     const toAdd = defaults.filter((opt) => opt?.value && !seen.has(opt.value));
     if (!toAdd.length) continue;
 
-    cache[storageKey] = [...existing, ...normalizeOptions(toAdd)];
+    cache[storageKey] = [...existing, ...normalizeOptions(toAdd, storageKey)];
     updates.push(persistCustomOptions(storageKey, cache[storageKey]));
   }
 
@@ -82,6 +90,70 @@ async function removeRetiredActivityCategories() {
 
   cache[storageKey] = next;
   await persistCustomOptions(storageKey, next);
+}
+
+/** Corrige les libellés de cuisine déjà enregistrés au masculin. */
+async function fixRestaurantCuisineLabels() {
+  const storageKey = 'restaurants.cuisine';
+  const existing = cache[storageKey];
+  if (!existing?.length) return;
+
+  const next = normalizeOptions(existing, storageKey);
+  const changed = next.some((opt, index) => opt.label !== existing[index]?.label);
+  if (!changed) return;
+
+  cache[storageKey] = next;
+  await persistCustomOptions(storageKey, next);
+}
+
+function isRetiredRestaurantOption(opt) {
+  const value = String(opt?.value || '').toLowerCase();
+  const label = String(opt?.label || '').toLowerCase();
+  return value.includes('vietnam') || label.includes('vietnam');
+}
+
+/** Renomme l’ancien slug `gastronomique` → `restaurant_gastronomique`. */
+async function migrateRestaurantGastronomiqueType() {
+  const storageKey = 'restaurants.type';
+  const existing = cache[storageKey];
+  if (!existing?.length) return;
+
+  const legacyIdx = existing.findIndex((opt) => opt.value === 'gastronomique');
+  const canonicalIdx = existing.findIndex((opt) => opt.value === 'restaurant_gastronomique');
+  let next = existing;
+  let changed = false;
+
+  if (legacyIdx !== -1) {
+    if (canonicalIdx === -1) {
+      next = existing.map((opt, index) => (
+        index === legacyIdx
+          ? { ...opt, value: 'restaurant_gastronomique', label: 'Restaurant gastronomique' }
+          : opt
+      ));
+    } else {
+      next = existing.filter((opt) => opt.value !== 'gastronomique');
+    }
+    changed = true;
+  }
+
+  if (!changed) return;
+
+  cache[storageKey] = next;
+  await persistCustomOptions(storageKey, next);
+}
+
+/** Retire les options restaurant/cuisine obsolètes (ex. Vietnamien). */
+async function removeRetiredRestaurantOptions() {
+  for (const storageKey of ['restaurants.cuisine', 'restaurants.type']) {
+    const existing = cache[storageKey];
+    if (!existing?.length) continue;
+
+    const next = existing.filter((opt) => !isRetiredRestaurantOption(opt));
+    if (next.length === existing.length) continue;
+
+    cache[storageKey] = next;
+    await persistCustomOptions(storageKey, next);
+  }
 }
 
 async function migrateStorageKeyAliases() {
@@ -113,7 +185,7 @@ async function migrateLegacyLocalStorage() {
 
     if (!toAdd.length) continue;
 
-    cache[storageKey] = [...existing, ...normalizeOptions(toAdd)];
+    cache[storageKey] = [...existing, ...normalizeOptions(toAdd, storageKey)];
     migrations.push(persistCustomOptions(storageKey, cache[storageKey]));
   }
 
@@ -142,14 +214,17 @@ export async function initCustomOptions() {
 
     await seedMissingDefaultOptions(initializedKeys);
     await mergeMissingDefaultOptions();
+    await migrateRestaurantGastronomiqueType();
     await removeRetiredActivityCategories();
+    await fixRestaurantCuisineLabels();
+    await removeRetiredRestaurantOptions();
   })();
 
   return initPromise;
 }
 
 export function getCustomOptions(storageKey) {
-  return normalizeOptions(cache[storageKey] || []);
+  return normalizeOptions(cache[storageKey] || [], storageKey);
 }
 
 export function getCategoryFieldOptions(categoryId, fieldName) {
@@ -169,15 +244,21 @@ export function getFieldOptionLabel(categoryId, fieldName, value) {
 
   const option = getCustomOptions(getStorageKey(categoryId, fieldName))
     .find((opt) => opt.value === value);
-  return option?.label || formatOptionLabel(value.replace(/_/g, ' '));
+  const fallback = value.replace(/_/g, ' ');
+  return option?.label || (fieldName === 'cuisine'
+    ? formatCuisineLabel(fallback)
+    : formatOptionLabel(fallback));
 }
 
 export async function addCustomOption(storageKey, option) {
   await initCustomOptions();
 
+  const fieldName = getFieldNameFromStorageKey(storageKey);
   const normalized = {
     ...option,
-    label: formatOptionLabel(option.label),
+    label: fieldName === 'cuisine'
+      ? formatCuisineLabel(option.label)
+      : formatOptionLabel(option.label),
   };
   const existing = cache[storageKey] || [];
 

@@ -1,16 +1,21 @@
 /** Date  **/
 import {
   createPlaceAddressField,
+  createPlaceMapsUrlField,
   createPlaceNameField,
+  createTravelLocationField,
   PLACE_PRICE_FIELD,
   PLACE_TRAVEL_FIELD,
 } from './lib/place-form-fields.js';
 
 export {
   createPlaceAddressField,
+  createPlaceMapsUrlField,
   createPlaceNameField,
+  createTravelLocationField,
   getPlaceAddressFieldName,
   getPlaceNameField,
+  getPlaceSearchField,
   isPlaceLinkedAddressField,
   PLACE_PRICE_FIELD,
   PLACE_TRAVEL_FIELD,
@@ -21,7 +26,7 @@ export const COUPLE_START_DATE = '2026-06-27';
 /** Nom de l'espace et version */
 export const APP_NAME = 'Our Space';
 export const APP_TAGLINE = 'À nous deux';
-export const APP_VERSION = '2.6.0';
+export const APP_VERSION = '2.7.0';
 
 /** Durée minimale du splash (ms). 0 = comportement normal. */
 export const SPLASH_MIN_DURATION_MS = 0;
@@ -202,6 +207,7 @@ export const HOME_CATEGORIES = [
     addLabel: 'Ajouter une activité',
     modalTitle: 'Nouvelle activité',
     fields: [
+      createPlaceMapsUrlField(),
       createPlaceNameField('Ex. Escape game, Musée…', 'localisation'),
       createPlaceAddressField('localisation', 'Adresse ou lieu', 'Commencez à taper une adresse…'),
       { name: 'categorie', label: 'Type', type: 'select', allowCustom: true },
@@ -227,6 +233,7 @@ export const HOME_CATEGORIES = [
     addLabel: 'Ajouter un restaurant',
     modalTitle: 'Nouveau restaurant',
     fields: [
+      createPlaceMapsUrlField(),
       createPlaceNameField('Ex. Le Comptoir…', 'adresse'),
       createPlaceAddressField('adresse', 'Adresse', 'Numéro, rue, ville…'),
       { name: 'type', label: 'Type', type: 'select', allowCustom: true },
@@ -246,9 +253,12 @@ export const HOME_CATEGORIES = [
     addLabel: 'Ajouter un film',
     modalTitle: 'Nouveau film ou série',
     fields: [
-      { name: 'titre', label: 'Titre', type: 'text', required: true, placeholder: 'Ex. Interstellar' },
+      { name: 'titre', label: 'Titre', type: 'text', required: true, placeholder: 'Ex. Interstellar', movieSearch: true },
       { name: 'type', label: 'Type', type: 'select', allowCustom: true },
-      { name: 'genre', label: 'Genre', type: 'select', allowCustom: true },
+      { name: 'genre', label: 'Genre', type: 'select', allowCustom: true, optional: true },
+      { name: 'genre2', label: 'Genre 2', type: 'select', allowCustom: true, optional: true, optionsField: 'genre' },
+      { name: 'annee', label: 'Année', type: 'text', optional: true, placeholder: 'Ex. 2014', inputMode: 'numeric' },
+      { name: 'posterPath', type: 'hidden', optional: true },
     ],
   },
   {
@@ -256,13 +266,13 @@ export const HOME_CATEGORIES = [
     label: 'Voyages',
     href: '#voyages',
     icon: 'travel',
-    titleKey: 'destination',
+    titleKey: 'localisation',
     theme: 'blue',
     addLabel: 'Ajouter un voyage',
     modalTitle: 'Nouveau voyage',
     fields: [
-      { name: 'destination', label: 'Destination', type: 'text', required: true, placeholder: 'Ex. Lisbonne' },
-      { name: 'localisation', label: 'Lieu sur la carte', type: 'address', placeholder: 'Ex. Lisbonne, Portugal…', fills: { pays: 'country' } },
+      createPlaceMapsUrlField(),
+      createTravelLocationField(),
       { name: 'type', label: 'Type', type: 'select', allowCustom: true },
       { name: 'pays', label: 'Pays', type: 'text', placeholder: 'Ex. Portugal' },
       { name: 'budget', label: 'Budget estimé', type: 'text', placeholder: 'Ex. 800' },
@@ -281,13 +291,13 @@ export const HOME_CATEGORIES = [
     modalTitle: 'Nouvel élément',
     fields: [
       { name: 'nom', label: 'Nom', type: 'text', required: true, placeholder: 'Ex. Appareil photo' },
-      { name: 'description', label: 'Description', type: 'textarea', placeholder: 'Pourquoi on le veut…' },
-      { name: 'prix', label: 'Prix', type: 'text', placeholder: 'Ex. 120' },
+      { name: 'prix', label: 'Prix', type: 'text', placeholder: 'Ex. 120 €' },
       { name: 'lien', label: 'Lien', type: 'url', placeholder: 'https://…' },
+      { name: 'imageUrl', label: 'Photo', type: 'wishlistPhoto', optional: true },
       { name: 'priorite', label: 'Priorité', type: 'select', options: [
-        { value: 'basse', label: 'Basse' },
+        { value: 'basse', label: 'Faible' },
         { value: 'moyenne', label: 'Moyenne' },
-        { value: 'haute', label: 'Haute' },
+        { value: 'haute', label: 'Élevée' },
       ], default: 'moyenne' },
     ],
   },

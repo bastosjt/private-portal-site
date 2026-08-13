@@ -1,8 +1,5 @@
 /**
  * Icônes par type d'activité — clé = value du champ `categorie` (config.js).
- * Valeur = nom Lucide (voir https://lucide.dev/icons) ou icône custom.
- *
- * Pour ajouter un type : importer l'icône et l'enregistrer dans ICON_REGISTRY.
  */
 import {
   BicepsFlexed,
@@ -25,7 +22,7 @@ import {
   Tickets,
   Trees,
 } from '../../vendor/lucide.mjs';
-import { renderLucideIcon } from '../../lib/lucide-icon.js';
+import { createTypeIconRenderer } from '../shared/createTypeIconRenderer.js';
 import { Bridge, Fountain, Monument, Place, Ruins } from './custom-type-icons.js';
 
 const ICON_REGISTRY = {
@@ -83,12 +80,12 @@ const ACTIVITY_TYPE_ICONS = {
   vue_panoramique: 'binoculars',
 };
 
-export function getActivityTypeLucideIcon(categoryValue) {
-  const iconName = ACTIVITY_TYPE_ICONS[categoryValue] || 'activity';
-  return ICON_REGISTRY[iconName] || RollerCoaster;
-}
+const { getTypeLucideIcon, renderTypeIcon } = createTypeIconRenderer({
+  iconRegistry: ICON_REGISTRY,
+  typeMap: ACTIVITY_TYPE_ICONS,
+  defaultIconKey: 'activity',
+  defaultIcon: RollerCoaster,
+});
 
-export function renderActivityTypeIcon(categoryValue, options = {}) {
-  const Icon = getActivityTypeLucideIcon(categoryValue);
-  return renderLucideIcon(Icon, { strokeWidth: 2, ...options });
-}
+export const getActivityTypeLucideIcon = getTypeLucideIcon;
+export const renderActivityTypeIcon = renderTypeIcon;

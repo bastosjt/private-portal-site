@@ -26,6 +26,7 @@ export const DEFAULT_FIELD_OPTIONS = {
   ],
   'restaurants.type': [
     { value: 'restaurant', label: 'Restaurant' },
+    { value: 'restaurant_gastronomique', label: 'Restaurant gastronomique' },
     { value: 'cafe', label: 'Café' },
     { value: 'brasserie', label: 'Brasserie' },
     { value: 'bar_a_cocktail', label: 'Bar à cocktail' },
@@ -46,12 +47,12 @@ export const DEFAULT_FIELD_OPTIONS = {
     { value: 'chat', label: 'Chat' },
   ],
   'restaurants.cuisine': [
-    { value: 'chinoise', label: 'Chinois' },
-    { value: 'francaise', label: 'Français' },
-    { value: 'italienne', label: 'Italien' },
-    { value: 'japonaise', label: 'Japonais' },
-    { value: 'mexicaine', label: 'Mexicain' },
-    { value: 'thailandaise', label: 'Thaïlandais' },
+    { value: 'chinoise', label: 'Chinoise' },
+    { value: 'francaise', label: 'Française' },
+    { value: 'italienne', label: 'Italienne' },
+    { value: 'japonaise', label: 'Japonaise' },
+    { value: 'mexicaine', label: 'Mexicaine' },
+    { value: 'thailandaise', label: 'Thaïlandaise' },
   ],
   'travels.type': [
     { value: 'week_end', label: 'Week-end' },

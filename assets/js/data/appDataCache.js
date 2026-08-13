@@ -257,7 +257,7 @@ export function getMapMarkersFromCache() {
     markers.push({
       categoryId: 'travels',
       id: item.id,
-      title: item.destination || 'Sans titre',
+      title: item.localisation || 'Sans titre',
       coordinates: [item.longitude, item.latitude],
       done: getItemDoneState(item),
       limitedDuration: false,

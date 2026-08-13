@@ -7,6 +7,23 @@ import {
   parseMoneyInput,
 } from './price-format.js';
 
+export const PRICE_FIELD_ICON = `
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <circle cx="12" cy="12" r="10"/>
+    <path d="M15 9.4a4 4 0 1 0 0 5.2"/>
+    <path d="M7 12h5"/>
+  </svg>
+`;
+
+export function renderPriceFieldInputWrap({ inputHtml }) {
+  return `
+    <div class="form-input-wrap address-field price-field">
+      <span class="address-field-icon">${PRICE_FIELD_ICON}</span>
+      ${inputHtml}
+    </div>
+  `;
+}
+
 export function renderPriceRangeField(field) {
   const id = `add-field-${field.name}`;
   const minPh = field.placeholderMin ? ` placeholder="${escapeHtml(field.placeholderMin)}"` : '';
@@ -19,29 +36,31 @@ export function renderPriceRangeField(field) {
         <span class="form-field-hint">Max optionnel pour une fourchette</span>
       </div>
       <div class="form-price-range" role="group" aria-labelledby="${id}-label">
-        <div class="form-input-wrap">
+        ${renderPriceFieldInputWrap({
+          inputHtml: `
           <input
             type="text"
             id="${id}-min"
             name="prixMin"
-            class="form-input"
+            class="form-input form-input--price"
             inputmode="decimal"
             autocomplete="off"
             aria-label="Prix minimum"${minPh}
-          >
-        </div>
+          >`,
+        })}
         <span class="form-price-range-sep" aria-hidden="true">–</span>
-        <div class="form-input-wrap">
+        ${renderPriceFieldInputWrap({
+          inputHtml: `
           <input
             type="text"
             id="${id}-max"
             name="prixMax"
-            class="form-input"
+            class="form-input form-input--price"
             inputmode="decimal"
             autocomplete="off"
             aria-label="Prix maximum (optionnel)"${maxPh}
-          >
-        </div>
+          >`,
+        })}
       </div>
     </div>
   `;

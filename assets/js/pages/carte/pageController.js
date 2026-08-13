@@ -19,6 +19,7 @@ import {
   syncMapLayerButtons,
   syncMapTravelModeButton,
 } from './interactive-map.js';
+import { ensureMapTilesPrewarmed } from './map-warmup.js';
 import { destroyMapFilters, initMapFilters, onMapLayerToggled, updateMapFilterBadge } from './map-filters.js';
 import { destroyMapSearch, initMapSearch } from './map-search.js';
 import { setPageHeaderSub } from '../../ui/page-header.js';
@@ -74,7 +75,7 @@ function updateHeaderSub() {
 
   if (isTravelModeActive()) {
     const travel = findCachedItemById('travels', getSelectedTravelId());
-    const label = travel?.destination?.trim();
+    const label = travel?.localisation?.trim() || travel?.pays?.trim();
     const modeLabel = label ? `Mode voyage - ${label}` : 'Mode voyage';
     void setPageHeaderSub(placesLabel ? `${modeLabel} · ${placesLabel}` : modeLabel, { animate: false });
     return;
@@ -288,6 +289,8 @@ export async function initMapPage(user, { addItemModal: sharedModal } = {}) {
   initDetailModals();
   setMapMarkerSelectionPrunedHandler(closeOpenMapDetail);
   updateHeaderSub();
+
+  await ensureMapTilesPrewarmed();
 
   initInteractiveMap({
     signal: pageAbort.signal,

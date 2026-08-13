@@ -8,7 +8,7 @@ const TRAVEL_THEME = 'blue';
 const STATUS = getCategoryStatusLabels('travels');
 
 function getTravelTitle(travel) {
-  return travel?.destination?.trim() || 'Sans destination';
+  return travel?.localisation?.trim() || travel?.pays?.trim() || 'Sans destination';
 }
 
 function getTravelMeta(travel) {
@@ -93,7 +93,7 @@ function renderPickerBodyHtml({ travels, selectedId, highlightDoneTravel }) {
 
   return `
     <div class="add-modal-content">
-      <div class="add-form-scroll map-travel-picker-scroll">
+      <div class="map-travel-picker-scroll">
         ${renderDoneBannerHtml(highlightDoneTravel)}
         <p class="add-picker-lead">Quel voyage explorer&nbsp;?</p>
         <p class="map-travel-picker-hint">
