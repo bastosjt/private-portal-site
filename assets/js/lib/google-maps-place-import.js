@@ -5,6 +5,7 @@ import { formatListItemPrice } from './price-format.js';
 import { getPlaceAddressFieldName, getPlaceNameField } from './place-form-fields.js';
 import { sanitizeHttpsUrl } from './safe-url.js';
 import { isExabaseConfigured, EXABASE_API_KEY } from './exabase-config.js';
+import { trackApiRequest } from './api-usage-tracker.js';
 import { devWarn } from './dev-log.js';
 
 const EXABASE_ENDPOINT = 'https://api.exabase.io/v2/link';
@@ -56,6 +57,8 @@ async function fetchMapsLinkPreviewMeta(mapsUrl, { signal } = {}) {
       headers: { 'X-Api-Key': apiKey },
     });
     if (!response.ok) return null;
+
+    trackApiRequest('exabase');
 
     const payload = await response.json();
     const resolvedUrl = sanitizeHttpsUrl(payload?.url || safeUrl);

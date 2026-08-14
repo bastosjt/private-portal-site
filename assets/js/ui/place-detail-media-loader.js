@@ -1,4 +1,5 @@
 import { revokePlaceDetailMediaUrl } from '../lib/google-place-photo.js';
+import { isPlacePhotoPreloaded, preloadPlacePhotoUrl } from '../lib/place-photo-prefetch.js';
 import { devWarn } from '../lib/dev-log.js';
 
 const DETAIL_ICON_MIN_MS = 320;
@@ -16,27 +17,17 @@ function waitWithSignal(ms, signal) {
 }
 
 function preloadImageUrl(imageUrl, signal) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.decoding = 'async';
-    img.referrerPolicy = 'no-referrer';
-
-    const onAbort = () => reject(new DOMException('Aborted', 'AbortError'));
-    signal.addEventListener('abort', onAbort, { once: true });
-
-    img.onload = () => {
-      signal.removeEventListener('abort', onAbort);
-      resolve();
-    };
-    img.onerror = () => {
-      signal.removeEventListener('abort', onAbort);
-      reject(new Error('detail image load failed'));
-    };
-    img.src = imageUrl;
+  return preloadPlacePhotoUrl(imageUrl, { signal }).then((ok) => {
+    if (!ok) throw new Error('detail image load failed');
   });
 }
 
-export function createPlaceDetailMediaLoader({ canLoad, fetchMedia, logLabel = 'place media' } = {}) {
+export function createPlaceDetailMediaLoader({
+  canLoad,
+  fetchMedia,
+  getInstantMedia,
+  logLabel = 'place media',
+} = {}) {
   let photoAbortController = null;
   let activeMediaUrl = null;
 
@@ -65,13 +56,44 @@ export function createPlaceDetailMediaLoader({ canLoad, fetchMedia, logLabel = '
     photoAbortController?.abort();
     photoAbortController = new AbortController();
     const { signal } = photoAbortController;
+    const loadStartedAt = performance.now();
 
     try {
-      const placeMedia = await fetchMedia(item, { signal });
+      const instantMedia = getInstantMedia?.(item);
+      let staleStoredPhoto = false;
+
+      if (instantMedia?.type === 'photo' && instantMedia.url) {
+        try {
+          if (!isPlacePhotoPreloaded(instantMedia.url)) {
+            await preloadImageUrl(instantMedia.url, signal);
+          }
+          if (!isCurrentItem(item)) return;
+
+          releaseActiveMedia();
+          activeMediaUrl = instantMedia.url;
+          onLoaded(item, instantMedia);
+          return;
+        } catch {
+          staleStoredPhoto = true;
+        }
+      }
+
+      const placeMedia = await fetchMedia(item, {
+        signal,
+        ignoreStoredPhotoName: staleStoredPhoto,
+      });
       if (!placeMedia || placeMedia.type !== 'photo' || !isCurrentItem(item)) {
         onSettled?.(item, null);
         return;
       }
+
+      if (!isPlacePhotoPreloaded(placeMedia.url)) {
+        await preloadImageUrl(placeMedia.url, signal);
+      }
+      if (!isCurrentItem(item)) return;
+
+      await waitWithSignal(DETAIL_ICON_MIN_MS - (performance.now() - loadStartedAt), signal);
+      if (!isCurrentItem(item)) return;
 
       releaseActiveMedia();
       activeMediaUrl = placeMedia.url;

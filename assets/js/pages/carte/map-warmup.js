@@ -6,7 +6,7 @@ import { MAP_FALLBACK_CENTER } from './map-markers.js';
 import { preloadMapMarkerImages, resetMapMarkerImages } from './map-marker-images.js';
 
 const PREWARM_ZOOM = 14;
-const PREWARM_IDLE_TIMEOUT_MS = 12000;
+const PREWARM_IDLE_TIMEOUT_MS = 5000;
 const PREWARM_HOST_ID = 'map-tile-prewarm';
 
 let warmupPromise = null;
@@ -14,6 +14,7 @@ let mapWarmReady = false;
 let prewarmPromise = null;
 let tilesPrewarmed = false;
 let prewarmMap = null;
+let backgroundWarmupStarted = false;
 
 export function isMapWarmReady() {
   return mapWarmReady;
@@ -66,7 +67,7 @@ function waitForMapIdle(map, timeoutMs = PREWARM_IDLE_TIMEOUT_MS) {
   });
 }
 
-/** Carte cachée : style + tuiles vectorielles en cache navigateur avant la 1re vue. */
+/** Carte cachée : style + tuiles en cache navigateur (libère le WebGL après succès). */
 export function prewarmMapTiles() {
   if (tilesPrewarmed) return Promise.resolve();
   if (prewarmPromise) return prewarmPromise;
@@ -115,6 +116,7 @@ export function prewarmMapTiles() {
 
     await waitForMapIdle(prewarmMap);
     tilesPrewarmed = true;
+    destroyPrewarmMap();
   })().catch((err) => {
     console.warn('prewarmMapTiles:', err.message);
     prewarmPromise = null;
@@ -124,12 +126,30 @@ export function prewarmMapTiles() {
   return prewarmPromise;
 }
 
-/** Attend le préchargement tuiles (no-op si déjà fait pendant le splash). */
-export function ensureMapTilesPrewarmed() {
-  return prewarmMapTiles();
+/** Préchauffe tuiles en arrière-plan (hors chemin splash). */
+export function startMapWarmupBackground() {
+  if (backgroundWarmupStarted || tilesPrewarmed) return;
+  backgroundWarmupStarted = true;
+
+  const run = () => {
+    void prewarmMapTiles();
+  };
+
+  if (typeof requestIdleCallback === 'function') {
+    requestIdleCallback(run, { timeout: 8000 });
+    return;
+  }
+
+  window.setTimeout(run, 1500);
 }
 
-/** Données, icônes pins et tuiles basemap — à terminer pendant le splash. */
+/** Attend le préchargement tuiles (no-op si déjà fait). */
+export function ensureMapTilesPrewarmed() {
+  if (tilesPrewarmed) return Promise.resolve();
+  return warmMapForApp();
+}
+
+/** Données, icônes pins et tuiles basemap. */
 export async function loadAppMapAssets() {
   await warmMapForApp();
   await prewarmMapTiles();
@@ -140,6 +160,7 @@ export function resetMapWarmup() {
   mapWarmReady = false;
   prewarmPromise = null;
   tilesPrewarmed = false;
+  backgroundWarmupStarted = false;
   destroyPrewarmMap();
   resetMapMarkerImages();
 }

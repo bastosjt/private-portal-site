@@ -353,6 +353,11 @@
   transform: scale(0.98);
 }
 
+.sidebar-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .sidebar-link.is-active {
   color: var(--text-primary);
   background: var(--bg);
@@ -529,6 +534,11 @@ body.modal-open {
   -webkit-tap-highlight-color: transparent;
 }
 
+.page-header-back:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .page-header-back:active {
   transform: scale(0.94);
 }
@@ -616,6 +626,11 @@ body.modal-open {
 .btn-menu:active {
   transform: scale(0.96);
   box-shadow: var(--neu-press);
+}
+
+.btn-menu:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 /* ── Responsive ── */
@@ -728,6 +743,43 @@ body.modal-open {
   .btn-menu:hover {
     box-shadow: var(--neu-up);
   }
+
+  .app-main {
+    padding-bottom: var(--page-inset-tablet-bottom);
+  }
+}
+
+@media (min-width: 901px) {
+  .page-intro {
+    margin-bottom: var(--section-gap);
+  }
+
+  .page-intro-title {
+    margin: 0;
+    font-size: var(--text-xl);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.15;
+  }
+
+  .page-intro-sub {
+    margin: 6px 0 0;
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    line-height: 1.35;
+  }
+
+  [data-theme] .page-intro-title {
+    background: var(--cat-title-gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  [data-theme] .page-intro-sub {
+    color: var(--cat-header-sub, var(--text-secondary));
+    font-weight: 500;
+  }
 }
 
 @media (min-width: 901px) {
@@ -746,5 +798,54 @@ body.modal-open {
 
   .sidebar-overlay {
     display: none !important;
+  }
+}
+
+/* ── Skeleton loaders (unifié) ── */
+.skel-shimmer {
+  position: relative;
+  overflow: hidden;
+  background: var(--bg);
+  box-shadow: var(--neu-in);
+}
+
+.skel-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.04) 45%,
+    rgba(255, 255, 255, 0.07) 50%,
+    rgba(255, 255, 255, 0.04) 55%,
+    transparent 100%
+  );
+  animation: skel-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes skel-shimmer {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(100%); }
+}
+
+.skel-block {
+  border-radius: var(--radius-sm);
+}
+
+.skel-block--line {
+  display: block;
+  height: 10px;
+  border-radius: 999px;
+}
+
+.skel-block--line-sm {
+  height: 8px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skel-shimmer::after {
+    animation: none;
+    opacity: 0.04;
   }
 }

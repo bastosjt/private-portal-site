@@ -174,7 +174,7 @@ function syncClearButton(input, clearBtn) {
   clearBtn.classList.toggle('hidden', !hasValue);
 }
 
-export function initMapSearch({ signal, onSelect } = {}) {
+export function initMapSearch({ signal, onSelect, onShowAllPlaces, onEnableGeoloc } = {}) {
   const root = document.getElementById('map-search');
   const input = document.getElementById('map-search-input');
   const resultsEl = document.getElementById('map-search-results');
@@ -339,6 +339,25 @@ export function initMapSearch({ signal, onSelect } = {}) {
   }, { signal });
 
   resultsEl.addEventListener('click', (event) => {
+    const actionBtn = event.target.closest('[data-map-search-action]');
+    if (actionBtn) {
+      event.preventDefault();
+      const action = actionBtn.dataset.mapSearchAction;
+      if (action === 'show-all') {
+        input.value = '';
+        syncClearButton(input, clearBtn);
+        closeResults();
+        onShowAllPlaces?.();
+        input.focus();
+        return;
+      }
+      if (action === 'enable-geoloc') {
+        closeResults();
+        void onEnableGeoloc?.();
+        return;
+      }
+    }
+
     const option = event.target.closest('.map-search-option');
     if (!option) return;
 

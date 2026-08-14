@@ -3,9 +3,9 @@ import { createLoveHeartsController } from '../lib/love-hearts.js';
 import { waitForTransition } from '../lib/transitions.js';
 
 export const SPLASH_FADE_MS = 280;
-const SPLASH_PROGRESS_SETTLE_MS = 400;
+const SPLASH_PROGRESS_SETTLE_MS = 250;
 /** Durée visuelle de l’anneau de fin (CSS splash). */
-const SPLASH_RINGS_MS = 1100;
+const SPLASH_RINGS_MS = 700;
 
 let splashStartedAt = 0;
 let splashLoveController = null;

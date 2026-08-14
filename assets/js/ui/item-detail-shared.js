@@ -10,6 +10,7 @@ const MODAL_CLOSE_ICON = `
 
 import { getCategoryStatusLabels } from '../lib/category-status-labels.js';
 import { findCachedItemById } from '../data/appDataCache.js';
+import { openConfirmDeleteDialog } from './confirm-delete-dialog.js';
 
 export const DETAIL_MODAL_MS = 420;
 
@@ -111,7 +112,7 @@ export function itemHasMapPin(item) {
     && Number.isFinite(Number(item.longitude));
 }
 
-export function renderDetailActionsHtml({ confirmDelete = false, isBusy = false, canMovePin = false } = {}) {
+export function renderDetailActionsHtml({ isBusy = false, canMovePin = false } = {}) {
   return `
     <div class="act-detail-actions${canMovePin ? ' act-detail-actions--with-move' : ''}">
       ${canMovePin ? `
@@ -128,21 +129,32 @@ export function renderDetailActionsHtml({ confirmDelete = false, isBusy = false,
         Modifier
       </button>
       <button type="button" class="act-detail-btn act-detail-btn--delete" id="act-detail-delete" ${isBusy ? 'disabled' : ''}>
-        ${confirmDelete ? 'Confirmer la suppression' : 'Supprimer'}
+        Supprimer
       </button>
     </div>
   `;
 }
 
-export function wrapDetailContentHtml(scrollHtml, { done = false, confirmDelete = false, isBusy = false, canMovePin = false } = {}) {
+export function wrapDetailContentHtml(scrollHtml, { done = false, isBusy = false, canMovePin = false } = {}) {
   return `
     <div class="act-detail-content${done ? ' act-detail-content--done' : ''}">
       <div class="act-detail-scroll">
         ${scrollHtml}
       </div>
-      ${renderDetailActionsHtml({ confirmDelete, isBusy, canMovePin })}
+      ${renderDetailActionsHtml({ isBusy, canMovePin })}
     </div>
   `;
+}
+
+/** @returns {Promise<boolean>} */
+export async function confirmItemDeletion({ itemName, entityLabel = 'Cet élément' }) {
+  return openConfirmDeleteDialog({
+    title: 'Supprimer définitivement ?',
+    message: `${entityLabel} sera retiré de votre espace partagé. Cette action ne peut pas être annulée.`,
+    itemName,
+    confirmLabel: 'Supprimer',
+    cancelLabel: 'Annuler',
+  });
 }
 
 export function renderLinkedTravelChip(item, { escapeHtml }) {

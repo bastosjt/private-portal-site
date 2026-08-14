@@ -342,18 +342,19 @@ function collectTagBadgeImageTasks(buildImage) {
 
 export async function preloadMapMarkerImages(markers = []) {
   const descriptors = collectMarkerImageDescriptors(markers);
-  const tagCategories = new Set(
-    markers
-      .map((marker) => marker.categoryId)
-      .filter((categoryId) => TAG_BADGE_CATEGORIES.includes(categoryId)),
-  );
-  if (tagCategories.size === 0) {
-    TAG_BADGE_CATEGORIES.forEach((categoryId) => tagCategories.add(categoryId));
+  const tagCategories = new Set();
+
+  for (const marker of markers) {
+    if (!TAG_BADGE_CATEGORIES.includes(marker.categoryId)) continue;
+    if (!Array.isArray(marker.tags) || marker.tags.length === 0) continue;
+    tagCategories.add(marker.categoryId);
   }
 
   await Promise.all([
-    getOrBuildCachedImage(MAP_MARKER_DONE_BADGE_ID, buildDoneBadgeSvg),
-    getOrBuildCachedImage(MAP_MARKER_LIMITED_BADGE_ID, buildLimitedBadgeSvg),
+    ...descriptors.map((descriptor) => getOrBuildCachedImage(
+      descriptor.imageId,
+      () => buildMarkerSvg(descriptor),
+    )),
     ...[...tagCategories].flatMap((categoryId) => [
       ...PIN_TAG_BADGE_DEFS.map((def) => getOrBuildCachedImage(
         getTagBadgeImageId(def.value, categoryId),
@@ -364,10 +365,6 @@ export async function preloadMapMarkerImages(markers = []) {
         () => buildTagBadgeSvg('generic', categoryId),
       ),
     ]),
-    ...descriptors.map((descriptor) => getOrBuildCachedImage(
-      descriptor.imageId,
-      () => buildMarkerSvg(descriptor),
-    )),
   ]);
 }
 
@@ -379,25 +376,51 @@ export async function ensureMapMarkerLimitedBadge(map) {
   await addCachedImageToMap(map, MAP_MARKER_LIMITED_BADGE_ID, buildLimitedBadgeSvg);
 }
 
-export async function ensureMapMarkerTagBadges(map) {
+export async function ensureMapMarkerTagBadges(map, markers = []) {
   if (!map) return;
-  await Promise.all(collectTagBadgeImageTasks((imageId, buildSvg) => (
-    addCachedImageToMap(map, imageId, buildSvg)
-  )));
+
+  const tagCategories = new Set();
+  const neededTagValues = new Map();
+
+  for (const marker of markers) {
+    if (!TAG_BADGE_CATEGORIES.includes(marker.categoryId)) continue;
+    if (!Array.isArray(marker.tags) || marker.tags.length === 0) continue;
+    tagCategories.add(marker.categoryId);
+    const values = neededTagValues.get(marker.categoryId) ?? new Set();
+    for (const tag of marker.tags) {
+      const def = getPinTagBadgeDef(tag, marker.categoryId);
+      values.add(def?.value || 'generic');
+    }
+    neededTagValues.set(marker.categoryId, values);
+  }
+
+  const tasks = [];
+  for (const categoryId of tagCategories) {
+    const values = neededTagValues.get(categoryId) ?? new Set(['generic']);
+    for (const value of values) {
+      tasks.push(addCachedImageToMap(
+        map,
+        getTagBadgeImageId(value, categoryId),
+        () => buildTagBadgeSvg(value, categoryId),
+      ));
+    }
+  }
+
+  await Promise.all(tasks);
 }
 
-export async function ensureMapMarkerOverlayBadges(map) {
+export async function ensureMapMarkerOverlayBadges(map, markers = []) {
   await Promise.all([
     ensureMapMarkerDoneBadge(map),
     ensureMapMarkerLimitedBadge(map),
-    ensureMapMarkerTagBadges(map),
+    ensureMapMarkerTagBadges(map, markers),
   ]);
 }
 
 export async function ensureMapMarkerImages(map, markers = []) {
   if (!map) return;
 
-  await ensureMapMarkerOverlayBadges(map);
+  await ensureMapMarkerOverlayBadges(map, markers);
 
   const descriptors = collectMarkerImageDescriptors(markers);
   const missing = descriptors.filter((descriptor) => !map.hasImage(descriptor.imageId));

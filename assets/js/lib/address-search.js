@@ -1,4 +1,5 @@
 import { buildGoogleMapsUrl } from './google-maps-url.js';
+import { trackApiRequest } from './api-usage-tracker.js';
 
 const BAN_URL = 'https://api-adresse.data.gouv.fr/search/';
 const PHOTON_URL = 'https://photon.komoot.io/api/';
@@ -77,6 +78,8 @@ async function searchBan(query, limit, signal) {
   const response = await fetch(url, { signal });
   if (!response.ok) throw new Error(`BAN ${response.status}`);
 
+  trackApiRequest('ban');
+
   const data = await response.json();
   return (data.features || []).map(normalizeBanFeature).map(withMapsUrl);
 }
@@ -89,6 +92,8 @@ async function searchPhoton(query, limit, signal) {
 
   const response = await fetch(url, { signal });
   if (!response.ok) throw new Error(`Photon ${response.status}`);
+
+  trackApiRequest('photon');
 
   const data = await response.json();
   return (data.features || []).map(normalizePhotonFeature).map(withMapsUrl);

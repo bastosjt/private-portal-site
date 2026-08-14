@@ -4,7 +4,7 @@ import { renderNavIcon } from '../../lib/lucide-icon.js';
 const CHEVRON = renderNavIcon('chevron-right', { strokeWidth: 2, width: 18, height: 18 });
 const CHEVRON_LEFT = renderNavIcon('chevron-left', { strokeWidth: 2, width: 18, height: 18 });
 
-function renderMenuLink({ id, icon, label, valueId, disabled = false, soon = false }) {
+function renderMenuLink({ id, icon, label, valueId, badgeId, disabled = false, soon = false }) {
   const tag = disabled ? 'div' : 'button';
   const typeAttr = disabled ? '' : ' type="button"';
   const disabledClass = disabled ? ' is-disabled' : '';
@@ -12,6 +12,9 @@ function renderMenuLink({ id, icon, label, valueId, disabled = false, soon = fal
   const valueHtml = valueId
     ? `<span class="settings-menu-value" id="${valueId}">—</span>`
     : soonBadge;
+  const badgeHtml = badgeId
+    ? `<span class="settings-menu-badge hidden" id="${badgeId}" aria-hidden="true"></span>`
+    : '';
 
   return `
     <${tag}${typeAttr}
@@ -24,6 +27,7 @@ function renderMenuLink({ id, icon, label, valueId, disabled = false, soon = fal
         <span class="settings-menu-label">${label}</span>
         ${valueHtml}
       </span>
+      ${badgeHtml}
       ${disabled ? '' : `<span class="settings-menu-chevron" aria-hidden="true">${CHEVRON}</span>`}
     </${tag}>
   `;
@@ -72,9 +76,9 @@ export const SETTINGS_VIEW_HTML = `
         <nav class="settings-menu" aria-label="Sections des réglages">
           ${renderMenuLink({ id: 'profile', icon: 'user', label: 'Mon profil', valueId: 'settings-menu-profile-value' })}
           ${renderMenuLink({ id: 'couple', icon: 'heart', label: 'Notre couple', valueId: 'settings-menu-couple-value' })}
-          ${renderMenuLink({ id: 'data', icon: 'database', label: 'Données', valueId: 'settings-menu-data-value' })}
+          ${renderMenuLink({ id: 'data', icon: 'database', label: 'Données', valueId: 'settings-menu-data-value', badgeId: 'settings-menu-data-badge' })}
           ${renderMenuLink({ id: 'theme', icon: 'palette', label: 'Ton thème', valueId: 'settings-menu-theme-value' })}
-          ${renderMenuLink({ id: 'app', icon: 'settings', label: 'Application', valueId: 'settings-menu-app-value' })}
+          ${renderMenuLink({ id: 'app', icon: 'settings', label: 'Application', valueId: 'settings-menu-app-value', badgeId: 'settings-menu-app-badge' })}
         </nav>
 
         <div class="settings-menu-footer">
@@ -229,8 +233,8 @@ export const SETTINGS_VIEW_HTML = `
         <div class="settings-api-section">
           <div class="section-head">
             <div>
-              <h3>Services par catégorie</h3>
-              <p>APIs externes par section. Les clés optionnelles enrichissent l’expérience sans bloquer l’app.</p>
+              <h3>Services</h3>
+              <p>APIs externes utilisées par l’application.</p>
             </div>
           </div>
           <div class="settings-api-catalog" id="settings-api-catalog" aria-live="polite"></div>

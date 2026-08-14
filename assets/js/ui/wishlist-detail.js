@@ -16,6 +16,7 @@ import {
   updateDoneToggleUI,
   wireModalDragClose,
   wrapDetailContentHtml,
+  confirmItemDeletion,
 } from './item-detail-shared.js';
 import { renderWishlistPriorityIcon } from '../pages/wishlist/IconsType.js';
 import { createDetailImageMediaLoader } from './place-detail-media-loader.js';
@@ -124,7 +125,6 @@ export function initWishlistDetail({ onChanged, onEdit, theme = 'pink' } = {}) {
   const category = getCategoryById('wishlist');
   let currentItem = null;
   let isBusy = false;
-  let confirmDelete = false;
   const mediaLoader = createDetailImageMediaLoader({
     getImageUrl: (item) => sanitizeImageUrl(item.imageUrl),
     logLabel: 'wishlist detail image',
@@ -150,7 +150,7 @@ export function initWishlistDetail({ onChanged, onEdit, theme = 'pink' } = {}) {
         ${renderWishlistLinkPriceRow(item)}
 
         ${renderDoneToggle(Boolean(item.done), isBusy, DONE_LABELS)}
-    `, { done: item.done, confirmDelete, isBusy });
+    `, { done: item.done, isBusy });
 
     bodyEl.querySelector('#act-detail-done')?.addEventListener('click', handleToggleDone);
     bodyEl.querySelector('#act-detail-edit')?.addEventListener('click', handleEdit);
@@ -198,14 +198,14 @@ export function initWishlistDetail({ onChanged, onEdit, theme = 'pink' } = {}) {
     onEdit?.(currentItem);
   }
 
-  async function handleDelete() {
+    async function handleDelete() {
     if (!currentItem || isBusy) return;
 
-    if (!confirmDelete) {
-      confirmDelete = true;
-      renderContent(currentItem);
-      return;
-    }
+    const confirmed = await confirmItemDeletion({
+      itemName: currentItem.nom,
+      entityLabel: 'Cette envie',
+    });
+    if (!confirmed) return;
 
     isBusy = true;
     renderContent(currentItem);
@@ -218,7 +218,6 @@ export function initWishlistDetail({ onChanged, onEdit, theme = 'pink' } = {}) {
       onChanged?.(COLLECTION, itemId, { deleted: true });
     } catch (err) {
       devError('deleteItem:', err);
-      confirmDelete = false;
     } finally {
       isBusy = false;
       if (currentItem) renderContent(currentItem);
@@ -229,7 +228,6 @@ export function initWishlistDetail({ onChanged, onEdit, theme = 'pink' } = {}) {
     if (!item) return;
     await initCustomOptions();
     currentItem = item;
-    confirmDelete = false;
     isBusy = false;
     renderContent(item);
     setSelectedItem(item.id);
@@ -261,7 +259,6 @@ export function initWishlistDetail({ onChanged, onEdit, theme = 'pink' } = {}) {
     setSelectedItem(null);
     rowToReveal?.scrollIntoView({ block: 'nearest' });
     currentItem = null;
-    confirmDelete = false;
     isBusy = false;
     bodyEl.innerHTML = '';
   }
@@ -274,11 +271,6 @@ export function initWishlistDetail({ onChanged, onEdit, theme = 'pink' } = {}) {
 
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' && !overlay.classList.contains('hidden')) {
-      if (confirmDelete) {
-        confirmDelete = false;
-        renderContent(currentItem);
-        return;
-      }
       close();
     }
   }, { signal });

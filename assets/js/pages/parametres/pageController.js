@@ -31,7 +31,9 @@ import {
 import { getSpaceTagline } from '../../lib/space-settings.js';
 import { getAppTheme, getAppThemeMeta, setAppTheme } from '../../lib/app-theme.js';
 import { renderNavIcon } from '../../lib/lucide-icon.js';
-import { renderCategoryApiCatalogHtml } from '../../lib/category-api-sources.js';
+import { renderCategoryApiCatalogHtml, mountApiUsageSection, updateApiUsageMetrics } from '../../lib/category-api-sources.js';
+import { isGooglePlacesConfigured } from '../../lib/google-places-config.js';
+import { isTmdbConfigured } from '../../lib/tmdb-config.js';
 import {
   getUserLocationConsent,
   getUserLocationLngLat,
@@ -246,6 +248,50 @@ function renderMembers(user) {
   });
 }
 
+function setMenuBadge(id, text, tone = 'neutral') {
+  const el = document.getElementById(id);
+  if (!el) return;
+
+  if (!text) {
+    el.textContent = '';
+    el.classList.add('hidden');
+    el.setAttribute('aria-hidden', 'true');
+    el.removeAttribute('data-tone');
+    return;
+  }
+
+  el.textContent = text;
+  el.classList.remove('hidden');
+  el.setAttribute('aria-hidden', 'false');
+  el.dataset.tone = tone;
+}
+
+function renderSettingsMenuBadges() {
+  const missingKeys = [];
+  if (!isGooglePlacesConfigured()) missingKeys.push('Google Places');
+  if (!isTmdbConfigured()) missingKeys.push('TMDB');
+
+  if (missingKeys.length) {
+    setMenuBadge(
+      'settings-menu-app-badge',
+      missingKeys.length === 1 ? 'Clé manquante' : `${missingKeys.length} clés manquantes`,
+      'warn',
+    );
+  } else {
+    setMenuBadge('settings-menu-app-badge', 'APIs OK', 'ok');
+  }
+
+  const syncText = formatSyncAge(getCacheAgeMs());
+  if (syncText && syncText !== '—' && syncText !== 'Pas encore chargé') {
+    const syncBadge = syncText.startsWith('Il y a ')
+      ? syncText.slice('Il y a '.length)
+      : syncText;
+    setMenuBadge('settings-menu-data-badge', syncBadge, 'neutral');
+  } else {
+    setMenuBadge('settings-menu-data-badge', '', 'neutral');
+  }
+}
+
 function renderDataStatus() {
   const syncText = formatSyncAge(getCacheAgeMs());
   const total = getTotalCachedItems();
@@ -254,6 +300,7 @@ function renderDataStatus() {
   setText('settings-sync-status', syncText);
   setText('settings-cache-count', countText);
   setText('settings-menu-data-value', syncText);
+  renderSettingsMenuBadges();
 }
 
 function renderAppInfo() {
@@ -266,8 +313,17 @@ function renderAppInfo() {
 
   const apiCatalog = document.getElementById('settings-api-catalog');
   if (apiCatalog) {
-    apiCatalog.innerHTML = renderCategoryApiCatalogHtml();
+    const usageRoot = document.getElementById('settings-api-usage');
+    const catalogList = apiCatalog.querySelector('.settings-api-catalog-list');
+
+    if (usageRoot && catalogList) {
+      updateApiUsageMetrics({ animate: true });
+    } else {
+      apiCatalog.innerHTML = renderCategoryApiCatalogHtml();
+      mountApiUsageSection({ animate: false });
+    }
   }
+  renderSettingsMenuBadges();
 }
 
 function renderLocationStatus() {
@@ -559,6 +615,8 @@ async function showPanel(panelId, { animate = true } = {}) {
     },
     { animate, scrollTop: 0 },
   );
+
+  if (panelId === 'app') renderAppInfo();
 }
 
 export function initSettingsPage(user, { onLogout: logoutHandler, onDataSynced: dataSyncedHandler, onProfileUpdated: profileUpdatedHandler } = {}) {

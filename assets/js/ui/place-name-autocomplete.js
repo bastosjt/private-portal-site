@@ -239,13 +239,13 @@ export function initPlaceNameAutocomplete(input, {
     clearTimeout(debounceTimer);
     const value = input.value.trim();
 
-    if (value.length < 2) {
+    if (value.length < 3) {
       abortController?.abort();
       closeList();
       return;
     }
 
-    debounceTimer = setTimeout(() => fetchSuggestions(value), 280);
+    debounceTimer = setTimeout(() => fetchSuggestions(value), 350);
   }
 
   function onInput() {

@@ -37,11 +37,27 @@ export function createMapTabOptions({
   };
 }
 
-function renderListPanelMarkup(listId) {
+function renderListPanelMarkup(listId, { grid = false } = {}) {
   return `
             <div class="act-cat-panel">
               <span class="cat-panel-accent" aria-hidden="true"></span>
-              <ul class="act-list is-loading" id="${listId}"></ul>
+              <ul class="act-list is-loading${grid ? ' act-list--grid' : ''}" id="${listId}"></ul>
+            </div>
+  `;
+}
+
+function renderLayoutViewportMarkup({ layoutViewportId, layoutPanels }) {
+  const listPanel = layoutPanels.list;
+  const gridPanel = layoutPanels.grid;
+
+  return `
+            <div class="act-layout-viewport" id="${layoutViewportId}">
+              <div class="act-view-panel is-active" id="${listPanel.panelId}">
+                ${renderListPanelMarkup(listPanel.listId)}
+              </div>
+              <div class="act-view-panel" id="${gridPanel.panelId}" hidden aria-hidden="true">
+                ${renderListPanelMarkup(gridPanel.listId, { grid: true })}
+              </div>
             </div>
   `;
 }
@@ -55,23 +71,82 @@ export function renderListViewBlock({
   listId,
   listPanelAttrs = '',
   extraPanelsHtml = '',
+  panelsHtml = '',
+  listSub = 'Votre liste complète',
+  layoutViewportId = `${prefix}-layout-viewport`,
+  layoutPanels = null,
 }) {
   const mapBlockId = `${prefix}-map-block`;
   const mapViewportId = `${prefix}-map-viewport`;
 
+  const resolvedLayoutPanels = layoutPanels || {
+    list: { panelId: `${prefix}-layout-list-panel`, listId, layout: 'list' },
+    grid: { panelId: `${prefix}-layout-grid-panel`, listId: `${listId}-grid`, layout: 'grid' },
+  };
+
+  const listPanelContent = renderLayoutViewportMarkup({
+    layoutViewportId,
+    layoutPanels: resolvedLayoutPanels,
+  });
+
+  const viewportPanelsHtml = panelsHtml || `
+          <div class="act-view-panel is-active" id="${listPanelId}"${listPanelAttrs}>
+            ${listPanelContent}
+          </div>
+          ${extraPanelsHtml}`;
+
   return `
       <div class="act-map-block" id="${mapBlockId}">
-        <div class="act-list-toolbar-wrap">
+        <div class="act-list-toolbar-wrap act-list-toolbar-wrap--sticky">
+          <p class="act-list-toolbar-count" id="list-sub">${listSub}</p>
           <div class="act-list-toolbar" id="act-list-toolbar"></div>
         </div>
         <div class="act-map-viewport" id="${mapViewportId}">
-          <div class="act-view-panel" id="${listPanelId}"${listPanelAttrs}>
-            ${renderListPanelMarkup(listId)}
-          </div>
-          ${extraPanelsHtml}
+          ${viewportPanelsHtml}
         </div>
       </div>
   `;
+}
+
+/**
+ * Bloc liste à panneaux multiples (ex. wishlist moi / partenaire).
+ */
+export function renderAuthorListViewBlock({
+  prefix,
+  panels,
+  listSub = 'Votre liste complète',
+}) {
+  const panelsHtml = panels.map((panel) => {
+    const suffix = panel.key ? `-${panel.key}` : '';
+    const layoutViewportId = `${prefix}-layout-viewport${suffix}`;
+    const layoutPanels = {
+      list: {
+        panelId: `${prefix}-layout-list-panel${suffix}`,
+        listId: panel.listId,
+        layout: 'list',
+      },
+      grid: {
+        panelId: `${prefix}-layout-grid-panel${suffix}`,
+        listId: `${panel.listId}-grid`,
+        layout: 'grid',
+      },
+    };
+
+    return `
+          <div class="act-view-panel${panel.active ? ' is-active' : ''}" id="${panel.panelId}"${panel.active ? '' : ' hidden aria-hidden="true"'}>
+            ${renderLayoutViewportMarkup({ layoutViewportId, layoutPanels })}
+          </div>`;
+  }).join('');
+
+  const activePanel = panels.find((panel) => panel.active) || panels[0];
+
+  return renderListViewBlock({
+    prefix,
+    listPanelId: activePanel.panelId,
+    listId: activePanel.listId,
+    panelsHtml,
+    listSub,
+  });
 }
 
 /**
@@ -89,6 +164,7 @@ export function renderListMapViewBlock({
   fitAllAriaLabel,
   emptyTitle = 'Aucune adresse géolocalisée',
   emptyHint,
+  listSub = 'Votre liste complète',
 }) {
   const mapCanvasId = `${prefix}-map-canvas`;
   const mapControlsId = `${prefix}-map-controls`;
@@ -97,7 +173,7 @@ export function renderListMapViewBlock({
   const mapPlacesId = `${prefix}-map-places`;
 
   const mapPanelHtml = `
-          <div class="act-view-panel hidden" id="${mapPanelId}" role="tabpanel" aria-labelledby="${viewMapBtnId}" hidden>
+          <div class="act-view-panel" id="${mapPanelId}" role="tabpanel" aria-labelledby="${viewMapBtnId}" hidden aria-hidden="true">
             <div class="act-cat-panel act-cat-panel--map">
               <div class="act-category-map">
                 <div class="act-category-map-body">
@@ -145,6 +221,7 @@ export function renderListMapViewBlock({
         listId,
         listPanelAttrs: ` role="tabpanel" aria-labelledby="${viewListBtnId}"`,
         extraPanelsHtml: mapPanelHtml,
+        listSub,
       })}
   `;
 }

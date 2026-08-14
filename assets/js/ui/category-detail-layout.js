@@ -25,13 +25,14 @@ export function renderDetailMediaIcon(iconHtml) {
 
 export function renderDetailMediaImage(imageUrl, { className = 'act-detail-media-image' } = {}) {
   if (!imageUrl) return '';
+  const isGooglePlacePhoto = String(imageUrl).includes('places.googleapis.com');
+  const referrerAttr = isGooglePlacePhoto ? '' : ' referrerpolicy="no-referrer"';
   return `<img
     class="${className}"
     src="${escapeHtml(imageUrl)}"
     alt=""
     loading="lazy"
-    decoding="async"
-    referrerpolicy="no-referrer"
+    decoding="async"${referrerAttr}
   >`;
 }
 

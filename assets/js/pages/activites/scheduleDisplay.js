@@ -1,6 +1,7 @@
 import { CalendarClock, Clock4 } from '../../vendor/lucide.mjs';
 import { renderLucideIcon } from '../../lib/lucide-icon.js';
 import { formatListItemPrice } from '../../lib/price-format.js';
+import { renderItemTagIconBadge } from '../../lib/item-tags.js';
 
 const SCHEDULE_ICON = renderLucideIcon(CalendarClock, { strokeWidth: 2, width: 16, height: 16 });
 const LIMITED_DURATION_ICON = renderLucideIcon(Clock4, { strokeWidth: 2, width: 16, height: 16 });
@@ -62,7 +63,12 @@ export function renderActivityScheduleIconBadge(item, {
 export function renderActivityListTypeIcon(item, renderCategoryIcon, options) {
   const iconHtml = renderCategoryIcon(item.categorie);
   const badgeHtml = renderActivityScheduleIconBadge(item, options);
-  return `${iconHtml}${badgeHtml}`;
+  const tagBadgeHtml = renderItemTagIconBadge(item, {
+    categoryId: 'activities',
+    escapeHtml: options?.escapeHtml,
+    theme: options?.theme ?? 'cyan',
+  });
+  return `${iconHtml}${badgeHtml}${tagBadgeHtml}`;
 }
 
 export function renderTravelPeriodIconBadge(item, {

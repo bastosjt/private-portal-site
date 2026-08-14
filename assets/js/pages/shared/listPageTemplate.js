@@ -57,13 +57,13 @@ export function renderPickSection(theme) {
   `;
 }
 
-export function renderListSection({ listHeading, listSub, body }) {
+export function renderListSection({ listHeading, listSub, body, stickyToolbarMeta = true }) {
   return `
-    <section class="act-list-section" aria-labelledby="list-heading">
+    <section class="act-list-section${stickyToolbarMeta ? ' act-list-section--sticky-toolbar' : ''}" aria-labelledby="list-heading">
       <div class="section-head">
         <div>
           <h2 id="list-heading">${listHeading}</h2>
-          <p id="list-sub">${listSub}</p>
+          ${stickyToolbarMeta ? '' : `<p id="list-sub">${listSub}</p>`}
         </div>
       </div>
       ${body}

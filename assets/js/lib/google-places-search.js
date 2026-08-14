@@ -2,6 +2,7 @@ import { toGoogleLocationBias } from './place-search-context.js';
 import { buildGoogleMapsUrl } from './google-maps-url.js';
 import { GOOGLE_PLACES_API_KEY, isGooglePlacesConfigured } from './google-places-config.js';
 import { parseGooglePriceRangeToEur } from './currency-to-eur.js';
+import { trackApiRequest } from './api-usage-tracker.js';
 import { devWarn } from './dev-log.js';
 
 const AUTOCOMPLETE_URL = 'https://places.googleapis.com/v1/places:autocomplete';
@@ -165,6 +166,8 @@ async function fetchAutocompleteSuggestions(body, signal) {
     throw err;
   }
 
+  trackApiRequest('google-places');
+
   const data = await response.json();
   return (data.suggestions || [])
     .map(normalizeSuggestion)
@@ -235,6 +238,8 @@ export async function retrievePlace(placeId, { sessionToken, signal, suggestion 
   });
 
   if (!response.ok) throw new Error(`Google place details ${response.status}`);
+
+  trackApiRequest('google-places');
 
   const data = await response.json();
   return normalizePlaceDetails(data, suggestion);
@@ -338,6 +343,8 @@ export async function retrievePlaceByCid(cid, { signal, suggestion = {} } = {}) 
     return null;
   }
 
+  trackApiRequest('google-places');
+
   const legacyPlace = mapLegacyPlaceResult(data.result, suggestion);
 
   if (legacyPlace.placeId) {
@@ -401,6 +408,8 @@ export async function searchPlaceByText(textQuery, {
   });
 
   if (!response.ok) throw new Error(`Google text search ${response.status}`);
+
+  trackApiRequest('google-places');
 
   const data = await response.json();
   const place = data.places?.[0];

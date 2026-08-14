@@ -27,11 +27,11 @@ export function renderListToolbarHtml({ filterAriaLabel, escapeHtml }) {
       <span>Filtres</span>
       <span class="act-filter-badge hidden" aria-hidden="true">0</span>
     </button>
-    <div class="act-layout-switch" role="group" aria-label="Mode d'affichage">
-      <button type="button" class="act-filter-btn act-layout-btn is-active" id="act-layout-list-btn" aria-label="Vue liste" aria-pressed="true">
+    <div class="act-layout-switch act-view-switch" role="group" aria-label="Mode d'affichage">
+      <button type="button" class="act-view-switch-btn act-layout-btn is-active" id="act-layout-list-btn" aria-label="Vue liste" aria-pressed="true">
         ${LAYOUT_LIST_ICON}
       </button>
-      <button type="button" class="act-filter-btn act-layout-btn" id="act-layout-grid-btn" aria-label="Vue grille" aria-pressed="false">
+      <button type="button" class="act-view-switch-btn act-layout-btn" id="act-layout-grid-btn" aria-label="Vue grille" aria-pressed="false">
         ${LAYOUT_GRID_ICON}
       </button>
     </div>

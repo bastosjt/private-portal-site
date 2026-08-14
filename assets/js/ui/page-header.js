@@ -7,6 +7,7 @@ import {
 } from '../config.js';
 import { EXPLORER_ROUTE, navigate } from '../navigation/router.js';
 import { renderNavIcon } from '../lib/lucide-icon.js';
+import { syncPageIntro } from './page-intro.js';
 
 const HEADER_SWAP_MS = 220; // aligné sur --duration-page-leave
 
@@ -131,6 +132,8 @@ function applyStatic(next) {
     theme: next.theme ?? currentState.theme,
     showBack: typeof next.showBack === 'boolean' ? next.showBack : currentState.showBack,
   };
+
+  syncPageIntro(currentState.title, currentState.sub);
 }
 
 async function swapContent(patch, { animate = true } = {}) {

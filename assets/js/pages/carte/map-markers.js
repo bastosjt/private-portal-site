@@ -87,6 +87,8 @@ const SELECTED_MARKER_ICON_SIZE = [
 /** Pins : fade à l’apparition / disparition (filtres, couches, mode voyage). */
 const PIN_FADE_CATEGORIES = new Set(['activities', 'restaurants', 'travels']);
 const PIN_FADE_MS = 340;
+const PIN_ENTRANCE_STAGGER_MS = 32;
+const PIN_ENTRANCE_MAX = 48;
 const PIN_FADE_EASE = (t) => 1 - ((1 - t) ** 3);
 
 let renderedPinEntries = new Map();
@@ -364,7 +366,7 @@ function commitRenderEntries(nextEntries) {
   );
 }
 
-function runPinFadeTransition(map, nextEntries, fadeInKeys, fadeOutEntries) {
+function runPinFadeTransition(map, nextEntries, fadeInKeys, fadeOutEntries, { fadeInDelays = null } = {}) {
   cancelPinFadeAnimation();
   const token = pinAnimToken;
   const startedAt = performance.now();
@@ -389,22 +391,29 @@ function runPinFadeTransition(map, nextEntries, fadeInKeys, fadeOutEntries) {
   syncLayerVisibility(map);
 
   const step = (now) => {
-    if (token !== pinAnimToken || !map.getSource('map-markers')) return;
-    const progress = Math.min(1, (now - startedAt) / PIN_FADE_MS);
-    const eased = PIN_FADE_EASE(progress);
+    if (token !== pinAnimToken || !map?.getSource('map-markers')) return;
+    const elapsed = now - startedAt;
 
     for (const [key, entry] of renderedPinEntries) {
       if (fadeInKeys.has(key)) {
-        entry.fade = eased;
+        const delay = fadeInDelays?.get(key) ?? 0;
+        const localProgress = Math.min(1, Math.max(0, (elapsed - delay) / PIN_FADE_MS));
+        entry.fade = PIN_FADE_EASE(localProgress);
       } else if (fadeOutEntries.has(key)) {
         const from = fadeOutEntries.get(key)?.fade ?? 1;
-        entry.fade = from * (1 - eased);
+        const localProgress = Math.min(1, Math.max(0, elapsed / PIN_FADE_MS));
+        entry.fade = from * (1 - PIN_FADE_EASE(localProgress));
       }
     }
 
     pushMarkerFeatures(map);
 
-    if (progress < 1) {
+    const maxDelay = fadeInDelays
+      ? Math.max(0, ...[...fadeInKeys].map((key) => fadeInDelays.get(key) ?? 0))
+      : 0;
+    const totalMs = PIN_FADE_MS + maxDelay;
+
+    if (elapsed < totalMs) {
       requestAnimationFrame(step);
       return;
     }
@@ -417,12 +426,44 @@ function runPinFadeTransition(map, nextEntries, fadeInKeys, fadeOutEntries) {
   requestAnimationFrame(step);
 }
 
+function runPinEntranceStagger(map, nextEntries) {
+  const fadeInKeys = new Set();
+  const fadeInDelays = new Map();
+  let index = 0;
+
+  for (const key of nextEntries.keys()) {
+    if (index >= PIN_ENTRANCE_MAX) break;
+    fadeInKeys.add(key);
+    fadeInDelays.set(key, index * PIN_ENTRANCE_STAGGER_MS);
+    index += 1;
+  }
+
+  if (!fadeInKeys.size) {
+    commitRenderEntries(nextEntries);
+    pushMarkerFeatures(map);
+    syncLayerVisibility(map);
+    return;
+  }
+
+  runPinFadeTransition(map, nextEntries, fadeInKeys, new Map(), { fadeInDelays });
+}
+
 function syncMarkerSourceNow(map, { animate = false } = {}) {
   if (!map?.getSource('map-markers')) return;
 
   const selectionCleared = pruneSelectedMarkerIfHidden();
   const nextMarkers = getDisplayedMarkers();
   const nextEntries = buildNextRenderEntries(nextMarkers);
+  const isFirstSync = !markersEverSynced;
+
+  if (isFirstSync && !prefersReducedPinMotion() && nextEntries.size > 0) {
+    cancelPinFadeAnimation();
+    runPinEntranceStagger(map, nextEntries);
+    markersEverSynced = true;
+    syncLayerVisibility(map);
+    if (selectionCleared) onSelectionPruned?.();
+    return;
+  }
 
   const canAnimate = animate && markersEverSynced && !prefersReducedPinMotion();
 
@@ -488,6 +529,8 @@ function syncMarkerSource(map, { animate = false } = {}) {
 }
 
 function syncLayerVisibility(map) {
+  if (!map?.getLayer) return;
+
   if (map.getLayer(MARKERS_SYMBOL_LAYER_ID)) {
     map.setFilter(MARKERS_SYMBOL_LAYER_ID, getMarkersSymbolLayerFilter());
   }
@@ -848,6 +891,8 @@ export async function ensureMapMarkerLayers(map) {
       bindMapMarkerImageFallback(map);
       await ensureMapMarkerImages(map, allMarkers);
 
+      if (!map) return;
+
       if (!map.getSource('map-markers')) {
         map.addSource('map-markers', {
           type: 'geojson',
@@ -880,18 +925,16 @@ export function refreshMapMarkers(map, { onUpdated } = {}) {
   const runRefresh = () => {
     ensureMapMarkerLayers(map)
       .then(async () => {
-        if (!map.getSource('map-markers')) {
+        if (!map?.getSource('map-markers')) {
           markersSourceReady = false;
           return;
         }
         await ensureMapMarkerImages(map, getMapMarkersFromCache());
         syncMarkerSource(map);
-        try {
-          await syncTravelMapZones(map);
-        } catch (err) {
-          devWarn('syncTravelMapZones:', err.message);
-        }
         onUpdated?.();
+        void syncTravelMapZones(map).catch((err) => {
+          devWarn('syncTravelMapZones:', err.message);
+        });
       })
       .catch((err) => {
         devWarn('refreshMapMarkers:', err.message);
