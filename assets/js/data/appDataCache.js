@@ -209,11 +209,16 @@ const MAP_MARKER_SOURCES = [
   { collection: 'travels' },
 ];
 
-function hasMapCoordinates(item) {
-  return item?.latitude != null && item?.longitude != null;
+let mapMarkersCache = null;
+let mapMarkersCacheVersion = 0;
+let mapMarkersBuiltVersion = -1;
+
+function invalidateMapMarkersCache() {
+  mapMarkersCacheVersion += 1;
+  mapMarkersCache = null;
 }
 
-export function getMapMarkersFromCache() {
+function buildMapMarkersFromCache() {
   const markers = [];
 
   for (const item of itemsCache.get('activities') ?? []) {
@@ -269,6 +274,20 @@ export function getMapMarkersFromCache() {
   }
 
   return markers;
+}
+
+function hasMapCoordinates(item) {
+  return item?.latitude != null && item?.longitude != null;
+}
+
+export function getMapMarkersFromCache() {
+  if (mapMarkersCache && mapMarkersBuiltVersion === mapMarkersCacheVersion) {
+    return mapMarkersCache;
+  }
+
+  mapMarkersCache = buildMapMarkersFromCache();
+  mapMarkersBuiltVersion = mapMarkersCacheVersion;
+  return mapMarkersCache;
 }
 
 function getItemDoneState(item) {
@@ -351,6 +370,9 @@ export async function ensureItems(collectionName, { force = false } = {}) {
 
   const items = await fetchAllItems(collectionName);
   itemsCache.set(collectionName, items);
+  if (['activities', 'restaurants', 'travels'].includes(collectionName)) {
+    invalidateMapMarkersCache();
+  }
   return items;
 }
 
@@ -375,6 +397,9 @@ export function patchCachedItem(collectionName, itemId, partial) {
     ...sanitized,
     updatedAt: sanitized.updatedAt ?? Timestamp.now(),
   };
+  if (['activities', 'restaurants', 'travels'].includes(collectionName)) {
+    invalidateMapMarkersCache();
+  }
   return true;
 }
 
@@ -383,6 +408,9 @@ export function removeCachedItem(collectionName, itemId) {
 
   const next = itemsCache.get(collectionName).filter((item) => item.id !== itemId);
   itemsCache.set(collectionName, next);
+  if (['activities', 'restaurants', 'travels'].includes(collectionName)) {
+    invalidateMapMarkersCache();
+  }
   return true;
 }
 
@@ -399,10 +427,11 @@ export function upsertCachedItem(collectionName, item) {
   }
 
   itemsCache.set(collectionName, items);
+  if (['activities', 'restaurants', 'travels'].includes(collectionName)) {
+    invalidateMapMarkersCache();
+  }
   return true;
 }
-
-/** Met à jour le cache après une écriture Firestore, sans re-fetch. */
 export function syncCachedItemWrite(collectionName, itemId, { deleted = false, patch = null, item = null } = {}) {
   if (deleted) return removeCachedItem(collectionName, itemId);
   if (item) return upsertCachedItem(collectionName, item);
@@ -462,6 +491,7 @@ export function isFullPrefetchComplete() {
 
 export function clearAppDataCache() {
   itemsCache.clear();
+  invalidateMapMarkersCache();
   prefetchPromise = null;
   secondaryPrefetchPromise = null;
   backgroundRefreshPromise = null;

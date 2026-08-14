@@ -8,6 +8,15 @@ export const MAP_VIEW_HTML = `
     <section class="act-cat-panel act-cat-panel--map map-panel">
       <div class="map-panel-body">
         <div id="interactive-map" class="map-canvas" role="application" aria-label="Carte interactive"></div>
+        <div class="map-travel-focus-chip hidden" id="map-travel-focus-chip" data-theme="blue" role="status" aria-live="polite">
+          <span class="map-travel-focus-chip-icon" aria-hidden="true">
+            ${renderNavIcon('travel', { strokeWidth: 1.75, width: 14, height: 14 })}
+          </span>
+          <span class="map-travel-focus-chip-label" id="map-travel-focus-chip-label">Mode voyage</span>
+          <button type="button" class="map-travel-focus-chip-close" id="map-travel-focus-chip-close" aria-label="Quitter le mode voyage">
+            ${renderNavIcon('close', { strokeWidth: 2, width: 14, height: 14 })}
+          </button>
+        </div>
         <div class="map-vignette" aria-hidden="true"></div>
         <div class="map-search" id="map-search">
           <div class="map-search-row">

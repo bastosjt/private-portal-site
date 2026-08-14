@@ -8,6 +8,10 @@ import { isGoogleMapsUrl } from '../lib/google-maps-url-parse.js';
 import { renderPlaceTypeIconHtml } from '../lib/form-name-field.js';
 import { getItemLocationLabel } from '../lib/item-location.js';
 import { formatItemPrice, hasItemPrice } from '../lib/price-format.js';
+import { mountUrlImportProgress } from './url-import-progress.js';
+
+const MAPS_IMPORT_STEPS = ['Analyse du lien…', 'Résolution du lieu…', 'Import…'];
+const importStepControllers = new WeakMap();
 
 const urlImportResetters = new WeakMap();
 const urlImportLastFetched = new WeakMap();
@@ -88,17 +92,14 @@ function showLoadingFeedback(fieldWrap, inputWrap) {
   setFieldState(fieldWrap, inputWrap, 'loading');
   feedbackEl.dataset.state = 'loading';
   feedbackEl.setAttribute('aria-hidden', 'false');
-  feedbackEl.innerHTML = `
-    <span class="url-import-preview__kicker">Analyse en cours</span>
-    <div class="url-import-preview__inner url-import-preview__inner--loading">
-      <div class="url-import-preview__image url-import-preview__skeleton" aria-hidden="true"></div>
-      <div class="url-import-preview__content">
-        <span class="url-import-preview__skeleton-line" aria-hidden="true"></span>
-        <span class="url-import-preview__skeleton-line url-import-preview__skeleton-line--short" aria-hidden="true"></span>
-      </div>
-    </div>
-  `;
+  importStepControllers.set(feedbackEl, mountUrlImportProgress(feedbackEl, MAPS_IMPORT_STEPS, 0));
   feedbackEl.classList.add('is-visible');
+}
+
+function setImportStep(fieldWrap, stepIndex) {
+  const feedbackEl = getFeedbackEl(fieldWrap);
+  const setStep = feedbackEl ? importStepControllers.get(feedbackEl) : null;
+  setStep?.(stepIndex);
 }
 
 function renderPreviewTypeIcon(category, typeValue) {
@@ -205,14 +206,17 @@ export function initPlaceMapsUrlImport(input, { form, category } = {}) {
 
     setSearching(true);
     showLoadingFeedback(fieldWrap, inputWrap);
+    setImportStep(fieldWrap, 0);
 
     try {
+      setImportStep(fieldWrap, 1);
       const metadata = await fetchPlaceFromMapsUrl(safeUrl, {
         signal: abortController.signal,
         form,
         category,
       });
 
+      setImportStep(fieldWrap, 2);
       applyPlaceToForm(form, category, metadata.place, {
         sourceUrl: metadata.url,
         onlyEmptyFields: false,

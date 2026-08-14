@@ -17,6 +17,7 @@ import {
   updateDoneToggleUI,
   wireModalDragClose,
   wrapDetailContentHtml,
+  confirmItemDeletion,
 } from './item-detail-shared.js';
 import {
   createDetailListSelection,
@@ -105,7 +106,6 @@ export function initMovieDetail({ onChanged, onEdit, theme = 'violet' } = {}) {
   const category = getCategoryById(COLLECTION);
   let currentItem = null;
   let isBusy = false;
-  let confirmDelete = false;
   const mediaLoader = createDetailImageMediaLoader({
     getImageUrl: getMoviePosterUrl,
     logLabel: 'movie poster',
@@ -133,7 +133,7 @@ export function initMovieDetail({ onChanged, onEdit, theme = 'violet' } = {}) {
         })}
 
         ${renderDoneToggle(Boolean(item.done), isBusy, DONE_LABELS)}
-    `, { done: item.done, confirmDelete, isBusy });
+    `, { done: item.done, isBusy });
 
     bodyEl.querySelector('#act-detail-done')?.addEventListener('click', handleToggleDone);
     bodyEl.querySelector('#act-detail-edit')?.addEventListener('click', handleEdit);
@@ -182,14 +182,14 @@ export function initMovieDetail({ onChanged, onEdit, theme = 'violet' } = {}) {
     onEdit?.(currentItem);
   }
 
-  async function handleDelete() {
+    async function handleDelete() {
     if (!currentItem || isBusy) return;
 
-    if (!confirmDelete) {
-      confirmDelete = true;
-      renderContent(currentItem);
-      return;
-    }
+    const confirmed = await confirmItemDeletion({
+      itemName: currentItem.titre,
+      entityLabel: 'Ce film',
+    });
+    if (!confirmed) return;
 
     isBusy = true;
     renderContent(currentItem);
@@ -202,7 +202,6 @@ export function initMovieDetail({ onChanged, onEdit, theme = 'violet' } = {}) {
       onChanged?.(COLLECTION, itemId, { deleted: true });
     } catch (err) {
       devError('deleteItem:', err);
-      confirmDelete = false;
     } finally {
       isBusy = false;
       if (currentItem) renderContent(currentItem);
@@ -213,7 +212,6 @@ export function initMovieDetail({ onChanged, onEdit, theme = 'violet' } = {}) {
     if (!item) return;
     await initCustomOptions();
     currentItem = item;
-    confirmDelete = false;
     isBusy = false;
     renderContent(item);
     setSelectedItem(item.id);
@@ -242,7 +240,6 @@ export function initMovieDetail({ onChanged, onEdit, theme = 'violet' } = {}) {
     setSelectedItem(null);
     rowToReveal?.scrollIntoView({ block: 'nearest' });
     currentItem = null;
-    confirmDelete = false;
     isBusy = false;
     bodyEl.innerHTML = '';
   }
@@ -255,11 +252,6 @@ export function initMovieDetail({ onChanged, onEdit, theme = 'violet' } = {}) {
 
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' && !overlay.classList.contains('hidden')) {
-      if (confirmDelete) {
-        confirmDelete = false;
-        renderContent(currentItem);
-        return;
-      }
       close();
     }
   }, { signal });

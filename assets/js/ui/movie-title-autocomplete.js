@@ -11,6 +11,7 @@ import {
   refreshMovieImportPreview,
   registerMovieTitleImportReset,
   showMovieImportPreviewForInput,
+  advanceMovieImportStep,
   unregisterMovieTitleImportReset,
 } from './movie-title-import.js';
 
@@ -146,9 +147,14 @@ export function initMovieTitleAutocomplete(input, {
     clearTimeout(debounceTimer);
     abortController?.abort();
 
+    const fieldWrap = input.closest('.form-field--movie-import') || input.closest('.form-field');
     showMovieImportPreviewForInput(input, form, category, media, { loading: true });
+    advanceMovieImportStep(fieldWrap, 0);
+
+    window.setTimeout(() => advanceMovieImportStep(fieldWrap, 1), 160);
 
     const enriched = applyMovieToForm(form, category, media) || media;
+    advanceMovieImportStep(fieldWrap, 2);
     showMovieImportPreviewForInput(input, form, category, enriched);
 
     closeList();

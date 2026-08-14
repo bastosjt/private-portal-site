@@ -1,6 +1,6 @@
 import { getCategoryById } from '../config.js';
 import { devError } from '../lib/dev-log.js';
-import { fetchTravelDetailMedia, canLoadTravelPlacePhoto } from '../lib/google-place-photo.js';
+import { fetchTravelDetailMedia, canLoadTravelPlacePhoto, getPlacePhotoMediaFromItem } from '../lib/google-place-photo.js';
 import { createPlaceDetailMediaLoader } from './place-detail-media-loader.js';
 import { updateItem, deleteItem } from '../firebase/firestore.js';
 import { syncCachedItemWrite } from '../data/appDataCache.js';
@@ -18,6 +18,7 @@ import {
   wireModalDragClose,
   wrapDetailContentHtml,
   itemHasMapPin,
+  confirmItemDeletion,
 } from './item-detail-shared.js';
 import {
   createDetailListSelection,
@@ -104,10 +105,10 @@ export function initTravelDetail({ onChanged, onEdit, onMovePin, onClose, theme 
   const category = getCategoryById(COLLECTION);
   let currentItem = null;
   let isBusy = false;
-  let confirmDelete = false;
   const mediaLoader = createPlaceDetailMediaLoader({
     canLoad: canLoadTravelPlacePhoto,
     fetchMedia: fetchTravelDetailMedia,
+    getInstantMedia: getPlacePhotoMediaFromItem,
     logLabel: 'travel place media',
   });
   const { setSelectedItem, getSelectedRow } = createDetailListSelection(ITEM_ID_ATTR);
@@ -135,7 +136,6 @@ export function initTravelDetail({ onChanged, onEdit, onMovePin, onClose, theme 
         ${renderDoneToggle(Boolean(item.done), isBusy, DONE_LABELS)}
     `, {
       done: item.done,
-      confirmDelete,
       isBusy,
       canMovePin: itemHasMapPin(item) && Boolean(onMovePin),
     });
@@ -192,14 +192,14 @@ export function initTravelDetail({ onChanged, onEdit, onMovePin, onClose, theme 
     onMovePin?.(currentItem);
   }
 
-  async function handleDelete() {
+    async function handleDelete() {
     if (!currentItem || isBusy) return;
 
-    if (!confirmDelete) {
-      confirmDelete = true;
-      renderContent(currentItem);
-      return;
-    }
+    const confirmed = await confirmItemDeletion({
+      itemName: (currentItem.localisation || currentItem.pays || currentItem.nom),
+      entityLabel: 'Ce voyage',
+    });
+    if (!confirmed) return;
 
     isBusy = true;
     renderContent(currentItem);
@@ -212,7 +212,6 @@ export function initTravelDetail({ onChanged, onEdit, onMovePin, onClose, theme 
       onChanged?.(COLLECTION, itemId, { deleted: true });
     } catch (err) {
       devError('deleteItem:', err);
-      confirmDelete = false;
     } finally {
       isBusy = false;
       if (currentItem) renderContent(currentItem);
@@ -223,9 +222,8 @@ export function initTravelDetail({ onChanged, onEdit, onMovePin, onClose, theme 
     if (!item) return;
     await initCustomOptions();
     currentItem = item;
-    confirmDelete = false;
     isBusy = false;
-    renderContent(item);
+    renderContent(item, { placeMedia: getPlacePhotoMediaFromItem(item) });
     setSelectedItem(item.id);
     loadPlaceMedia(item);
     overlay.classList.remove('hidden');
@@ -253,7 +251,6 @@ export function initTravelDetail({ onChanged, onEdit, onMovePin, onClose, theme 
     setSelectedItem(null);
     rowToReveal?.scrollIntoView({ block: 'nearest' });
     currentItem = null;
-    confirmDelete = false;
     isBusy = false;
     bodyEl.innerHTML = '';
   }
@@ -266,11 +263,6 @@ export function initTravelDetail({ onChanged, onEdit, onMovePin, onClose, theme 
 
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' && !overlay.classList.contains('hidden')) {
-      if (confirmDelete) {
-        confirmDelete = false;
-        renderContent(currentItem);
-        return;
-      }
       close();
     }
   }, { signal });

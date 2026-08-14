@@ -8,6 +8,7 @@ import {
 
 let cachedTagline = '';
 let cachedActiveTravelId = '';
+let cachedRemoteSettings = null;
 let initPromise = null;
 
 function normalizeTagline(value) {
@@ -24,6 +25,10 @@ export function getSpaceTagline() {
 
 export function getActiveTravelId() {
   return cachedActiveTravelId;
+}
+
+export function getCachedSpaceSettingsDoc() {
+  return cachedRemoteSettings;
 }
 
 export async function setSpaceTagline(tagline) {
@@ -61,6 +66,7 @@ export async function initSpaceSettings() {
 
   initPromise = (async () => {
     const remote = await fetchSpaceSettings();
+    cachedRemoteSettings = remote;
     const tagline = normalizeTagline(remote?.tagline);
     cachedTagline = tagline || APP_TAGLINE;
     cachedActiveTravelId = normalizeTravelId(remote?.activeTravelId);
@@ -77,5 +83,6 @@ export async function initSpaceSettings() {
 export function clearSpaceSettingsCache() {
   cachedTagline = '';
   cachedActiveTravelId = '';
+  cachedRemoteSettings = null;
   initPromise = null;
 }

@@ -1,6 +1,6 @@
 /* ── Hero / Notre histoire ── */
 .home-hero {
-  margin-bottom: 50px;
+  margin-bottom: var(--section-gap);
 }
 
 /* ── Layout accueil ── */
@@ -56,11 +56,7 @@
 
 .home-nearby-section,
 .home-explorer-section {
-  margin-bottom: 50px;
-}
-
-.home-explorer-section {
-  margin-bottom: 24px;
+  margin-bottom: var(--section-gap);
 }
 
 @media (max-width: 639px) {
@@ -1422,7 +1418,7 @@
   gap: 12px;
 }
 
-@media (min-width: 601px) {
+@media (min-width: 640px) {
   .home-explorer {
     grid-template-columns: repeat(auto-fill, minmax(min(100%, 160px), 1fr));
     gap: 14px;
@@ -1482,7 +1478,7 @@
   border: 1px solid var(--cat-border);
   box-shadow: var(--neu-up);
   overflow: hidden;
-  transition: box-shadow 0.25s ease, border-color 0.25s ease;
+  transition: box-shadow 0.25s ease, border-color 0.25s ease, transform 0.15s ease;
 }
 
 .cat-card-inner::after {
@@ -1526,6 +1522,11 @@
     0 0 28px var(--cat-glow);
 }
 
+.cat-card:active .cat-card-inner {
+  box-shadow: var(--neu-press);
+  transform: scale(0.985);
+}
+
 .cat-card-icon {
   position: relative;
   z-index: 1;
@@ -1562,49 +1563,14 @@
   font-weight: 500;
 }
 
-.cat-card:active .cat-card-inner {
-  box-shadow: var(--neu-press);
-}
-
 .cat-card-icon svg {
   width: 20px;
   height: 20px;
 }
 
-/* ── Skeleton loaders ── */
+/* ── Skeleton loaders (page-specific sizes) ── */
 .home-nearby-inner.is-loading {
   min-height: 80px;
-}
-
-.skel-shimmer {
-  position: relative;
-  overflow: hidden;
-  background: var(--bg);
-  box-shadow: var(--neu-in);
-}
-
-.skel-shimmer::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0.04) 45%,
-    rgba(255, 255, 255, 0.07) 50%,
-    rgba(255, 255, 255, 0.04) 55%,
-    transparent 100%
-  );
-  animation: skel-shimmer 1.4s ease-in-out infinite;
-}
-
-@keyframes skel-shimmer {
-  from { transform: translateX(-100%); }
-  to   { transform: translateX(100%); }
-}
-
-.skel-block {
-  border-radius: var(--radius-sm);
 }
 
 .skel-block--nearby-icon {
@@ -1638,13 +1604,6 @@
   flex-direction: column;
   gap: 6px;
   flex: 1;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .skel-shimmer::after {
-    animation: none;
-    opacity: 0.04;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -4,7 +4,22 @@
 
   --text-primary: #f0f2f5;
   --text-secondary: #a8b0bd;
+  --text-muted: #9099a6;
   --text-placeholder: #727b8a;
+
+  /* Typographie */
+  --text-xs: 0.68rem;
+  --text-sm: 0.78rem;
+  --text-base: 0.88rem;
+  --text-lg: 1.05rem;
+  --text-xl: 1.35rem;
+  --text-display: clamp(3.5rem, 9vw, 5rem);
+
+  /* Breakpoints (référence — media queries utilisent les valeurs brutes) */
+  --bp-mobile: 639px;
+  --bp-tablet-min: 640px;
+  --bp-tablet-max: 900px;
+  --bp-desktop: 901px;
 
   /* Our Space — rose cœur chaud (UI générale) */
   --accent: #f6a0b5;
@@ -25,6 +40,8 @@
   --page-inset-x: clamp(20px, 2.5vw, 48px);
   --page-inset-top: 24px;
   --page-inset-bottom: 64px;
+  --section-gap: clamp(24px, 4vw, 48px);
+  --page-inset-tablet-bottom: calc(var(--page-inset-bottom) + 12px);
   --fab-inset-x: var(--page-inset-x);
   --fab-inset-bottom: 18px;
 
@@ -61,6 +78,8 @@
   --radius-sm: 14px;
   --radius-md: 18px;
   --radius-pill: 999px;
+
+  --btn-height-md: 48px;
 
   /* Carte interactive — base = thème page (--bg), accent = --cat-color catégorie */
   --map-preview-base: var(--bg);

@@ -3,6 +3,7 @@ import { getListPreferences, saveListPreferences } from '../../lib/user-profile.
 import { formatItemPrice, formatListItemPrice, compareItemsByPrice } from '../../lib/price-format.js';
 import { ensureItems, hasCachedItems, getCachedItems, findCachedItemById } from '../../data/appDataCache.js';
 import { sidebarIcon } from '../../ui/sidebar.js';
+import { renderEmptyStateHtml, renderEmptyStateCta } from '../../ui/empty-state.js';
 import { initAddItem } from '../../ui/add-item.js';
 import { initListFilters } from '../../ui/list-filters.js';
 import {
@@ -30,6 +31,8 @@ import { normalizeSearchText } from '../../lib/normalize-search.js';
 import { escapeHtml } from '../../lib/escape-html.js';
 import { navigate, mapPlaceMoveHref } from '../../navigation/router.js';
 import { setPageHeaderSub } from '../../ui/page-header.js';
+import { nextFrame } from '../../lib/transitions.js';
+import { swapViewPanels, resetViewSwap } from '../../ui/view-panel-swap.js';
 
 export const DEFAULT_SORT_OPTIONS = [
   { id: 'alpha', label: 'Ordre alphabétique', shortLabel: 'A → Z' },
@@ -59,13 +62,23 @@ function renderStatusBadge(done, { doneLabel, todoLabel }) {
   `;
 }
 
-function renderPickCenteredMessage(title, text) {
-  return `
-    <div class="act-pick-message act-pick-message--centered">
-      <p class="act-pick-message-title">${escapeHtml(title)}</p>
-      <p class="act-pick-message-text">${escapeHtml(text)}</p>
-    </div>
-  `;
+function revealContentEl(el) {
+  if (!el) return;
+  el.classList.add('is-revealing');
+  window.requestAnimationFrame(() => {
+    window.requestAnimationFrame(() => {
+      el.classList.remove('is-revealing');
+    });
+  });
+}
+
+function renderPickCenteredMessage(title, text, { ctaHtml = '' } = {}) {
+  return renderEmptyStateHtml({
+    title,
+    description: text,
+    ctaHtml,
+    extraClass: 'empty-state--pick',
+  });
 }
 
 /**
@@ -111,6 +124,7 @@ export function createListPageController(config) {
     excludeTravelLinkedFromList = false,
     defaultCollapsedGroups = ['done'],
     enablePick = true,
+    authorPanels = null,
   } = config;
 
   let allItems = [];
@@ -130,6 +144,8 @@ export function createListPageController(config) {
   let listViewMode = 'list';
   let listLayoutMode = 'list';
   let categoryMapTab = null;
+  let viewSwapToken = 0;
+  let layoutSwapToken = 0;
 
   function normalizeListItems(items) {
     if (!excludeTravelLinkedFromList) return items;
@@ -201,14 +217,16 @@ export function createListPageController(config) {
     return state;
   }
 
-  function applyFilters(items) {
+  function applyFilters(items, { statusOverride = null } = {}) {
     let result = items;
 
+    const status = statusOverride ?? activeFilters.status ?? 'all';
+
     if (filterByStatus) {
-      result = filterByStatus(result, activeFilters.status || 'all', { viewerUid: currentUserUid });
-    } else if (activeFilters.status === 'todo') {
+      result = filterByStatus(result, status, { viewerUid: currentUserUid });
+    } else if (status === 'todo') {
       result = result.filter((item) => !item.done);
-    } else if (activeFilters.status === 'done') {
+    } else if (status === 'done') {
       result = result.filter((item) => item.done);
     }
 
@@ -227,6 +245,103 @@ export function createListPageController(config) {
 
   function getFilteredItems() {
     return applyFilters(allItems);
+  }
+
+  function getItemsForAuthorStatus(status) {
+    return applyFilters(allItems, { statusOverride: status });
+  }
+
+  function getListViewportEl() {
+    if (dom.viewportId) {
+      return document.getElementById(dom.viewportId);
+    }
+    return document.getElementById(dom.listPanelId)?.closest('.act-map-viewport') || null;
+  }
+
+  function collectLayoutListIds(panelConfig) {
+    if (!panelConfig?.layoutPanels) return panelConfig?.listId ? [panelConfig.listId] : [];
+    return Object.values(panelConfig.layoutPanels).map((entry) => entry.listId);
+  }
+
+  function getListElements() {
+    if (authorPanels) {
+      return Object.values(authorPanels)
+        .flatMap((panel) => collectLayoutListIds(panel).map((listId) => document.getElementById(listId)))
+        .filter(Boolean);
+    }
+    if (dom.layoutPanels) {
+      return Object.values(dom.layoutPanels)
+        .map((panel) => document.getElementById(panel.listId))
+        .filter(Boolean);
+    }
+    const listEl = document.getElementById(dom.listId);
+    return listEl ? [listEl] : [];
+  }
+
+  function getActiveLayoutContext() {
+    if (authorPanels) {
+      const panel = authorPanels[activeFilters.status];
+      if (!panel?.layoutPanels) return null;
+      return {
+        viewport: document.getElementById(panel.layoutViewportId),
+        panels: panel.layoutPanels,
+      };
+    }
+    if (dom.layoutPanels) {
+      return {
+        viewport: document.getElementById(dom.layoutViewportId),
+        panels: dom.layoutPanels,
+      };
+    }
+    return null;
+  }
+
+  function renderListForLayoutConfig(items, panelConfig, { animate = false, authorStatus = null } = {}) {
+    if (panelConfig.layoutPanels) {
+      for (const layoutPanel of Object.values(panelConfig.layoutPanels)) {
+        renderList(items, {
+          animate,
+          listId: layoutPanel.listId,
+          authorStatus,
+          layout: layoutPanel.layout,
+        });
+      }
+      return;
+    }
+
+    renderList(items, {
+      animate,
+      listId: panelConfig.listId,
+      authorStatus,
+    });
+  }
+
+  function clearLayoutLists(panelConfig) {
+    for (const listId of collectLayoutListIds(panelConfig)) {
+      const listEl = document.getElementById(listId);
+      if (listEl) listEl.innerHTML = '';
+    }
+  }
+
+  function refreshActiveLayoutLists({ animate = false } = {}) {
+    if (authorPanels) {
+      const panel = authorPanels[activeFilters.status];
+      if (!panel) return;
+      renderListForLayoutConfig(getItemsForAuthorStatus(activeFilters.status), panel, {
+        animate,
+        authorStatus: activeFilters.status,
+      });
+      return;
+    }
+
+    if (dom.layoutPanels) {
+      renderListForLayoutConfig(sortItems(getFilteredItems()), dom, { animate });
+    }
+  }
+
+  function getAuthorPanelEl(status) {
+    const panel = authorPanels?.[status];
+    return panel ? document.getElementById(panel.panelId) : null;
   }
 
   function sortItems(items, sortId = currentSort) {
@@ -255,10 +370,7 @@ export function createListPageController(config) {
     syncListLayoutUi();
   }
 
-  function syncListLayoutUi() {
-    const listEl = document.getElementById(dom.listId);
-    listEl?.classList.toggle('act-list--grid', listLayoutMode === 'grid');
-
+  function syncListLayoutButtons() {
     const listBtn = document.getElementById('act-layout-list-btn');
     const gridBtn = document.getElementById('act-layout-grid-btn');
     listBtn?.classList.toggle('is-active', listLayoutMode === 'list');
@@ -267,11 +379,71 @@ export function createListPageController(config) {
     gridBtn?.setAttribute('aria-pressed', listLayoutMode === 'grid' ? 'true' : 'false');
   }
 
-  function setListLayoutMode(mode) {
+  function syncListLayoutPanelState() {
+    const layoutCtx = getActiveLayoutContext();
+    if (!layoutCtx?.viewport || !layoutCtx.panels) return;
+
+    const inactiveMode = listLayoutMode === 'list' ? 'grid' : 'list';
+    const activePanel = document.getElementById(layoutCtx.panels[listLayoutMode].panelId);
+    const inactivePanel = document.getElementById(layoutCtx.panels[inactiveMode].panelId);
+
+    resetViewSwap(layoutCtx.viewport);
+    activePanel?.classList.add('is-active');
+    activePanel?.removeAttribute('hidden');
+    activePanel?.setAttribute('aria-hidden', 'false');
+    inactivePanel?.classList.remove('is-active');
+    inactivePanel?.setAttribute('hidden', '');
+    inactivePanel?.setAttribute('aria-hidden', 'true');
+  }
+
+  function syncListLayoutUi() {
+    syncListLayoutButtons();
+    syncListLayoutPanelState();
+  }
+
+  async function setListLayoutMode(mode) {
     if (mode !== 'list' && mode !== 'grid') return;
     if (listLayoutMode === mode) return;
+
+    const previousMode = listLayoutMode;
     listLayoutMode = mode;
-    syncListLayoutUi();
+    syncListLayoutButtons();
+
+    const layoutCtx = getActiveLayoutContext();
+    if (!layoutCtx?.viewport || !layoutCtx.panels) {
+      persistListSettings();
+      return;
+    }
+
+    const outgoing = document.getElementById(layoutCtx.panels[previousMode].panelId);
+    const incoming = document.getElementById(layoutCtx.panels[mode].panelId);
+    const token = ++layoutSwapToken;
+    const shouldAnimate = listViewMode === 'list' && outgoing && incoming;
+
+    refreshActiveLayoutLists();
+
+    if (!shouldAnimate) {
+      await swapViewPanels({
+        viewport: layoutCtx.viewport,
+        outgoing,
+        incoming,
+        mode: 'expand-incoming',
+        animate: false,
+      });
+      persistListSettings();
+      return;
+    }
+
+    await swapViewPanels({
+      viewport: layoutCtx.viewport,
+      outgoing,
+      incoming,
+      mode: 'expand-incoming',
+      animate: true,
+      isStale: () => token !== layoutSwapToken,
+    });
+
+    if (token !== layoutSwapToken) return;
     persistListSettings();
   }
 
@@ -280,34 +452,106 @@ export function createListPageController(config) {
     categoryMapTab?.resize?.();
   }
 
-  function setViewMode(mode) {
-    listViewMode = mode === 'map' ? 'map' : 'list';
+  /** Réinitialise la hauteur du viewport après un re-render (filtres, tri…) pour éviter un scroll fantôme. */
+  function syncViewportLayoutAfterListChange() {
+    resetViewSwap(getListViewportEl());
+    resetViewSwap(getActiveLayoutContext()?.viewport);
+  }
+
+  function applyViewModeDomState({
+    isList,
+    listPanel,
+    mapPanel,
+    listBtn,
+    mapBtn,
+    pageRoot,
+    nextMode,
+  }) {
+    listBtn.classList.toggle('is-active', isList);
+    listBtn.setAttribute('aria-selected', isList ? 'true' : 'false');
+    mapBtn.classList.toggle('is-active', !isList);
+    mapBtn.setAttribute('aria-selected', !isList ? 'true' : 'false');
+    pageRoot?.classList.toggle('is-map-view', nextMode === 'map' && !!mapTabOptions);
+    listPanel.classList.toggle('is-active', isList);
+    mapPanel.classList.toggle('is-active', !isList);
+    listPanel.toggleAttribute('hidden', !isList);
+    mapPanel.toggleAttribute('hidden', isList);
+    listPanel.setAttribute('aria-hidden', isList ? 'false' : 'true');
+    mapPanel.setAttribute('aria-hidden', !isList ? 'false' : 'true');
+  }
+
+  function resetViewSwapClasses(viewport) {
+    resetViewSwap(viewport);
+  }
+
+  async function finishMapViewEnter() {
+    categoryMapTab?.init(getFilterState());
+    await nextFrame();
+    syncMapPanelLayout();
+  }
+
+  async function setViewMode(mode, { animate = true } = {}) {
+    const nextMode = mode === 'map' ? 'map' : 'list';
 
     const listPanel = document.getElementById(dom.listPanelId);
     const mapPanel = document.getElementById(dom.mapPanelId);
     const listBtn = document.getElementById(dom.viewListBtnId);
     const mapBtn = document.getElementById(dom.viewMapBtnId);
     if (!listPanel || !mapPanel || !listBtn || !mapBtn) return;
+    if (listViewMode === nextMode) return;
 
-    const isList = listViewMode === 'list';
-    listPanel.classList.toggle('hidden', !isList);
-    listPanel.toggleAttribute('hidden', !isList);
-    mapPanel.classList.toggle('hidden', isList);
-    mapPanel.toggleAttribute('hidden', isList);
+    const isList = nextMode === 'list';
+    const viewport = getListViewportEl();
+    const pageRoot = document.querySelector(`.${pageRootClass}`);
+    const token = ++viewSwapToken;
+
+    listViewMode = nextMode;
+
+    if (!animate) {
+      resetViewSwapClasses(viewport);
+      applyViewModeDomState({
+        isList,
+        listPanel,
+        mapPanel,
+        listBtn,
+        mapBtn,
+        pageRoot,
+        nextMode,
+      });
+      if (nextMode === 'map') {
+        await finishMapViewEnter();
+      }
+      return;
+    }
+
+    const outgoing = isList ? mapPanel : listPanel;
+    const incoming = isList ? listPanel : mapPanel;
 
     listBtn.classList.toggle('is-active', isList);
     listBtn.setAttribute('aria-selected', isList ? 'true' : 'false');
     mapBtn.classList.toggle('is-active', !isList);
     mapBtn.setAttribute('aria-selected', !isList ? 'true' : 'false');
 
-    const pageRoot = document.querySelector(`.${pageRootClass}`);
-    pageRoot?.classList.toggle('is-map-view', listViewMode === 'map' && !!mapTabOptions);
+    if (!isList && mapTabOptions) {
+      pageRoot?.classList.add('is-map-view');
+    }
 
-    if (listViewMode === 'map') {
-      categoryMapTab?.init(getFilterState());
-      requestAnimationFrame(() => {
-        syncMapPanelLayout();
-      });
+    await swapViewPanels({
+      viewport,
+      outgoing,
+      incoming,
+      mode: isList ? 'expand-incoming' : 'lock-outgoing',
+      animate: true,
+      isStale: () => token !== viewSwapToken,
+    });
+    if (token !== viewSwapToken) return;
+
+    if (isList) {
+      pageRoot?.classList.remove('is-map-view');
+    }
+
+    if (nextMode === 'map') {
+      await finishMapViewEnter();
     }
   }
 
@@ -382,7 +626,39 @@ export function createListPageController(config) {
 
   function setStatusFilter(nextStatus) {
     if (!statusFilterOptions.some((opt) => opt.value === nextStatus)) return;
+
+    const prevStatus = activeFilters.status;
+    if (prevStatus === nextStatus) return;
+
     activeFilters = { ...activeFilters, status: nextStatus };
+
+    if (authorPanels) {
+      const viewport = getListViewportEl();
+      const outgoing = getAuthorPanelEl(prevStatus);
+      const incoming = getAuthorPanelEl(nextStatus);
+      const token = ++viewSwapToken;
+
+      refreshListView({ skipControlsSync: true, renderAllAuthorPanels: true });
+      listControls?.sync?.();
+
+      void (async () => {
+        if (viewport && outgoing && incoming) {
+          await swapViewPanels({
+            viewport,
+            outgoing,
+            incoming,
+            mode: 'expand-incoming',
+            animate: true,
+            isStale: () => token !== viewSwapToken,
+          });
+        }
+        if (token !== viewSwapToken) return;
+        updateListSub(getFilteredItems().length);
+        persistListSettings();
+      })();
+      return;
+    }
+
     refreshListView();
     persistListSettings();
   }
@@ -442,12 +718,40 @@ export function createListPageController(config) {
     }
   }
 
-  function refreshListView() {
+  function refreshListView({ skipControlsSync = false, renderAllAuthorPanels = false } = {}) {
     filterModal?.updateTriggerBadge();
-    listControls?.sync?.();
-    renderList(sortItems(getFilteredItems()), { animate: !listHasAnimated });
+    if (!skipControlsSync) listControls?.sync?.();
+
+    if (authorPanels) {
+      const animate = !listHasAnimated;
+      const activeStatus = activeFilters.status;
+      for (const [status, panel] of Object.entries(authorPanels)) {
+        if (renderAllAuthorPanels || status === activeStatus) {
+          renderListForLayoutConfig(getItemsForAuthorStatus(status), panel, {
+            animate,
+            authorStatus: status,
+          });
+        } else {
+          clearLayoutLists(panel);
+        }
+      }
+      listHasAnimated = true;
+      syncListLayoutUi();
+      syncViewportLayoutAfterListChange();
+      updateListSub(getFilteredItems().length);
+      return;
+    }
+
+    const items = sortItems(getFilteredItems());
+    const animate = !listHasAnimated;
+    if (dom.layoutPanels) {
+      renderListForLayoutConfig(items, dom, { animate });
+    } else {
+      renderList(items, { animate });
+    }
     listHasAnimated = true;
     syncListLayoutUi();
+    syncViewportLayoutAfterListChange();
     if (listViewMode === 'map') {
       categoryMapTab?.sync(getFilterState());
       syncMapPanelLayout();
@@ -521,7 +825,9 @@ export function createListPageController(config) {
 
     if (isRolling) return;
 
+    const wasLoading = inner?.classList.contains('is-loading');
     inner?.classList.remove('is-loading');
+    if (wasLoading) revealContentEl(inner);
     body.classList.remove('is-rolling');
     delete body.dataset.rollingPhase;
     renderPickChances();
@@ -637,30 +943,43 @@ export function createListPageController(config) {
     `;
   }
 
-  function renderList(items, { animate = false } = {}) {
-    const listEl = document.getElementById(dom.listId);
+  function renderList(items, { animate = false, listId = dom.listId, authorStatus = null, layout = null } = {}) {
+    const listEl = document.getElementById(listId);
     if (!listEl) return;
 
+    const wasLoading = listEl.classList.contains('is-loading');
     listEl.classList.remove('is-loading');
+    if (wasLoading) revealContentEl(listEl);
+
     listEl.classList.toggle('act-list--instant', !animate);
     listEl.classList.toggle('act-list--grouped', Boolean(renderListGroups));
-    listEl.classList.toggle('act-list--grid', listLayoutMode === 'grid');
-    updateListSub(items.length);
+    listEl.classList.toggle('act-list--grid', layout === 'grid' || (layout == null && listLayoutMode === 'grid'));
+
+    if (!authorPanels || listId === dom.listId) {
+      updateListSub(items.length);
+    }
 
     if (!items.length) {
-      const filtersActive = filtersAreActive();
-      const hasAny = allItems.length > 0;
+      const filtersActive = authorStatus
+        ? (Boolean(searchQuery.trim()) || filterFieldKeys.some((key) => (activeFilters[key]?.length || 0) > 0))
+        : filtersAreActive();
+
+      let hasAnyForPanel = allItems.length > 0;
+      if (authorStatus && filterByStatus) {
+        hasAnyForPanel = filterByStatus(allItems, authorStatus, { viewerUid: currentUserUid }).length > 0;
+      }
+
+      const ctaHtml = filtersActive && hasAnyForPanel
+        ? renderEmptyStateCta('Réinitialiser les filtres', 'id="act-filter-reset-inline"')
+        : renderEmptyStateCta(labels.addCta, `data-add-category="${categoryId}"`);
+
       listEl.innerHTML = `
         <li class="act-list-empty">
-          <div class="cat-recent-empty">
-            <span class="cat-recent-empty-icon">${sidebarIcon(sidebarIconKey)}</span>
-            <p>${filtersActive && hasAny ? labels.emptyFiltered : labels.emptyNone}</p>
-            ${filtersActive && hasAny ? `
-              <button type="button" class="cat-empty-cta" id="act-filter-reset-inline">Réinitialiser les filtres</button>
-            ` : `
-              <button type="button" class="cat-empty-cta" data-add-category="${categoryId}">${labels.addCta}</button>
-            `}
-          </div>
+          ${renderEmptyStateHtml({
+            iconHtml: sidebarIcon(sidebarIconKey),
+            description: filtersActive && hasAny ? labels.emptyFiltered : labels.emptyNone,
+            ctaHtml,
+          })}
         </li>
       `;
       return;
@@ -727,24 +1046,26 @@ export function createListPageController(config) {
   }
 
   function patchListRow(item) {
-    const listEl = document.getElementById(dom.listId);
-    if (!listEl) return false;
+    let patched = false;
 
-    const inner = listEl.querySelector(`[${itemIdAttr}="${item.id}"]`);
-    const row = inner?.closest('.act-list-item');
-    if (!row) return false;
+    for (const listEl of getListElements()) {
+      const inner = listEl.querySelector(`[${itemIdAttr}="${item.id}"]`);
+      const row = inner?.closest('.act-list-item');
+      if (!row) continue;
 
-    row.classList.toggle('act-list-item--done', Boolean(item.done));
+      patched = true;
+      row.classList.toggle('act-list-item--done', Boolean(item.done));
 
-    const badge = row.querySelector('.act-list-status');
-    if (badge) {
-      badge.outerHTML = renderStatusBadge(item.done, {
-        doneLabel: labels.statusDone,
-        todoLabel: labels.statusTodo,
-      });
+      const badge = row.querySelector('.act-list-status');
+      if (badge) {
+        badge.outerHTML = renderStatusBadge(item.done, {
+          doneLabel: labels.statusDone,
+          todoLabel: labels.statusTodo,
+        });
+      }
     }
 
-    return true;
+    return patched;
   }
 
   function syncAllItemsFromCache() {
@@ -770,12 +1091,12 @@ export function createListPageController(config) {
       updateHeader(allItems);
       updatePickCard();
 
-      const listEl = document.getElementById(dom.listId);
-      const inner = listEl?.querySelector(`[${itemIdAttr}="${itemId}"]`);
-      const row = inner?.closest('.act-list-item');
+      const rows = getListElements()
+        .map((listEl) => listEl.querySelector(`[${itemIdAttr}="${itemId}"]`)?.closest('.act-list-item'))
+        .filter(Boolean);
 
-      if (row && !filtersAreActive()) {
-        row.remove();
+      if (rows.length && !filtersAreActive()) {
+        rows.forEach((row) => row.remove());
         updateListSub(getFilteredItems().length);
         if (!getFilteredItems().length) refreshListView();
       } else {
@@ -805,9 +1126,10 @@ export function createListPageController(config) {
         return;
       }
 
-      const listEl = document.getElementById(dom.listId);
-      const inner = listEl?.querySelector(`[${itemIdAttr}="${itemId}"]`);
-      const row = inner?.closest('.act-list-item');
+      const rows = getListElements()
+        .map((listEl) => listEl.querySelector(`[${itemIdAttr}="${itemId}"]`)?.closest('.act-list-item'))
+        .filter(Boolean);
+      const row = rows[0];
       const stillVisible = applyFilters([item]).length > 0;
 
       if (stillVisible && row) {
@@ -870,7 +1192,9 @@ export function createListPageController(config) {
       setListLayoutMode('grid');
     }, { signal });
 
-    document.getElementById(dom.listId)?.addEventListener('click', (event) => {
+    const listViewport = getListViewportEl();
+
+    listViewport?.addEventListener('click', (event) => {
       const groupToggle = event.target.closest('[data-group-toggle]');
       if (groupToggle) {
         const groupId = groupToggle.dataset.groupToggle;
@@ -909,7 +1233,7 @@ export function createListPageController(config) {
       if (item) detailModal.open(item);
     }, { signal });
 
-    document.getElementById(dom.listId)?.addEventListener('keydown', (event) => {
+    listViewport?.addEventListener('keydown', (event) => {
       if (event.key !== 'Enter' && event.key !== ' ') return;
       const row = event.target.closest(`[${itemIdAttr}], [data-activity-id], [data-restaurant-id]`);
       if (!row || !detailModal) return;
@@ -929,19 +1253,23 @@ export function createListPageController(config) {
   async function loadPageData({ force = false } = {}) {
     await initCustomOptions();
 
-    const listEl = document.getElementById(dom.listId);
-    const pickWrap = document.getElementById('act-pick-wrap');
-    const pickInner = document.getElementById('act-pick-inner');
+    const listElements = getListElements();
     const useCache = !force && hasCachedItems(collection);
 
-    if (listEl && !useCache) {
-      listEl.classList.add('is-loading');
-      listEl.innerHTML = `
+    if (listElements.length && !useCache) {
+      listElements.forEach((listEl) => {
+        listEl.classList.add('is-loading');
+        listEl.innerHTML = `
         <li class="skel-block skel-block--line skel-shimmer" aria-hidden="true"></li>
         <li class="skel-block skel-block--line skel-shimmer" aria-hidden="true"></li>
         <li class="skel-block skel-block--line skel-shimmer" aria-hidden="true"></li>
       `;
+      });
     }
+
+    const listEl = document.getElementById(dom.listId);
+    const pickWrap = document.getElementById('act-pick-wrap');
+    const pickInner = document.getElementById('act-pick-inner');
 
     if (pickWrap && pickInner && !useCache) {
       pickWrap.classList.remove('hidden');
@@ -964,6 +1292,8 @@ export function createListPageController(config) {
   }
 
   function destroy() {
+    viewSwapToken += 1;
+    layoutSwapToken += 1;
     isRolling = false;
     cleanupPickRollAnimation();
     listHasAnimated = false;
@@ -1044,7 +1374,7 @@ export function createListPageController(config) {
     }
 
     mountListToolbar();
-    setViewMode('list');
+    setViewMode('list', { animate: false });
 
     if (mapTabOptions) {
       const syncMapLayout = () => syncMapPanelLayout();

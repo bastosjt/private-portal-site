@@ -15,9 +15,9 @@ import { waitForTransition, nextFrame } from './lib/transitions.js';
 import { initSplash, dismissSplash, setSplashProgress } from './ui/splash.js';
 import { prefetchAppData, clearAppDataCache, scheduleBackgroundRefreshIfNeeded, onSecondaryPrefetchDone, onPrefetchProgress } from './data/appDataCache.js';
 import { backfillMissingPlaceMapsLinks } from './lib/place-maps-link-backfill.js';
-import { loadAppMapAssets, resetMapWarmup } from './pages/carte/map-warmup.js';
+import { warmMapForApp, startMapWarmupBackground, resetMapWarmup } from './pages/carte/map-warmup.js';
 import { initUserProfiles, clearUserProfilesCache } from './lib/user-profile.js';
-import { initSpaceSettings, clearSpaceSettingsCache } from './lib/space-settings.js';
+import { clearSpaceSettingsCache } from './lib/space-settings.js';
 import { initAppTheme, restoreSplashThemeHint, applyAuthTheme } from './lib/app-theme.js';
 import { initUserLocationAtLaunch, clearUserLocationState } from './lib/user-location.js';
 import { debounce } from './lib/debounce.js';
@@ -169,7 +169,7 @@ function syncStaleDataIfNeeded({ hiddenDurationMs = 0 } = {}) {
 }
 
 onSecondaryPrefetchDone(() => {
-  void loadAppMapAssets();
+  void startMapWarmupBackground();
   if (currentUser && !splashActive) refreshCurrentView();
 });
 
@@ -344,16 +344,22 @@ function showAuthView({ reveal = true } = {}) {
 }
 
 async function showAppView(user, { reveal = true, awaitData = false } = {}) {
-  await initCustomOptions();
-  await initUserProfiles(user.uid);
-  // Prefetch parallèle : collections + pioches + space settings (activeTravelId).
   const prefetch = prefetchAppData();
-  void prefetch.then(() => backfillMissingPlaceMapsLinks());
-  await initSpaceSettings();
+  await Promise.all([
+    initCustomOptions(),
+    initUserProfiles(user.uid),
+  ]);
+  void prefetch.then(async () => {
+    backfillMissingPlaceMapsLinks();
+    const { initApiUsageTracking } = await import('./lib/api-usage-tracker.js');
+    await initApiUsageTracking();
+    const { updateApiUsageMetrics } = await import('./lib/category-api-sources.js');
+    updateApiUsageMetrics({ animate: false });
+  });
   if (!splashActive) initAppTheme();
   if (awaitData) {
     await prefetch;
-    await loadAppMapAssets();
+    await warmMapForApp();
   }
   if (!splashActive) void initUserLocationAtLaunch();
   currentUser = user;
@@ -407,15 +413,15 @@ async function finishSplashForApp() {
     prefetchAppData(),
     bootMountDone,
   ]);
-  setSplashProgress(0.84);
-  await loadAppMapAssets();
   setSplashProgress(0.97);
   document.body.classList.add('app-page');
   document.body.classList.remove('auth-page');
   initAppTheme();
   await dismissSplash();
   splashActive = false;
-  await initUserLocationAtLaunch();
+  void initUserLocationAtLaunch();
+  void warmMapForApp();
+  void startMapWarmupBackground();
 }
 
 async function finishSplashForAuth() {

@@ -33,3 +33,17 @@ export async function upsertActiveTravelId(activeTravelId) {
     updatedAt: Timestamp.now(),
   }, { merge: true });
 }
+
+export async function upsertApiUsage(apiUsage) {
+  await setDoc(doc(db, SPACE_COLLECTION, SPACE_SETTINGS_DOC), {
+    apiUsage,
+    updatedAt: Timestamp.now(),
+  }, { merge: true });
+}
+
+export async function upsertApiUsageSeeds(apiUsageSeeds) {
+  await setDoc(doc(db, SPACE_COLLECTION, SPACE_SETTINGS_DOC), {
+    apiUsageSeeds,
+    updatedAt: Timestamp.now(),
+  }, { merge: true });
+}

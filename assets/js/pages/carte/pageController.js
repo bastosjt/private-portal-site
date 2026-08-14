@@ -7,10 +7,10 @@ import {
 } from '../../data/appDataCache.js';
 import { initCustomOptions } from '../../lib/custom-types.js';
 import { getTravelLinkId, shouldShowInGlobalCategoryList } from '../../lib/travel-link.js';
-import { destroyCategoryDetailModals, initCategoryDetailModals } from '../../ui/category-detail-registry.js';
-import { initAddItem } from '../../ui/add-item.js';
+import { setUserLocationEnabled } from '../../lib/user-location.js';
 import {
   destroyInteractiveMap,
+  focusMapOnUserLocation,
   getInteractiveMap,
   getLastUserLocation,
   initInteractiveMap,
@@ -34,6 +34,7 @@ import {
 } from './map-markers.js';
 import { isMapPinMoveActive, startMapPinMove, stopMapPinMove } from './map-pin-move.js';
 import { initMapTravelModeControls } from './map-travel-mode.js';
+import { destroyCategoryDetailModals, initCategoryDetailModals } from '../../ui/category-detail-registry.js';
 
 const MAP_DETAIL_CATEGORIES = ['activities', 'restaurants', 'travels'];
 
@@ -87,7 +88,26 @@ function updateHeaderSub() {
 function syncTravelModeUi() {
   syncMapLayerButtons();
   syncMapTravelModeButton();
+  syncMapTravelFocusChip();
   updateHeaderSub();
+}
+
+function syncMapTravelFocusChip() {
+  const chip = document.getElementById('map-travel-focus-chip');
+  const labelEl = document.getElementById('map-travel-focus-chip-label');
+  if (!chip) return;
+
+  if (!isTravelModeActive()) {
+    chip.classList.add('hidden');
+    chip.setAttribute('aria-hidden', 'true');
+    return;
+  }
+
+  const travel = findCachedItemById('travels', getSelectedTravelId());
+  const label = travel?.localisation?.trim() || travel?.pays?.trim() || 'Voyage';
+  if (labelEl) labelEl.textContent = label;
+  chip.classList.remove('hidden');
+  chip.removeAttribute('aria-hidden');
 }
 
 function handleMapDataChanged() {
@@ -243,12 +263,7 @@ function handleMarkersReady(map) {
 
 function scheduleMapPageFinalize() {
   requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      const map = getInteractiveMap();
-      if (!map) return;
-      map.resize();
-      refreshInteractiveMap({ onUpdated: () => handleMarkersReady(map) });
-    });
+    getInteractiveMap()?.resize();
   });
 }
 
@@ -289,6 +304,7 @@ export async function initMapPage(user, { addItemModal: sharedModal } = {}) {
   initDetailModals();
   setMapMarkerSelectionPrunedHandler(closeOpenMapDetail);
   updateHeaderSub();
+  syncMapTravelFocusChip();
 
   await ensureMapTilesPrewarmed();
 
@@ -316,7 +332,23 @@ export async function initMapPage(user, { addItemModal: sharedModal } = {}) {
       if (isMapPinMoveActive()) return;
       openMapItemDetail(categoryId, itemId, { flyTo: true });
     },
+    onShowAllPlaces: () => {
+      const input = document.getElementById('map-search-input');
+      if (input) {
+        input.value = '';
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    },
+    onEnableGeoloc: async () => {
+      await setUserLocationEnabled(true);
+      const map = getInteractiveMap();
+      if (map) focusMapOnUserLocation(map);
+    },
   });
+
+  document.getElementById('map-travel-focus-chip-close')?.addEventListener('click', () => {
+    travelModeControls?.deactivateTravelMode?.();
+  }, { signal: pageAbort.signal });
 
   scheduleMapPageFinalize();
 }

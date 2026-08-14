@@ -1,5 +1,9 @@
 import { escapeHtml } from '../../lib/escape-html.js';
 
+function buildOptionsSignature(options) {
+  return options.map((opt) => `${opt.value}:${opt.label}:${opt.ariaLabel || ''}`).join('|');
+}
+
 export function initWishlistControls({
   signal,
   getSegmentOptions = () => [],
@@ -10,10 +14,9 @@ export function initWishlistControls({
 
   if (!segmentsEl) return { sync: () => {} };
 
-  function renderSegments() {
-    const currentAuthor = getFilterState()?.status || 'mine';
-    const options = getSegmentOptions();
+  let renderedSignature = '';
 
+  function renderSegments(options, currentAuthor) {
     segmentsEl.innerHTML = options.map((opt) => `
       <button
         type="button"
@@ -27,17 +30,34 @@ export function initWishlistControls({
         <span class="wishlist-author-switch-label">${escapeHtml(opt.label)}</span>
       </button>
     `).join('');
+    renderedSignature = buildOptionsSignature(options);
+  }
+
+  function syncActiveState(currentAuthor) {
+    segmentsEl.querySelectorAll('[data-author]').forEach((btn) => {
+      const isActive = btn.dataset.author === currentAuthor;
+      btn.classList.toggle('is-active', isActive);
+      btn.setAttribute('aria-checked', isActive ? 'true' : 'false');
+    });
   }
 
   function sync() {
-    renderSegments();
+    const currentAuthor = getFilterState()?.status || 'mine';
+    const options = getSegmentOptions();
+    const signature = buildOptionsSignature(options);
+
+    if (signature !== renderedSignature) {
+      renderSegments(options, currentAuthor);
+      return;
+    }
+
+    syncActiveState(currentAuthor);
   }
 
   segmentsEl.addEventListener('click', (event) => {
     const btn = event.target.closest('[data-author]');
-    if (!btn) return;
+    if (!btn || btn.classList.contains('is-active')) return;
     setAuthor?.(btn.dataset.author);
-    sync();
   }, { signal });
 
   sync();

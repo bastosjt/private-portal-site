@@ -1,4 +1,5 @@
 import { TMDB_READ_ACCESS_TOKEN, isTmdbConfigured } from './tmdb-config.js';
+import { trackApiRequest } from './api-usage-tracker.js';
 import { devWarn } from './dev-log.js';
 
 const TMDB_API_BASE = 'https://api.themoviedb.org/3';
@@ -96,6 +97,8 @@ async function fetchSearchEndpoint(endpoint, query, { signal } = {}) {
     return [];
   }
 
+  trackApiRequest('tmdb');
+
   const data = await response.json();
   return data.results || [];
 }
@@ -145,6 +148,8 @@ async function searchMoviesAndSeriesLegacy(query, { signal, page = 1 } = {}) {
     return [];
   }
 
+  trackApiRequest('tmdb');
+
   const data = await response.json();
 
   return (data.results || [])
@@ -169,6 +174,8 @@ export async function retrieveMediaDetails({ id, mediaType }, { signal } = {}) {
     devWarn('tmdb media details:', response.status);
     return null;
   }
+
+  trackApiRequest('tmdb');
 
   const data = await response.json();
   return normalizeMediaDetails(data, mediaType);

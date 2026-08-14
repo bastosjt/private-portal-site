@@ -17,18 +17,19 @@ Application web privée partagée à deux. Centralise idées, lieux et envies co
 ## Fonctionnalités
 
 - **Espace restreint** — authentification Firebase, accès limité aux comptes autorisés
-- **Catalogues partagés** — activités, restaurants, films & séries, voyages, wishlist
-- **CRUD unifié** — formulaires dynamiques par catégorie, édition / suppression, statut et métadonnées
-- **Carte interactive** — MapLibre GL, pins géolocalisés, recherche (nom, type, cuisine, tag), filtres, deep-links vers un lieu
+- **Catalogues partagés** — activités, restaurants, films & séries, voyages, wishlist ; listes avec filtres, tri, vue liste/grille et (activités / restos) bascule liste ↔ carte
+- **CRUD unifié** — formulaires dynamiques par catégorie, édition / suppression (confirmation modale), statut et métadonnées
+- **Carte interactive** — MapLibre GL, pins géolocalisés (badges durée limitée, tags), recherche (nom, type, cuisine, tag), filtres, deep-links vers un lieu
 - **Mode voyage** — focus carte sur un voyage (zone, lieux liés), choix persisté ; pin voyage masqué en mode focus ; au départ recentrage géoloc ou tous les lieux locaux
 - **Accueil** — compteur de jours, suggestions / tirages, aperçu carte, accès rapide
 - **Profils & espace** — page Profil (hub) avec section **Notre espace**, avatars, tagline, réglages en sous-écrans
 - **Thèmes liquid glass** — DA personnelle par membre (mesh WebGL, chrome glass, modales) ; choix dans Paramètres → **Ton thème** ; écran de connexion toujours navy
 - **UX mobile / desktop** — header unifié, sidebar, bottom navigation, transitions premium, modal ajout en sheet plein écran mobile, installable (web manifest)
-- **Lieux (Google Places)** — recherche nom + adresse sur activités / restos ; suggestions contrôlées type & cuisine (mapping vers la taxonomie app) ; prix EUR estimé depuis Google
-- **Import par lien** — lieux depuis un URL Google Maps ; films via TMDB (affiche, métadonnées)
-- **Wishlist** — saisie manuelle (nom, prix, lien, photo) ; recadrage photo dans le formulaire (zoom, fond blanc à l’export)
-- **Paramètres** — catalogue des services/APIs par catégorie ; déconnexion sous le menu Réglages
+- **Lieux (Google Places)** — recherche nom + adresse sur activités / restos ; suggestions contrôlées type & cuisine ; prix EUR estimé ; import par lien Google Maps (Exabase, optionnel) avec barre de progression
+- **Import par lien** — lieux depuis un URL Google Maps ; films via TMDB (autocomplétion titre, affiche, métadonnées) avec progression visuelle
+- **Activités** — dates (à venir / période limitée), badge sur les icônes liste et carte ; tags optionnels avec pastille sur l’icône (comme la durée limitée)
+- **Wishlist** — saisie manuelle (nom, prix, lien, photo) ; bascule Moi / Partenaire ; recadrage photo dans le formulaire (zoom, fond blanc à l’export)
+- **Paramètres** — catalogue des services/APIs par catégorie, consommation API synchronisée, badges hub (sync, clés) ; déconnexion sous le menu Réglages
 
 ---
 
@@ -78,8 +79,8 @@ L’entrée unique est `index.html`. La navigation repose sur le hash (`#accueil
 | `assets/js/data/`       | Cache applicatif et synchronisation UI                |
 | `assets/js/navigation/` | Routing hash et deep-links carte                      |
 | `assets/js/pages/`      | Vues métier                                           |
-| `assets/js/ui/`         | Modales, détails d’items, splash, header chrome, bottom nav |
-| `assets/js/lib/`        | Adresses, géo, profils, utilitaires                   |
+| `assets/js/ui/`         | Modales, détails d’items, splash, header chrome, transitions de vues, bottom nav |
+| `assets/js/lib/`        | Adresses, géo, profils, tags, suivi consommation API, utilitaires                |
 | `assets/js/vendor/`     | Dépendances embarquées (MapLibre, Lucide, …)          |
 | `.github/workflows/`    | Build Pages + injection des secrets (Firebase, Places, TMDB, Exabase) |
 
@@ -293,9 +294,16 @@ CSP stricte côté `index.html` (scripts Firebase, tuiles CARTO, APIs d’adress
 ---
 ### 2.7.0
 
-- **Wishlist** — saisie manuelle (nom, prix, lien, photo) ; retrait de l’import automatique par URL
+- **Wishlist** — saisie manuelle (nom, prix, lien, photo) ; retrait de l’import automatique par URL ; bascule **Moi / Partenaire** avec crossfade (même animation que liste ↔ carte)
 - **Wishlist — photo** — recadrage / zoom dans le formulaire, export JPEG avec letterbox blanc
-- **Films & Séries — TMDB** — autocomplétion titre, import affiche et métadonnées
-- **Lieux — lien Google Maps** — collage d’URL Maps sur activités, restaurants, voyages (Exabase, optionnel)
-- **Paramètres → Application** — catalogue des services par catégorie, badges clé configurée / manquante / optionnel
+- **Films & Séries — TMDB** — autocomplétion titre, import affiche et métadonnées ; barre de progression à l’import
+- **Lieux — lien Google Maps** — collage d’URL Maps sur activités, restaurants, voyages (Exabase, optionnel) ; étapes de progression à l’import
+- **Listes — vues** — bascule **liste ↔ grille** avec crossfade (panneaux dédiés, même moteur que liste ↔ carte) ; toolbar sticky (compteur + filtres + switch layout)
+- **Listes — activités / restos** — bascule **liste ↔ carte** embarquée avec crossfade ; badge icône pour durée limitée / dates et pour les tags
+- **Listes — UX** — états vides unifiés (`.empty-state`) ; intro desktop sous le header ; correctif scroll fantôme après filtrage
+- **Suppression** — modal de confirmation sur toutes les fiches détail
+- **Paramètres → Application** — catalogue des services par catégorie ; tableau de bord **Consommation API** (sync entre appareils, lignes colorées vert → orange → rouge)
+- **Paramètres — badges** — pastilles hub (sync, clés API) et badges catalogue API harmonisés (largeur fixe, texte centré)
 - **Réglages** — bouton « Se déconnecter » sous le menu hub
+- **UI / thème** — factorisation glass (`app-glass-common.css`), tokens typo & breakpoints, skeletons unifiés (`.skel-shimmer`)
+- **Accessibilité** — focus clavier (sidebar, modales, retour header), `:focus-within` sur les champs, cibles tactiles 44×44 px minimum

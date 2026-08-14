@@ -3,6 +3,7 @@
  */
 import { Binoculars, Cat, Tag } from '../vendor/lucide.mjs';
 import { getFieldOptionLabel } from './custom-types.js';
+import { renderLucideIcon } from './lucide-icon.js';
 
 /** Tags avec icône pin dédiée (ordre = priorité d’affichage). Couleur = thème catégorie. */
 export const PIN_TAG_BADGE_DEFS = [
@@ -90,4 +91,40 @@ export function renderItemTagChipsHtml(categoryId, tags, escapeHtml) {
   return normalizeItemTags(tags).map((value) => (
     `<span class="act-chip act-chip--tag">${escapeHtml(getFieldOptionLabel(categoryId, 'tags', value))}</span>`
   )).join('');
+}
+
+function getTagBadgeIcon(tagValue) {
+  const def = getPinTagBadgeDef(tagValue);
+  const Icon = def?.Icon || GENERIC_TAG_BADGE.Icon;
+  return renderLucideIcon(Icon, { strokeWidth: 2, width: 14, height: 14 });
+}
+
+/** Pastille sur l’icône type en liste (même principe que act-schedule-icon-badge). */
+export function renderItemTagIconBadge(item, {
+  categoryId,
+  escapeHtml,
+  theme = 'cyan',
+} = {}) {
+  const tagValue = getPinTagValue(item?.tags);
+  if (!tagValue || !categoryId) return '';
+
+  const label = getFieldOptionLabel(categoryId, 'tags', tagValue);
+  const iconHtml = getTagBadgeIcon(tagValue);
+
+  return `
+    <span class="bottom-nav-explorer-badge act-tag-icon-badge" role="img" aria-label="${escapeHtml(label)}" title="${escapeHtml(label)}">
+      <span class="bottom-nav-page-badge" data-theme="${escapeHtml(theme)}" aria-hidden="true">${iconHtml}</span>
+    </span>
+  `;
+}
+
+export function renderTaggedListTypeIcon(item, renderCategoryIcon, {
+  categoryId,
+  escapeHtml,
+  theme = 'cyan',
+  getTypeValue = (entry) => entry?.type ?? entry?.categorie,
+} = {}) {
+  const iconHtml = renderCategoryIcon(getTypeValue(item));
+  const tagBadgeHtml = renderItemTagIconBadge(item, { categoryId, escapeHtml, theme });
+  return `${iconHtml}${tagBadgeHtml}`;
 }

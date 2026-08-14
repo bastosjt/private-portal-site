@@ -1,5 +1,7 @@
 import { getCategoryById } from '../../config.js';
+import { escapeHtml } from '../../lib/escape-html.js';
 import { renderRestaurantTypeIcon } from './IconsType.js';
+import { renderTaggedListTypeIcon } from '../../lib/item-tags.js';
 import { initRestaurantDetail } from '../../ui/restaurant-detail.js';
 import { createListPageController, DEFAULT_SORT_OPTIONS } from '../shared/listPageController.js';
 import {
@@ -10,6 +12,14 @@ import { createMapTabOptions } from '../shared/listMapSection.js';
 import { createGeoListPageDom } from '../shared/listPageDom.js';
 import { renderRestaurantListMeta } from '../shared/listMetaRenderers.js';
 import { createTodoListPageStatus } from '../shared/todoListPageSetup.js';
+
+const RESTAURANT_THEME = getCategoryById('restaurants')?.theme || 'rose';
+
+const tagBadgeOptions = {
+  categoryId: 'restaurants',
+  escapeHtml,
+  theme: RESTAURANT_THEME,
+};
 
 const { statusLabels: RESTAURANT_STATUS, statusFilterOptions: STATUS_FILTER_OPTIONS } =
   createTodoListPageStatus('restaurants');
@@ -54,7 +64,7 @@ const { init, destroy, refresh } = createListPageController({
   sidebarIconKey: 'restaurant',
   excludeTravelLinkedFromList: true,
   initDetail: initRestaurantDetail,
-  renderTypeIcon: (item) => renderRestaurantTypeIcon(item.type),
+  renderTypeIcon: (item) => renderTaggedListTypeIcon(item, renderRestaurantTypeIcon, tagBadgeOptions),
   renderListMeta: renderRestaurantListMeta,
   renderLocation: () => '',
   getPickLocation: (item) => item.adresse || '',

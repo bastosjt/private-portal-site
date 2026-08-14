@@ -106,7 +106,11 @@ export async function syncTravelZones(map, { markers = [], visible = true } = {}
     return;
   }
 
-  const features = await Promise.all(markers.map(async (marker) => {
+  const features = [];
+
+  for (const marker of markers) {
+    if (generation !== syncTravelZonesGeneration) return;
+
     const [lng, lat] = marker.coordinates;
     const geometry = await getPlaceBoundary({
       label: getTravelLabel(marker),
@@ -114,9 +118,9 @@ export async function syncTravelZones(map, { markers = [], visible = true } = {}
       lng,
     });
 
-    if (!geometry) return null;
+    if (!geometry) continue;
 
-    return {
+    features.push({
       type: 'Feature',
       geometry,
       properties: {
@@ -124,14 +128,14 @@ export async function syncTravelZones(map, { markers = [], visible = true } = {}
         title: marker.title,
         done: marker.done ? 1 : 0,
       },
-    };
-  }));
+    });
+  }
 
   if (generation !== syncTravelZonesGeneration) return;
 
   map.getSource('map-travel-zones').setData({
     type: 'FeatureCollection',
-    features: features.filter(Boolean),
+    features,
   });
   syncTravelZoneVisibility(map, visible);
   map.triggerRepaint?.();

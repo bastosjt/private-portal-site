@@ -6,7 +6,7 @@ import { initWishlistControls } from './wishlist-controls.js';
 import { getCategoryStatusLabels } from '../../lib/category-status-labels.js';
 import { createListPageController, DEFAULT_SORT_OPTIONS } from '../shared/listPageController.js';
 import { createListPageLabels, createSortOnlyFilterSections } from '../shared/listPageBoilerplate.js';
-import { createListOnlyPageDom } from '../shared/listPageDom.js';
+import { createWishlistPageDom } from '../shared/listPageDom.js';
 import { createDotJoinedListMetaRenderer } from '../shared/listMetaRenderers.js';
 import {
   AUTHOR_FILTER_OPTIONS,
@@ -26,6 +26,8 @@ function getWishlistPriceLabel(item, formatItemPriceFn) {
   return legacy;
 }
 
+const wishlistDom = createWishlistPageDom('wishlist');
+
 const { renderListMeta: renderWishlistListMeta } = createDotJoinedListMetaRenderer({
   getParts: (item, { getFieldLabel, formatItemPrice: formatItemPriceFn }) => {
     const parts = [];
@@ -40,7 +42,8 @@ const { init, destroy, refresh } = createListPageController({
   categoryId: 'wishlist',
   collection: 'wishlist',
   theme: getCategoryById('wishlist')?.theme || 'pink',
-  dom: createListOnlyPageDom('wishlist'),
+  dom: wishlistDom,
+  authorPanels: wishlistDom.authorPanels,
   itemIdAttr: 'data-wishlist-id',
   enablePick: false,
   useTodoHeaderSubtitle: true,

@@ -11,6 +11,7 @@ import {
   renderTravelListTypeIcon,
 } from '../activites/scheduleDisplay.js';
 import { renderRestaurantTypeIcon } from '../restaurants/IconsType.js';
+import { renderTaggedListTypeIcon } from '../../lib/item-tags.js';
 import { renderTravelTypeIcon } from './IconsType.js';
 import { initTravelDetail } from '../../ui/travel-detail.js';
 import { initActivityDetail } from '../../ui/activity-detail.js';
@@ -197,7 +198,7 @@ function renderTravelGroupRestaurantItem(restaurant, index, { animate, escapeHtm
       <div class="act-list-item-inner" data-theme="${RESTAURANT_THEME}" data-restaurant-id="${escapeHtml(restaurant.id)}" role="button" tabindex="0" aria-label="Voir ${escapeHtml(restaurant.nom)}">
         <span class="cat-panel-accent" aria-hidden="true"></span>
         <div class="act-list-item-head">
-          <span class="cat-panel-icon url-import-preview__price-badge">${renderRestaurantTypeIcon(restaurant.type)}</span>
+          <span class="cat-panel-icon url-import-preview__price-badge">${renderTaggedListTypeIcon(restaurant, renderRestaurantTypeIcon, { categoryId: 'restaurants', escapeHtml, theme: RESTAURANT_THEME })}</span>
           <div class="act-list-item-body">
             <h3>${escapeHtml(restaurant.nom)}</h3>
             <div class="act-list-meta act-list-meta--restaurant">

@@ -2,6 +2,10 @@ import { escapeHtml } from '../lib/escape-html.js';
 import { buildTmdbPosterUrl } from '../lib/tmdb-poster.js';
 import { getFieldOptionLabel } from '../lib/custom-types.js';
 import { renderMovieTypeIcon } from '../pages/films/IconsType.js';
+import { mountUrlImportProgress } from './url-import-progress.js';
+
+const MOVIE_IMPORT_STEPS = ['Recherche…', 'Métadonnées…', 'Import…'];
+const importStepControllers = new WeakMap();
 
 const importResetters = new WeakMap();
 const lastImportedTitles = new WeakMap();
@@ -120,17 +124,14 @@ export function showMovieImportLoading(fieldWrap, inputWrap) {
   setFieldState(fieldWrap, inputWrap, 'loading');
   feedbackEl.dataset.state = 'loading';
   feedbackEl.setAttribute('aria-hidden', 'false');
-  feedbackEl.innerHTML = `
-    <span class="url-import-preview__kicker">Recherche en cours</span>
-    <div class="url-import-preview__inner url-import-preview__inner--loading">
-      <div class="url-import-preview__image url-import-preview__skeleton" aria-hidden="true"></div>
-      <div class="url-import-preview__content">
-        <span class="url-import-preview__skeleton-line" aria-hidden="true"></span>
-        <span class="url-import-preview__skeleton-line url-import-preview__skeleton-line--short" aria-hidden="true"></span>
-      </div>
-    </div>
-  `;
+  importStepControllers.set(feedbackEl, mountUrlImportProgress(feedbackEl, MOVIE_IMPORT_STEPS, 0));
   feedbackEl.classList.add('is-visible');
+}
+
+export function advanceMovieImportStep(fieldWrap, stepIndex) {
+  const feedbackEl = getFeedbackEl(fieldWrap);
+  const setStep = feedbackEl ? importStepControllers.get(feedbackEl) : null;
+  setStep?.(stepIndex);
 }
 
 export function renderMovieImportPreview(fieldWrap, inputWrap, metadata, {

@@ -1,9 +1,29 @@
 import { devWarn, devError } from './dev-log.js';
+import { trackApiRequest } from './api-usage-tracker.js';
 const NOMINATIM_URL = 'https://nominatim.openstreetmap.org/search';
 const NOMINATIM_REVERSE_URL = 'https://nominatim.openstreetmap.org/reverse';
 const USER_AGENT = 'OurSpacePrivatePortal/1.0';
 
 const boundaryCache = new Map();
+let nominatimQueue = Promise.resolve();
+let lastNominatimFetchAt = 0;
+const NOMINATIM_MIN_INTERVAL_MS = 1100;
+
+function enqueueNominatimFetch(task) {
+  const run = nominatimQueue.then(async () => {
+    const waitMs = Math.max(0, NOMINATIM_MIN_INTERVAL_MS - (Date.now() - lastNominatimFetchAt));
+    if (waitMs > 0) {
+      await new Promise((resolve) => {
+        window.setTimeout(resolve, waitMs);
+      });
+    }
+    lastNominatimFetchAt = Date.now();
+    return task();
+  });
+
+  nominatimQueue = run.catch(() => {});
+  return run;
+}
 
 function cacheKey({ lat, lng, label }) {
   return `${Number(lat).toFixed(4)},${Number(lng).toFixed(4)}:${String(label || '').trim().toLowerCase()}`;
@@ -54,15 +74,20 @@ export function createCirclePolygon(centerLngLat, radiusKm = 8, steps = 64) {
 }
 
 async function fetchNominatimJson(url, signal) {
-  const response = await fetch(url, {
-    signal,
-    headers: {
-      'Accept-Language': 'fr',
-      'User-Agent': USER_AGENT,
-    },
+  return enqueueNominatimFetch(async () => {
+    const response = await fetch(url, {
+      signal,
+      headers: {
+        'Accept-Language': 'fr',
+        'User-Agent': USER_AGENT,
+      },
+    });
+    if (!response.ok) throw new Error(`Nominatim ${response.status}`);
+
+    trackApiRequest('nominatim');
+
+    return response.json();
   });
-  if (!response.ok) throw new Error(`Nominatim ${response.status}`);
-  return response.json();
 }
 
 function geometryFromNominatimResult(result) {

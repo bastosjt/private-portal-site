@@ -1,6 +1,6 @@
 import { getCategoryById } from '../config.js';
 import { devError } from '../lib/dev-log.js';
-import { fetchActivityDetailMedia, canLoadActivityPlacePhoto } from '../lib/google-place-photo.js';
+import { fetchActivityDetailMedia, canLoadActivityPlacePhoto, getPlacePhotoMediaFromItem } from '../lib/google-place-photo.js';
 import { createPlaceDetailMediaLoader } from './place-detail-media-loader.js';
 import { updateItem, deleteItem } from '../firebase/firestore.js';
 import { syncCachedItemWrite } from '../data/appDataCache.js';
@@ -21,6 +21,7 @@ import {
   wireModalDragClose,
   wrapDetailContentHtml,
   itemHasMapPin,
+  confirmItemDeletion,
 } from './item-detail-shared.js';
 import {
   createDetailListSelection,
@@ -100,10 +101,10 @@ export function initActivityDetail({ onChanged, onEdit, onMovePin, onClose, them
   const category = getCategoryById(COLLECTION);
   let currentItem = null;
   let isBusy = false;
-  let confirmDelete = false;
   const mediaLoader = createPlaceDetailMediaLoader({
     canLoad: canLoadActivityPlacePhoto,
     fetchMedia: fetchActivityDetailMedia,
+    getInstantMedia: getPlacePhotoMediaFromItem,
     logLabel: 'activity place media',
   });
   const { setSelectedItem, getSelectedRow } = createDetailListSelection(ITEM_ID_ATTR);
@@ -131,7 +132,6 @@ export function initActivityDetail({ onChanged, onEdit, onMovePin, onClose, them
         ${renderDoneToggle(Boolean(item.done), isBusy, DONE_LABELS)}
     `, {
       done: item.done,
-      confirmDelete,
       isBusy,
       canMovePin: itemHasMapPin(item) && Boolean(onMovePin),
     });
@@ -191,11 +191,11 @@ export function initActivityDetail({ onChanged, onEdit, onMovePin, onClose, them
   async function handleDelete() {
     if (!currentItem || isBusy) return;
 
-    if (!confirmDelete) {
-      confirmDelete = true;
-      renderContent(currentItem);
-      return;
-    }
+    const confirmed = await confirmItemDeletion({
+      itemName: currentItem.nom,
+      entityLabel: 'Cette activité',
+    });
+    if (!confirmed) return;
 
     isBusy = true;
     renderContent(currentItem);
@@ -208,7 +208,6 @@ export function initActivityDetail({ onChanged, onEdit, onMovePin, onClose, them
       onChanged?.(COLLECTION, itemId, { deleted: true });
     } catch (err) {
       devError('deleteItem:', err);
-      confirmDelete = false;
     } finally {
       isBusy = false;
       if (currentItem) renderContent(currentItem);
@@ -219,9 +218,8 @@ export function initActivityDetail({ onChanged, onEdit, onMovePin, onClose, them
     if (!item) return;
     await initCustomOptions();
     currentItem = item;
-    confirmDelete = false;
     isBusy = false;
-    renderContent(item);
+    renderContent(item, { placeMedia: getPlacePhotoMediaFromItem(item) });
     setSelectedItem(item.id);
     loadPlaceMedia(item);
     overlay.classList.remove('hidden');
@@ -249,7 +247,6 @@ export function initActivityDetail({ onChanged, onEdit, onMovePin, onClose, them
     setSelectedItem(null);
     rowToReveal?.scrollIntoView({ block: 'nearest' });
     currentItem = null;
-    confirmDelete = false;
     isBusy = false;
     bodyEl.innerHTML = '';
   }
@@ -262,11 +259,6 @@ export function initActivityDetail({ onChanged, onEdit, onMovePin, onClose, them
 
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' && !overlay.classList.contains('hidden')) {
-      if (confirmDelete) {
-        confirmDelete = false;
-        renderContent(currentItem);
-        return;
-      }
       close();
     }
   }, { signal });

@@ -1,4 +1,5 @@
 import { devWarn } from './dev-log.js';
+import { trackApiRequest } from './api-usage-tracker.js';
 
 const FRANKFURTER_URL = 'https://api.frankfurter.dev/v1/latest';
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
@@ -35,6 +36,8 @@ async function fetchEurConversionRate(currency, { signal } = {}) {
   const url = `${FRANKFURTER_URL}?from=${encodeURIComponent(currency)}&to=EUR`;
   const response = await fetch(url, { signal });
   if (!response.ok) throw new Error(`Currency rate ${response.status}`);
+
+  trackApiRequest('frankfurter');
 
   const data = await response.json();
   const rate = data.rates?.EUR;

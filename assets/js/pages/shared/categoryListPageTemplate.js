@@ -29,6 +29,7 @@ export function renderMapCategoryListPageView({
     mapAriaLabel,
     fitAllAriaLabel,
     emptyHint,
+    listSub,
   });
 
   return renderCategoryListPageView({
@@ -56,6 +57,7 @@ export function renderListOnlyCategoryPageView({
         prefix,
         listPanelId: dom.listPanelId,
         listId: dom.listId,
+        listSub,
       }),
     }),
   });
